@@ -8,8 +8,9 @@ use App\Clock;
 use App\Context\Organization\OrganizationRepository;
 use App\Value\Email;
 use Cycle\ORM\EntityManagerInterface;
+use InvalidArgumentException;
 
-final class Registration
+final readonly class Registration
 {
     public function __construct(
         private InviteRepository $invites,
@@ -24,7 +25,7 @@ final class Registration
     {
         $identityId = trim($identityId);
         if ($identityId === '') {
-            throw new \InvalidArgumentException('Identity id is empty');
+            throw new InvalidArgumentException('Identity id is empty');
         }
 
         $email = (new Email($email))->toString();
@@ -33,22 +34,22 @@ final class Registration
             return $existing;
         }
         if ($existing !== null && $existing->getIdentityId() !== null) {
-            throw new IdentityAlreadyLinked('This email is already registered');
+            throw new IdentityAlreadyLinkedException('This email is already registered');
         }
 
         $byIdentity = $this->users->findByIdentityId($identityId);
         if ($byIdentity !== null && $byIdentity->getEmail() !== $email) {
-            throw new IdentityAlreadyLinked('This identity is already linked');
+            throw new IdentityAlreadyLinkedException('This identity is already linked');
         }
 
         $invite = $this->invites->findActiveByEmail($email);
         if ($invite === null) {
-            throw new InviteMissing('На этот адрес нет приглашения');
+            throw new InviteMissingException('На этот адрес нет приглашения');
         }
 
         $organization = $this->organizations->findById($invite->getOrganizationId());
         if ($organization === null) {
-            throw new InviteMissing('Организация приглашения не найдена');
+            throw new InviteMissingException('Организация приглашения не найдена');
         }
 
         $user = $existing ?? $this->userFactory->create($organization, $email, $invite->getRole(), $identityId);

@@ -6,8 +6,9 @@ namespace App\Context\Identity;
 
 use App\Context\Organization\OrganizationRepository;
 use App\Context\User\UserRepository;
+use Ory\Client\Model\Session;
 
-final class SessionView
+final readonly class SessionView
 {
     public function __construct(
         private UserRepository $users,
@@ -15,18 +16,17 @@ final class SessionView
     ) {}
 
     /**
-     * @param array<string, mixed> $session
      * @return array<string, mixed>
      */
-    public function present(array $session): array
+    public function present(Session $session): array
     {
-        $identity = $session['identity'] ?? null;
-        $identityId = is_array($identity) && is_string($identity['id'] ?? null) ? $identity['id'] : '';
+        $identity = $session->getIdentity();
+        $identityId = $identity === null ? '' : (string) $identity->getId();
         $user = $identityId !== '' ? $this->users->findByIdentityId($identityId) : null;
         $organization = $user !== null ? $this->organizations->findById($user->getOrganizationId()) : null;
 
         return [
-            'session' => $session,
+            'session' => $session->jsonSerialize(),
             'user' => $user === null ? null : [
                 'id' => $user->getId(),
                 'email' => $user->getEmail(),

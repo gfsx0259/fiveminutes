@@ -7,7 +7,7 @@ namespace App\Api;
 use Psr\Http\Message\ResponseInterface;
 use Yiisoft\DataResponse\ResponseFactory\DataResponseFactoryInterface;
 
-final class HealthController
+final readonly class HealthController
 {
     public function __construct(
         private readonly DataResponseFactoryInterface $responses,

@@ -6,13 +6,13 @@ namespace App\Context\User;
 
 use App\Clock;
 use App\Context\Organization\Organization;
-use App\UuidGenerator;
+use Ramsey\Uuid\UuidFactoryInterface;
 use App\Value\Email;
 
-final class InviteFactory
+final readonly class InviteFactory
 {
     public function __construct(
-        private UuidGenerator $uuids,
+        private UuidFactoryInterface $uuids,
         private Clock $clock,
     ) {}
 
@@ -21,7 +21,7 @@ final class InviteFactory
         $now = $this->clock->now();
 
         return new Invite(
-            $this->uuids->v4(),
+            $this->uuids->uuid4()->toString(),
             $organization->getId(),
             (new Email($email))->toString(),
             $role,

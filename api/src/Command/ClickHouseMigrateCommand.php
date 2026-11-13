@@ -29,9 +29,27 @@ final class ClickHouseMigrateCommand extends Command
             throw new RuntimeException('ClickHouse schema file is missing.');
         }
 
-        $this->clickhouse->execute($sql);
+        foreach ($this->statements($sql) as $statement) {
+            $this->clickhouse->execute($statement);
+        }
         $output->writeln('leads');
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function statements(string $sql): array
+    {
+        $statements = [];
+        foreach (explode(';', $sql) as $statement) {
+            $statement = trim($statement);
+            if ($statement !== '') {
+                $statements[] = $statement;
+            }
+        }
+
+        return $statements;
     }
 }

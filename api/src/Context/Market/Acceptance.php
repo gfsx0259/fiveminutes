@@ -9,77 +9,52 @@ use App\Value\Volume;
 use Cycle\Annotated\Annotation\Column;
 use Cycle\Annotated\Annotation\Entity;
 use DateTimeInterface;
+use DomainException;
+use InvalidArgumentException;
 
 #[Entity(repository: AcceptanceRepository::class, table: 'acceptances')]
 class Acceptance
 {
-    #[Column(type: 'uuid', primary: true)]
-    private string $id;
-
-    #[Column(type: 'uuid', name: 'organization_id')]
-    private string $organizationId;
-
-    #[Column(type: 'uuid', name: 'slot_id', nullable: true)]
-    private ?string $slotId;
-
-    #[Column(type: 'uuid', name: 'demand_id', nullable: true)]
-    private ?string $demandId;
-
-    #[Column(type: 'uuid', name: 'partner_id')]
-    private string $partnerId;
-
-    #[Column(type: 'uuid', name: 'buyer_id')]
-    private string $buyerId;
-
-    #[Column(type: 'integer', typecast: 'int')]
-    private int $volume;
-
-    #[Column(type: 'integer', name: 'buyer_price_cents', typecast: 'int')]
-    private int $buyerPriceCents;
-
-    #[Column(type: 'integer', name: 'partner_price_cents', typecast: 'int')]
-    private int $partnerPriceCents;
-
-    #[Column(type: 'string', name: 'pricing_model')]
-    private string $pricingModel;
-
-    #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
-    private DateTimeInterface $createdAt;
-
     public function __construct(
-        string $id,
-        string $organizationId,
-        ?string $slotId,
-        ?string $demandId,
-        string $partnerId,
-        string $buyerId,
-        int $volume,
-        int $buyerPriceCents,
-        int $partnerPriceCents,
-        string $pricingModel,
-        DateTimeInterface $createdAt,
+        #[Column(type: 'uuid', primary: true)]
+        private readonly string $id,
+        #[Column(type: 'uuid', name: 'organization_id')]
+        private readonly string $organizationId,
+        #[Column(type: 'uuid', name: 'slot_id', nullable: true)]
+        private readonly ?string $slotId,
+        #[Column(type: 'uuid', name: 'demand_id', nullable: true)]
+        private readonly ?string $demandId,
+        #[Column(type: 'uuid', name: 'partner_id')]
+        private readonly string $partnerId,
+        #[Column(type: 'uuid', name: 'buyer_id')]
+        private readonly string $buyerId,
+        #[Column(type: 'integer', typecast: 'int')]
+        private readonly int $volume,
+        #[Column(type: 'integer', name: 'buyer_price_cents', typecast: 'int')]
+        private readonly int $buyerPriceCents,
+        #[Column(type: 'integer', name: 'partner_price_cents', typecast: 'int')]
+        private readonly int $partnerPriceCents,
+        #[Column(type: 'string', name: 'pricing_model')]
+        private readonly string $pricingModel,
+        #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
+        private readonly DateTimeInterface $createdAt,
+        #[Column(type: 'integer', name: 'sold_count', typecast: 'int')]
+        private int $soldCount = 0,
     ) {
-        if (($slotId === null) === ($demandId === null)) {
-            throw new \InvalidArgumentException('Acceptance refers to a slot or a demand');
+        if (($this->slotId === null) === ($this->demandId === null)) {
+            throw new InvalidArgumentException('Acceptance refers to a slot or a demand');
         }
 
-        $buyerPrice = new Money($buyerPriceCents);
-        $partnerPrice = new Money($partnerPriceCents);
+        new Volume($this->volume);
+        $buyerPrice = new Money($this->buyerPriceCents);
+        $partnerPrice = new Money($this->partnerPriceCents);
         if ($partnerPrice->isBelow($buyerPrice)) {
-            throw new \InvalidArgumentException('Partner price is below the buyer price');
+            throw new InvalidArgumentException('Partner price is below the buyer price');
         }
-
-        $this->id = $id;
-        $this->organizationId = $organizationId;
-        $this->slotId = $slotId;
-        $this->demandId = $demandId;
-        $this->partnerId = $partnerId;
-        $this->buyerId = $buyerId;
-        $this->volume = (new Volume($volume))->toInt();
-        $this->buyerPriceCents = $buyerPrice->cents();
-        $this->partnerPriceCents = $partnerPrice->cents();
-        $this->pricingModel = PricingModel::from($pricingModel)->value;
-        $this->createdAt = $createdAt;
+        PricingModel::from($this->pricingModel);
+        if ($this->soldCount < 0 || $this->soldCount > $this->volume) {
+            throw new InvalidArgumentException('Sold count is outside the acceptance volume');
+        }
     }
 
     public function getId(): string
@@ -135,5 +110,24 @@ class Acceptance
     public function getCreatedAt(): DateTimeInterface
     {
         return $this->createdAt;
+    }
+
+    public function getSoldCount(): int
+    {
+        return $this->soldCount;
+    }
+
+    public function hasRoom(): bool
+    {
+        return $this->soldCount < $this->volume;
+    }
+
+    public function reserve(): void
+    {
+        if (!$this->hasRoom()) {
+            throw new DomainException('Acceptance has no remaining volume');
+        }
+
+        $this->soldCount++;
     }
 }

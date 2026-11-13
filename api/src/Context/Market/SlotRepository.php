@@ -17,9 +17,27 @@ class SlotRepository extends Repository
      */
     public function findOpenByOrganization(string $organizationId): Collection
     {
-        return $this->collection([
+        return $this->ordered([
             'organizationId' => $organizationId,
             'status' => ListingStatus::Open->value,
         ]);
+    }
+
+    /**
+     * @return Collection<int, Slot>
+     */
+    public function findByBuyer(string $organizationId, string $buyerId): Collection
+    {
+        return $this->ordered([
+            'organizationId' => $organizationId,
+            'buyerId' => $buyerId,
+        ]);
+    }
+
+    public function findById(string $id): ?Slot
+    {
+        $found = $this->findByPK($id);
+
+        return $found instanceof Slot ? $found : null;
     }
 }

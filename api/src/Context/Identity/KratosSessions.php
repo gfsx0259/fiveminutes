@@ -4,42 +4,34 @@ declare(strict_types=1);
 
 namespace App\Context\Identity;
 
-use GuzzleHttp\Client;
-use RuntimeException;
+use Ory\Client\Api\FrontendApi;
+use Ory\Client\ApiException;
+use Ory\Client\Model\Session;
 
-final class KratosSessions
+final readonly class KratosSessions
 {
-    public function __construct(
-        private Client $http,
-        private string $publicUrl,
-    ) {}
+    public function __construct(private FrontendApi $ory) {}
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function read(string $cookie): array
+    public function read(string $cookie): Session
     {
         if (trim($cookie) === '') {
-            throw new NoSession('No session');
+            throw new NoSessionException('No session');
         }
 
-        $response = $this->http->get(rtrim($this->publicUrl, '/') . '/sessions/whoami', [
-            'headers' => [
-                'Accept' => 'application/json',
-                'Cookie' => $cookie,
-            ],
-        ]);
+        try {
+            $session = $this->ory->toSession('', $cookie);
+        } catch (ApiException $exception) {
+            if (in_array($exception->getCode(), [401, 403], true)) {
+                throw new NoSessionException('No session');
+            }
 
-        if ($response->getStatusCode() !== 200) {
-            throw new NoSession('No session');
+            throw $exception;
         }
 
-        $payload = json_decode((string) $response->getBody(), true);
-        if (!is_array($payload)) {
-            throw new RuntimeException('Kratos session is not JSON');
+        if (!$session instanceof Session || $session->getActive() !== true) {
+            throw new NoSessionException('No session');
         }
 
-        /** @var array<string, mixed> $payload */
-        return $payload;
+        return $session;
     }
 }

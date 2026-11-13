@@ -7,7 +7,7 @@ namespace App\Listener;
 use Cycle\ORM\ORMInterface;
 use Yiisoft\Yii\Http\Event\AfterRequest;
 
-final class CycleOrmHeapCleaner
+final readonly class CycleOrmHeapCleaner
 {
     public function __construct(
         private readonly ORMInterface $orm,

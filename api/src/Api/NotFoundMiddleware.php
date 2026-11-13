@@ -10,7 +10,7 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Yiisoft\DataResponse\ResponseFactory\DataResponseFactoryInterface;
 
-final class NotFoundMiddleware implements MiddlewareInterface
+final readonly class NotFoundMiddleware implements MiddlewareInterface
 {
     public function __construct(
         private readonly DataResponseFactoryInterface $responses,

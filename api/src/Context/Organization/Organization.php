@@ -9,37 +9,29 @@ use App\Value\Apex;
 use Cycle\Annotated\Annotation\Column;
 use Cycle\Annotated\Annotation\Entity;
 use DateTimeInterface;
+use InvalidArgumentException;
 
 #[Entity(repository: OrganizationRepository::class, table: 'organizations')]
 class Organization
 {
-    #[Column(type: 'uuid', primary: true)]
-    private string $id;
-
     #[Column(type: 'string')]
     private string $name;
 
     #[Column(type: 'string')]
-    private string $apex;
-
-    #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
-    private DateTimeInterface $createdAt;
-
-    #[Column(type: 'datetime', name: 'updated_at', typecast: 'datetime')]
-    private DateTimeInterface $updatedAt;
+    private readonly string $apex;
 
     public function __construct(
-        string $id,
+        #[Column(type: 'uuid', primary: true)]
+        private readonly string $id,
         string $name,
         string $apex,
-        DateTimeInterface $createdAt,
-        DateTimeInterface $updatedAt,
+        #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
+        private readonly DateTimeInterface $createdAt,
+        #[Column(type: 'datetime', name: 'updated_at', typecast: 'datetime')]
+        private DateTimeInterface $updatedAt,
     ) {
-        $this->id = $id;
         $this->name = $this->requireName($name);
         $this->apex = (new Apex($apex))->toString();
-        $this->createdAt = $createdAt;
-        $this->updatedAt = $updatedAt;
     }
 
     public function getId(): string
@@ -72,7 +64,7 @@ class Organization
     {
         $name = trim($name);
         if ($name === '') {
-            throw new \InvalidArgumentException('Name is empty');
+            throw new InvalidArgumentException('Name is empty');
         }
 
         return $name;

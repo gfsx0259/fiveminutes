@@ -6,7 +6,7 @@ namespace App\Context\Market;
 
 use DateTimeInterface;
 
-final class ListingStatusChange
+final readonly class ListingStatusChange
 {
     public function __construct(
         private ListingStatus $status,

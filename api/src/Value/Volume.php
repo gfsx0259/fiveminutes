@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace App\Value;
 
-final class Volume
+use InvalidArgumentException;
+
+final readonly class Volume
 {
-    private int $value;
-
-    public function __construct(int $value)
+    public function __construct(private int $value)
     {
-        if ($value <= 0) {
-            throw new \InvalidArgumentException('Volume must be positive');
+        if ($this->value <= 0) {
+            throw new InvalidArgumentException('Volume must be positive');
         }
-
-        $this->value = $value;
     }
 
     public function toInt(): int

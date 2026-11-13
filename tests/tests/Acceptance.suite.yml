@@ -1,0 +1,15 @@
+actor: AcceptanceTester
+modules:
+    enabled:
+        - Asserts
+        - PhpBrowser:
+            url: https://api.chase.io
+            verify: false
+        - REST:
+            url: https://api.chase.io
+            depends: PhpBrowser
+        - Tests\Support\Helper\Cabinet:
+            kratos: https://id.chase.io
+            password: rider-local
+            buyer: buyer@chase.io
+            partner: partner@chase.io

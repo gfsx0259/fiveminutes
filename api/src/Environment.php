@@ -11,7 +11,7 @@ use function in_array;
 use function is_file;
 use function sprintf;
 
-final class Environment
+final readonly class Environment
 {
     public const string DEV = 'dev';
     public const string TEST = 'test';

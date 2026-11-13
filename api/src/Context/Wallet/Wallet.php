@@ -6,13 +6,13 @@ namespace App\Context\Wallet;
 
 use App\Clock;
 use App\Context\User\User;
-use App\UuidGenerator;
+use Ramsey\Uuid\UuidFactoryInterface;
 use App\Value\Money;
 
-final class Wallet
+final readonly class Wallet
 {
     public function __construct(
-        private UuidGenerator $uuids,
+        private UuidFactoryInterface $uuids,
         private Clock $clock,
     ) {}
 
@@ -33,7 +33,7 @@ final class Wallet
     private function entry(User $user, Direction $direction, Money $amount): WalletTransaction
     {
         return new WalletTransaction(
-            $this->uuids->v4(),
+            $this->uuids->uuid4()->toString(),
             $user->getOrganizationId(),
             $user->getId(),
             $direction,

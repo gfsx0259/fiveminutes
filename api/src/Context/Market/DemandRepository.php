@@ -17,9 +17,27 @@ class DemandRepository extends Repository
      */
     public function findOpenByOrganization(string $organizationId): Collection
     {
-        return $this->collection([
+        return $this->ordered([
             'organizationId' => $organizationId,
             'status' => ListingStatus::Open->value,
         ]);
+    }
+
+    /**
+     * @return Collection<int, Demand>
+     */
+    public function findByPartner(string $organizationId, string $partnerId): Collection
+    {
+        return $this->ordered([
+            'organizationId' => $organizationId,
+            'partnerId' => $partnerId,
+        ]);
+    }
+
+    public function findById(string $id): ?Demand
+    {
+        $found = $this->findByPK($id);
+
+        return $found instanceof Demand ? $found : null;
     }
 }

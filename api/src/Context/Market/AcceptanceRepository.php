@@ -27,6 +27,22 @@ class AcceptanceRepository extends Repository
         return $found instanceof Acceptance ? $found : null;
     }
 
+    /**
+     * @return Collection<int, Acceptance>
+     */
+    public function findByBuyer(string $buyerId): Collection
+    {
+        return $this->ordered(['buyerId' => $buyerId]);
+    }
+
+    /**
+     * @return Collection<int, Acceptance>
+     */
+    public function findByPartner(string $partnerId): Collection
+    {
+        return $this->ordered(['partnerId' => $partnerId]);
+    }
+
     public function findByDemand(string $demandId): ?Acceptance
     {
         $found = $this->findOne(['demandId' => $demandId]);

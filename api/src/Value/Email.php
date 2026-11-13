@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Value;
 
-final class Email
+use InvalidArgumentException;
+
+final readonly class Email
 {
     private string $value;
 
@@ -12,7 +14,7 @@ final class Email
     {
         $value = strtolower(trim($value));
         if (filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
-            throw new \InvalidArgumentException('Email is invalid');
+            throw new InvalidArgumentException('Email is invalid');
         }
 
         $this->value = $value;

@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Api;
 
-use App\Context\User\IdentityAlreadyLinked;
-use App\Context\User\InviteMissing;
+use App\Context\User\IdentityAlreadyLinkedException;
+use App\Context\User\InviteMissingException;
 use App\Context\User\Registration;
+use InvalidArgumentException;
 use JsonException;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Yiisoft\DataResponse\ResponseFactory\DataResponseFactoryInterface;
 use Yiisoft\RequestProvider\RequestProviderInterface;
 
-final class RegistrationController
+final readonly class RegistrationController
 {
     public function __construct(
         private Registration $registration,
@@ -30,11 +31,11 @@ final class RegistrationController
 
         try {
             $this->registration->accept($userId, $email);
-        } catch (InviteMissing $exception) {
+        } catch (InviteMissingException $exception) {
             return $this->interrupt($exception->getMessage(), 400);
-        } catch (IdentityAlreadyLinked $exception) {
+        } catch (IdentityAlreadyLinkedException $exception) {
             return $this->interrupt($exception->getMessage(), 409);
-        } catch (\InvalidArgumentException $exception) {
+        } catch (InvalidArgumentException $exception) {
             return $this->interrupt($exception->getMessage(), 400);
         }
 

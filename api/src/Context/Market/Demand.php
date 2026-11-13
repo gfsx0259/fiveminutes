@@ -10,58 +10,60 @@ use App\Value\Money;
 use App\Value\Volume;
 use Cycle\Annotated\Annotation\Column;
 use Cycle\Annotated\Annotation\Entity;
+use DateTimeImmutable;
 use DateTimeInterface;
+use InvalidArgumentException;
 
 #[Entity(repository: DemandRepository::class, table: 'demands')]
 class Demand
 {
     use HasListingStatus;
 
-    #[Column(type: 'uuid', primary: true)]
-    private string $id;
-
-    #[Column(type: 'uuid', name: 'organization_id')]
-    private string $organizationId;
-
-    #[Column(type: 'uuid', name: 'partner_id')]
-    private string $partnerId;
-
     #[Column(type: 'string')]
-    private string $geo;
+    private readonly string $geo;
 
-    #[Column(type: 'integer', typecast: 'int')]
-    private int $volume;
+    #[Column(type: 'time', name: 'opens_at')]
+    private readonly DateTimeInterface $opensAt;
 
-    #[Column(type: 'integer', name: 'price_cents', typecast: 'int')]
-    private int $priceCents;
-
-    #[Column(type: 'string', name: 'pricing_model')]
-    private string $pricingModel;
-
-    #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
-    private DateTimeInterface $createdAt;
+    #[Column(type: 'time', name: 'closes_at')]
+    private readonly DateTimeInterface $closesAt;
 
     public function __construct(
-        string $id,
-        string $organizationId,
-        string $partnerId,
+        #[Column(type: 'uuid', primary: true)]
+        private readonly string $id,
+        #[Column(type: 'uuid', name: 'organization_id')]
+        private readonly string $organizationId,
+        #[Column(type: 'uuid', name: 'partner_id')]
+        private readonly string $partnerId,
         string $geo,
-        int $volume,
-        int $priceCents,
-        string $pricingModel,
+        #[Column(type: 'integer', typecast: 'int')]
+        private readonly int $volume,
+        #[Column(type: 'integer', name: 'price_cents', typecast: 'int')]
+        private readonly int $priceCents,
+        #[Column(type: 'string', name: 'pricing_model')]
+        private readonly string $pricingModel,
+        #[Column(type: 'date', name: 'service_on', typecast: 'datetime')]
+        private readonly DateTimeInterface $serviceOn,
+        string $opensAt,
+        string $closesAt,
         string $status,
-        DateTimeInterface $createdAt,
+        #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
+        private readonly DateTimeInterface $createdAt,
         DateTimeInterface $updatedAt,
     ) {
-        $this->id = $id;
-        $this->organizationId = $organizationId;
-        $this->partnerId = $partnerId;
+        $opensAt = $this->clock($opensAt);
+        $closesAt = $this->clock($closesAt);
+        if ($opensAt >= $closesAt) {
+            throw new InvalidArgumentException('Call center must close after it opens');
+        }
+        new Volume($this->volume);
+        new Money($this->priceCents);
+        PricingModel::from($this->pricingModel);
+
         $this->geo = (new Geo($geo))->toString();
-        $this->volume = (new Volume($volume))->toInt();
-        $this->priceCents = (new Money($priceCents))->cents();
-        $this->pricingModel = PricingModel::from($pricingModel)->value;
+        $this->opensAt = $this->moment($opensAt);
+        $this->closesAt = $this->moment($closesAt);
         $this->status = ListingStatus::from($status)->value;
-        $this->createdAt = $createdAt;
         $this->updatedAt = $updatedAt;
     }
 
@@ -100,6 +102,21 @@ class Demand
         return PricingModel::from($this->pricingModel);
     }
 
+    public function getServiceOn(): DateTimeInterface
+    {
+        return $this->serviceOn;
+    }
+
+    public function getOpensAt(): string
+    {
+        return $this->opensAt->format('H:i');
+    }
+
+    public function getClosesAt(): string
+    {
+        return $this->closesAt->format('H:i');
+    }
+
     public function getCreatedAt(): DateTimeInterface
     {
         return $this->createdAt;
@@ -108,5 +125,24 @@ class Demand
     public function close(User $actor, ListingTransition $transition): void
     {
         $this->closeAsAuthor($actor->getId(), $this->partnerId, $transition);
+    }
+
+    private function clock(string $value): string
+    {
+        if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $value) !== 1) {
+            throw new InvalidArgumentException('Call center hour must be HH:MM');
+        }
+
+        return $value . ':00';
+    }
+
+    private function moment(string $value): DateTimeImmutable
+    {
+        $time = DateTimeImmutable::createFromFormat('!H:i:s', $value);
+        if ($time === false) {
+            throw new InvalidArgumentException('Call center hour must be HH:MM');
+        }
+
+        return $time;
     }
 }

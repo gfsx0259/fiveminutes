@@ -1,0 +1,71 @@
+:root {
+  --lm-navy: #191e3a;
+  --lm-primary: #5b45e8;
+  --lm-primary-deep: #3412b9;
+  --lm-bg: #f7f7ff;
+  --lm-foreground: #10132d;
+  --lm-muted: #464d78;
+  --lm-border: #dedbff;
+  --lm-lavender: #eeebff;
+  --lm-radius: 16px;
+  --lm-shadow: 0 5px 12px #2720640d, 0 2px 3px #4b36c005;
+  --lm-control-height: 40px;
+  --lm-font-page-title: 30px;
+  --lm-font-section: 20px;
+  --lm-font-body: 14px;
+  --lm-font-table: 13px;
+  --lm-sidebar-width: 256px;
+  --v-font-body: "Inter", sans-serif;
+  --v-font-heading: "Inter", sans-serif;
+
+  --sidebar-accent: var(--lm-primary);
+  --app-bg: var(--lm-bg);
+  --text-strong: var(--lm-foreground);
+  --text-muted: var(--lm-muted);
+  --border-subtle: var(--lm-border);
+  --card-radius: var(--lm-radius);
+  --card-shadow: var(--lm-shadow);
+  --table-row-border: var(--lm-lavender);
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  background: var(--lm-bg);
+  color: var(--lm-foreground);
+  font-family: Inter, sans-serif;
+}
+
+* {
+  scrollbar-color: #c7bffc transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #c7bffc;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #b3a8f6;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}

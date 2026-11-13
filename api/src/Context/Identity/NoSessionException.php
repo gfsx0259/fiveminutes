@@ -6,6 +6,6 @@ namespace App\Context\Identity;
 
 use RuntimeException;
 
-final class NoSession extends RuntimeException
+final class NoSessionException extends RuntimeException
 {
 }

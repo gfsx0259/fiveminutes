@@ -6,6 +6,7 @@ namespace App\Context\Market;
 
 use Cycle\Annotated\Annotation\Column;
 use DateTimeInterface;
+use DomainException;
 
 trait HasListingStatus
 {
@@ -33,7 +34,7 @@ trait HasListingStatus
     protected function closeAsAuthor(string $actorId, string $authorId, ListingTransition $transition): void
     {
         if ($actorId !== $authorId) {
-            throw new \DomainException('Only the author can close the listing');
+            throw new DomainException('Only the author can close the listing');
         }
 
         $this->applyStatus(ListingStatus::Closed, $transition);

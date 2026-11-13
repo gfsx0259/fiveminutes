@@ -12,42 +12,27 @@ use DateTimeInterface;
 #[Entity(repository: InviteRepository::class, table: 'invites')]
 class Invite
 {
-    #[Column(type: 'uuid', primary: true)]
-    private string $id;
-
-    #[Column(type: 'uuid', name: 'organization_id')]
-    private string $organizationId;
-
     #[Column(type: 'string')]
-    private string $email;
-
-    #[Column(type: 'string')]
-    private string $role;
+    private readonly string $role;
 
     #[Column(type: 'boolean', typecast: 'bool')]
     private bool $active;
 
-    #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
-    private DateTimeInterface $createdAt;
-
-    #[Column(type: 'datetime', name: 'updated_at', typecast: 'datetime')]
-    private DateTimeInterface $updatedAt;
-
     public function __construct(
-        string $id,
-        string $organizationId,
-        string $email,
+        #[Column(type: 'uuid', primary: true)]
+        private readonly string $id,
+        #[Column(type: 'uuid', name: 'organization_id')]
+        private readonly string $organizationId,
+        #[Column(type: 'string')]
+        private readonly string $email,
         UserRole $role,
-        DateTimeInterface $createdAt,
-        DateTimeInterface $updatedAt,
+        #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
+        private readonly DateTimeInterface $createdAt,
+        #[Column(type: 'datetime', name: 'updated_at', typecast: 'datetime')]
+        private DateTimeInterface $updatedAt,
     ) {
-        $this->id = $id;
-        $this->organizationId = $organizationId;
-        $this->email = $email;
         $this->role = $role->value;
         $this->active = true;
-        $this->createdAt = $createdAt;
-        $this->updatedAt = $updatedAt;
     }
 
     public function getId(): string

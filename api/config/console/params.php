@@ -3,13 +3,15 @@
 declare(strict_types=1);
 
 use App\Command\ClickHouseMigrateCommand;
-use App\Command\OpenChaseCommand;
+use App\Command\MatchLeadsCommand;
+use App\Command\DevSeedChaseCommand;
 
 return [
     'yiisoft/yii-console' => [
         'commands' => [
             'clickhouse:migrate' => ClickHouseMigrateCommand::class,
-            'app:open-chase' => OpenChaseCommand::class,
+            'lead:match' => MatchLeadsCommand::class,
+            'dev:seed-chase' => DevSeedChaseCommand::class,
         ],
     ],
 ];

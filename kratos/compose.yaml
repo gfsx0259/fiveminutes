@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: rider
       POSTGRES_PASSWORD: rider
       POSTGRES_DB: rider
+    ports:
+      - "5434:5432"
     volumes:
       - rider-kratos:/var/lib/postgresql
     healthcheck:

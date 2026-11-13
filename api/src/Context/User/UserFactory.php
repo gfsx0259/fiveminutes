@@ -6,12 +6,12 @@ namespace App\Context\User;
 
 use App\Clock;
 use App\Context\Organization\Organization;
-use App\UuidGenerator;
+use Ramsey\Uuid\UuidFactoryInterface;
 
-final class UserFactory
+final readonly class UserFactory
 {
     public function __construct(
-        private UuidGenerator $uuids,
+        private UuidFactoryInterface $uuids,
         private Clock $clock,
     ) {}
 
@@ -20,7 +20,7 @@ final class UserFactory
         $now = $this->clock->now();
 
         return new User(
-            $this->uuids->v4(),
+            $this->uuids->uuid4()->toString(),
             $organization->getId(),
             $email,
             $role,

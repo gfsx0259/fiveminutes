@@ -1,0 +1,20 @@
+{
+    "name": "rider/tests",
+    "description": "Acceptance tests for the Rider cabinet and lead flow",
+    "require": {
+        "php": ">=8.3",
+        "codeception/codeception": "^5.2",
+        "codeception/module-asserts": "^3.0",
+        "codeception/module-phpbrowser": "^3.0",
+        "codeception/module-rest": "^3.4",
+        "guzzlehttp/guzzle": "^7.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tests\\": "src/"
+        }
+    },
+    "scripts": {
+        "test": "codecept build && codecept run"
+    }
+}

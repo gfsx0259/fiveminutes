@@ -11,57 +11,40 @@ use App\Value\Money;
 use Cycle\Annotated\Annotation\Column;
 use Cycle\Annotated\Annotation\Entity;
 use DateTimeInterface;
+use InvalidArgumentException;
+use JsonException;
 
 #[Entity(repository: UserRepository::class, table: 'users')]
 class User
 {
-    #[Column(type: 'uuid', primary: true)]
-    private string $id;
-
-    #[Column(type: 'uuid', name: 'organization_id')]
-    private string $organizationId;
-
-    #[Column(type: 'uuid', name: 'identity_id', nullable: true)]
-    private ?string $identityId;
+    #[Column(type: 'string')]
+    private readonly string $email;
 
     #[Column(type: 'string')]
-    private string $email;
-
-    #[Column(type: 'string')]
-    private string $role;
-
-    #[Column(type: 'jsonb', typecast: 'json')]
-    private array $meta;
-
-    #[Column(type: 'integer', typecast: 'int')]
-    private int $balance;
-
-    #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
-    private DateTimeInterface $createdAt;
-
-    #[Column(type: 'datetime', name: 'updated_at', typecast: 'datetime')]
-    private DateTimeInterface $updatedAt;
+    private readonly string $role;
 
     public function __construct(
-        string $id,
-        string $organizationId,
+        #[Column(type: 'uuid', primary: true)]
+        private readonly string $id,
+        #[Column(type: 'uuid', name: 'organization_id')]
+        private readonly string $organizationId,
         string $email,
         UserRole $role,
-        ?string $identityId,
-        array $meta,
-        int $balance,
-        DateTimeInterface $createdAt,
-        DateTimeInterface $updatedAt,
+        #[Column(type: 'uuid', name: 'identity_id', nullable: true)]
+        private ?string $identityId,
+        #[Column(type: 'jsonb', typecast: 'json')]
+        private array $meta,
+        #[Column(type: 'integer', typecast: 'int')]
+        private int $balance,
+        #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
+        private readonly DateTimeInterface $createdAt,
+        #[Column(type: 'datetime', name: 'updated_at', typecast: 'datetime')]
+        private DateTimeInterface $updatedAt,
     ) {
-        $this->id = $id;
-        $this->organizationId = $organizationId;
         $this->email = (new Email($email))->toString();
         $this->role = $role->value;
-        $this->identityId = $identityId;
-        $this->meta = $this->requireMeta($meta);
-        $this->balance = (new Balance($balance))->cents();
-        $this->createdAt = $createdAt;
-        $this->updatedAt = $updatedAt;
+        $this->requireMeta($this->meta);
+        new Balance($this->balance);
     }
 
     public function getId(): string
@@ -97,11 +80,27 @@ class User
         return $this->meta;
     }
 
+    public function apiKey(): ?string
+    {
+        $key = $this->meta['apiKey'] ?? null;
+
+        return is_string($key) && $key !== '' ? $key : null;
+    }
+
+    public function issueApiKey(ApiKey $key, Clock $clock): void
+    {
+        if ($this->getRole() !== UserRole::Buyer) {
+            throw new NotBuyerException();
+        }
+
+        $this->putMeta('apiKey', $key->value(), $clock);
+    }
+
     public function putMeta(string $key, mixed $value, Clock $clock): void
     {
         $key = trim($key);
         if ($key === '') {
-            throw new \InvalidArgumentException('Meta key is empty');
+            throw new InvalidArgumentException('Meta key is empty');
         }
 
         $meta = $this->meta;
@@ -130,7 +129,7 @@ class User
     public function linkIdentity(string $identityId, Clock $clock): void
     {
         if (trim($identityId) === '') {
-            throw new \InvalidArgumentException('Identity id is empty');
+            throw new InvalidArgumentException('Identity id is empty');
         }
 
         $this->identityId = $identityId;
@@ -145,14 +144,14 @@ class User
     {
         foreach (array_keys($meta) as $key) {
             if (!is_string($key) || trim($key) === '') {
-                throw new \InvalidArgumentException('Meta key is empty');
+                throw new InvalidArgumentException('Meta key is empty');
             }
         }
 
         try {
             json_encode($meta, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-        } catch (\JsonException $exception) {
-            throw new \InvalidArgumentException('Meta is not valid JSON', 0, $exception);
+        } catch (JsonException $exception) {
+            throw new InvalidArgumentException('Meta is not valid JSON', 0, $exception);
         }
 
         return $meta;

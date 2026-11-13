@@ -6,6 +6,6 @@ namespace App\Context\User;
 
 use RuntimeException;
 
-final class IdentityAlreadyLinked extends RuntimeException
+final class InviteMissingException extends RuntimeException
 {
 }

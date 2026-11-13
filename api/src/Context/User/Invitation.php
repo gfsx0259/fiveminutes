@@ -8,7 +8,7 @@ use App\Context\Organization\Organization;
 use Cycle\ORM\EntityManagerInterface;
 use DomainException;
 
-final class Invitation
+final readonly class Invitation
 {
     public function __construct(
         private InviteRepository $invites,

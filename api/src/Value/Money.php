@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace App\Value;
 
-final class Money
+use InvalidArgumentException;
+
+final readonly class Money
 {
-    private int $cents;
-
-    public function __construct(int $cents)
+    public function __construct(private int $cents)
     {
-        if ($cents <= 0) {
-            throw new \InvalidArgumentException('Price must be positive');
+        if ($this->cents <= 0) {
+            throw new InvalidArgumentException('Price must be positive');
         }
-
-        $this->cents = $cents;
     }
 
     public function cents(): int
@@ -30,7 +28,7 @@ final class Money
     public function plusPercent(int $percent): self
     {
         if ($percent < 0) {
-            throw new \InvalidArgumentException('Percent must be zero or positive');
+            throw new InvalidArgumentException('Percent must be zero or positive');
         }
 
         return new self(intdiv($this->cents * (100 + $percent) + 50, 100));

@@ -14,14 +14,14 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand('app:open-chase', 'Opens the Chase organization and its buyer and partner invites')]
-final class OpenChaseCommand extends Command
+#[AsCommand('dev:seed-chase', 'Development fixture. Seeds the Chase organization and its buyer and partner invites')]
+final class DevSeedChaseCommand extends Command
 {
     public function __construct(
-        private OrganizationRepository $organizations,
-        private OrganizationFactory $organizationFactory,
-        private Invitation $invitation,
-        private EntityManagerInterface $entityManager,
+        private readonly OrganizationRepository $organizations,
+        private readonly OrganizationFactory $organizationFactory,
+        private readonly Invitation $invitation,
+        private readonly EntityManagerInterface $entityManager,
     ) {
         parent::__construct();
     }

@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Context\Identity\KratosSessions;
-use App\Context\Identity\NoSession;
+use App\Context\Identity\NoSessionException;
 use App\Context\Identity\SessionView;
 use Psr\Http\Message\ResponseInterface;
 use Yiisoft\DataResponse\ResponseFactory\DataResponseFactoryInterface;
 use Yiisoft\RequestProvider\RequestProviderInterface;
 
-final class SessionController
+final readonly class SessionController
 {
     public function __construct(
         private KratosSessions $sessions,
@@ -24,7 +24,7 @@ final class SessionController
     {
         try {
             $session = $this->sessions->read($this->requests->get()->getHeaderLine('Cookie'));
-        } catch (NoSession) {
+        } catch (NoSessionException) {
             return $this->responses->createResponse(['error' => 'No session'], 401);
         }
 

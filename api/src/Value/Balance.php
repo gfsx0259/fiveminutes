@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace App\Value;
 
-final class Balance
+use DomainException;
+use InvalidArgumentException;
+
+final readonly class Balance
 {
-    private int $cents;
-
-    public function __construct(int $cents)
+    public function __construct(private int $cents)
     {
-        if ($cents < 0) {
-            throw new \InvalidArgumentException('Balance cannot be negative');
+        if ($this->cents < 0) {
+            throw new InvalidArgumentException('Balance cannot be negative');
         }
-
-        $this->cents = $cents;
     }
 
     public function cents(): int
@@ -30,7 +29,7 @@ final class Balance
     public function debit(Money $amount): self
     {
         if ($this->cents < $amount->cents()) {
-            throw new \DomainException('Balance is not enough');
+            throw new DomainException('Balance is not enough');
         }
 
         return new self($this->cents - $amount->cents());

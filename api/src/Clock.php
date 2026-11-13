@@ -6,7 +6,7 @@ namespace App;
 
 use DateTimeImmutable;
 
-final class Clock
+final readonly class Clock
 {
     public function now(): DateTimeImmutable
     {

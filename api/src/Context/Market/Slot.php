@@ -11,66 +11,46 @@ use App\Value\Volume;
 use Cycle\Annotated\Annotation\Column;
 use Cycle\Annotated\Annotation\Entity;
 use DateTimeInterface;
+use InvalidArgumentException;
 
 #[Entity(repository: SlotRepository::class, table: 'slots')]
 class Slot
 {
     use HasListingStatus;
 
-    #[Column(type: 'uuid', primary: true)]
-    private string $id;
-
-    #[Column(type: 'uuid', name: 'organization_id')]
-    private string $organizationId;
-
-    #[Column(type: 'uuid', name: 'buyer_id')]
-    private string $buyerId;
-
     #[Column(type: 'string')]
-    private string $geo;
-
-    #[Column(type: 'integer', typecast: 'int')]
-    private int $volume;
-
-    #[Column(type: 'integer', name: 'price_cents', typecast: 'int')]
-    private int $priceCents;
-
-    #[Column(type: 'string', name: 'pricing_model')]
-    private string $pricingModel;
-
-    #[Column(type: 'datetime', typecast: 'datetime')]
-    private DateTimeInterface $deadline;
-
-    #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
-    private DateTimeInterface $createdAt;
+    private readonly string $geo;
 
     public function __construct(
-        string $id,
-        string $organizationId,
-        string $buyerId,
+        #[Column(type: 'uuid', primary: true)]
+        private readonly string $id,
+        #[Column(type: 'uuid', name: 'organization_id')]
+        private readonly string $organizationId,
+        #[Column(type: 'uuid', name: 'buyer_id')]
+        private readonly string $buyerId,
         string $geo,
-        int $volume,
-        int $priceCents,
-        string $pricingModel,
-        DateTimeInterface $deadline,
+        #[Column(type: 'integer', typecast: 'int')]
+        private readonly int $volume,
+        #[Column(type: 'integer', name: 'price_cents', typecast: 'int')]
+        private readonly int $priceCents,
+        #[Column(type: 'string', name: 'pricing_model')]
+        private readonly string $pricingModel,
+        #[Column(type: 'datetime', typecast: 'datetime')]
+        private readonly DateTimeInterface $deadline,
         string $status,
-        DateTimeInterface $createdAt,
+        #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
+        private readonly DateTimeInterface $createdAt,
         DateTimeInterface $updatedAt,
     ) {
-        if ($deadline <= $createdAt) {
-            throw new \InvalidArgumentException('Deadline must be after the slot is opened');
+        if ($this->deadline <= $this->createdAt) {
+            throw new InvalidArgumentException('Deadline must be after the slot is opened');
         }
+        new Volume($this->volume);
+        new Money($this->priceCents);
+        PricingModel::from($this->pricingModel);
 
-        $this->id = $id;
-        $this->organizationId = $organizationId;
-        $this->buyerId = $buyerId;
         $this->geo = (new Geo($geo))->toString();
-        $this->volume = (new Volume($volume))->toInt();
-        $this->priceCents = (new Money($priceCents))->cents();
-        $this->pricingModel = PricingModel::from($pricingModel)->value;
-        $this->deadline = $deadline;
         $this->status = ListingStatus::from($status)->value;
-        $this->createdAt = $createdAt;
         $this->updatedAt = $updatedAt;
     }
 

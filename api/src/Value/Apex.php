@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Value;
 
-final class Apex
+use InvalidArgumentException;
+
+final readonly class Apex
 {
     private string $value;
 
@@ -12,7 +14,7 @@ final class Apex
     {
         $value = strtolower(trim($value));
         if ($value === '' || preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/', $value) !== 1) {
-            throw new \InvalidArgumentException('Apex must be a domain name, for example chase.io');
+            throw new InvalidArgumentException('Apex must be a domain name, for example chase.io');
         }
 
         $this->value = $value;

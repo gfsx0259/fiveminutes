@@ -12,38 +12,24 @@ use DateTimeInterface;
 #[Entity(repository: WalletTransactionRepository::class, table: 'wallet_transactions')]
 class WalletTransaction
 {
-    #[Column(type: 'uuid', primary: true)]
-    private string $id;
-
-    #[Column(type: 'uuid', name: 'organization_id')]
-    private string $organizationId;
-
-    #[Column(type: 'uuid', name: 'user_id')]
-    private string $userId;
-
     #[Column(type: 'string')]
-    private string $direction;
-
-    #[Column(type: 'integer', name: 'amount_cents', typecast: 'int')]
-    private int $amountCents;
-
-    #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
-    private DateTimeInterface $createdAt;
+    private readonly string $direction;
 
     public function __construct(
-        string $id,
-        string $organizationId,
-        string $userId,
+        #[Column(type: 'uuid', primary: true)]
+        private readonly string $id,
+        #[Column(type: 'uuid', name: 'organization_id')]
+        private readonly string $organizationId,
+        #[Column(type: 'uuid', name: 'user_id')]
+        private readonly string $userId,
         Direction $direction,
-        int $amountCents,
-        DateTimeInterface $createdAt,
+        #[Column(type: 'integer', name: 'amount_cents', typecast: 'int')]
+        private readonly int $amountCents,
+        #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
+        private readonly DateTimeInterface $createdAt,
     ) {
-        $this->id = $id;
-        $this->organizationId = $organizationId;
-        $this->userId = $userId;
         $this->direction = $direction->value;
-        $this->amountCents = (new Money($amountCents))->cents();
-        $this->createdAt = $createdAt;
+        new Money($this->amountCents);
     }
 
     public function getId(): string

@@ -10,11 +10,17 @@ serve:
         - https://id.rider.io
         - https://id.chase.io
         - https://id.marshall.io
+        - https://buyer.chase.io
+        - https://seller.chase.io
+        - https://buyer.marshall.io
+        - https://seller.marshall.io
+        - https://owner.rider.io
       allowed_methods:
         - GET
         - POST
         - OPTIONS
       allowed_headers:
+        - Accept
         - Cookie
         - Content-Type
         - X-CSRF-Token

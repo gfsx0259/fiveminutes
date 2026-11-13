@@ -8,14 +8,14 @@ use App\Clock;
 use App\Context\Organization\Organization;
 use App\Context\User\User;
 use App\Context\User\UserRole;
-use App\UuidGenerator;
+use Ramsey\Uuid\UuidFactoryInterface;
 use App\Value\Money;
 use DateTimeInterface;
 
-final class Board
+final readonly class Board
 {
     public function __construct(
-        private UuidGenerator $uuids,
+        private UuidFactoryInterface $uuids,
         private Clock $clock,
         private Markup $markup,
         private Membership $membership,
@@ -35,7 +35,7 @@ final class Board
         $now = $this->clock->now();
 
         return new Slot(
-            $this->uuids->v4(),
+            $this->uuids->uuid4()->toString(),
             $organization->getId(),
             $buyer->getId(),
             $geo,
@@ -56,18 +56,24 @@ final class Board
         int $volume,
         int $priceCents,
         PricingModel $pricingModel,
+        DateTimeInterface $serviceOn,
+        string $opensAt,
+        string $closesAt,
     ): Demand {
         $this->membership->assertRole($partner, UserRole::Partner, $organization->getId());
         $now = $this->clock->now();
 
         return new Demand(
-            $this->uuids->v4(),
+            $this->uuids->uuid4()->toString(),
             $organization->getId(),
             $partner->getId(),
             $geo,
             $volume,
             $priceCents,
             $pricingModel->value,
+            $serviceOn,
+            $opensAt,
+            $closesAt,
             ListingStatus::Open->value,
             $now,
             $now,
@@ -135,7 +141,7 @@ final class Board
         $buyerPrice = new Money($buyerPriceCents);
 
         return new Acceptance(
-            $this->uuids->v4(),
+            $this->uuids->uuid4()->toString(),
             $organizationId,
             $slotId,
             $demandId,

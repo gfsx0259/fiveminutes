@@ -36,6 +36,21 @@ services:
       - caddy_config:/config
     tty: true
 
+  matcher:
+    image: rider-api-api
+    hostname: rider-matcher
+    entrypoint: ["php", "yii", "lead:match"]
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - dev-leadmarket-network
+    volumes:
+      - ./:/app
+    healthcheck:
+      test: ["NONE"]
+    tty: true
+
 volumes:
   caddy_data:
   caddy_config:
