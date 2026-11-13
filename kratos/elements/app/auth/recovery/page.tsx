@@ -5,10 +5,11 @@ import { Recovery } from "@ory/elements-react/theme"
 import { getRecoveryFlow, OryPageParams } from "@ory/nextjs/app"
 import CustomCardHeader from "@/components/custom-card-header"
 
-import config from "@/ory.config"
 import CustomCard from "@/components/custom-card";
+import { browserConfig } from "@/lib/browser-config";
 
 export default async function RecoveryPage(props: OryPageParams) {
+  const config = await browserConfig()
   const flow = await getRecoveryFlow(config, props.searchParams)
 
   if (!flow) {

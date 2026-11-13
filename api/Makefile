@@ -14,4 +14,4 @@ up:
 	UID=$(USER_ID) GID=$(GROUP_ID) docker compose up -d
 	docker compose exec -T api php yii migrate:up --no-interaction
 	docker compose exec -T api php yii clickhouse:migrate
-	docker compose exec -T api php yii dev:seed-chase
+	docker compose exec -T api php yii dev:seed

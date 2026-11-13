@@ -4,11 +4,12 @@
 import { Registration } from "@ory/elements-react/theme"
 import { getRegistrationFlow, OryPageParams } from "@ory/nextjs/app"
 import { UiNode, UiNodeInputAttributes } from "@ory/client-fetch";
-import config from "@/ory.config"
 import CustomCard from "@/components/custom-card";
+import { browserConfig } from "@/lib/browser-config";
 import { ensureReturnTo } from "@/lib/return-to";
 
 export default async function RegistrationPage(props: OryPageParams) {
+    const config = await browserConfig()
     const params = await ensureReturnTo("/auth/registration", props.searchParams)
     const flow = await getRegistrationFlow(
         config,

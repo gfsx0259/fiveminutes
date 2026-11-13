@@ -5,10 +5,11 @@ import CustomCardHeader from "@/components/custom-card-header"
 import { Verification } from "@ory/elements-react/theme"
 import { getVerificationFlow, OryPageParams } from "@ory/nextjs/app"
 
-import config from "@/ory.config"
 import CustomCard from "@/components/custom-card";
+import { browserConfig } from "@/lib/browser-config";
 
 export default async function VerificationPage(props: OryPageParams) {
+  const config = await browserConfig()
   const flow = await getVerificationFlow(config, props.searchParams)
 
   if (!flow) {

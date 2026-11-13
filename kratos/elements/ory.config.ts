@@ -2,7 +2,8 @@ import type { OryClientConfiguration } from "@ory/elements-react"
 
 const config: OryClientConfiguration = {
   sdk: {
-    // Empty base makes the browser call /self-service on the host it opened.
+    // Pages replace this with the host that opened the UI. An empty value is
+    // ignored: dev then uses http://localhost:3000 and prod the internal Kratos URL.
     url: "",
   },
   project: {

@@ -4,11 +4,12 @@
 import { Login } from "@ory/elements-react/theme"
 import { getLoginFlow, OryPageParams } from "@ory/nextjs/app"
 
-import config from "@/ory.config"
 import CustomCard from "@/components/custom-card";
+import { browserConfig } from "@/lib/browser-config";
 import { ensureReturnTo } from "@/lib/return-to";
 
 export default async function LoginPage(props: OryPageParams) {
+  const config = await browserConfig()
   const params = await ensureReturnTo("/auth/login", props.searchParams)
   const flow = await getLoginFlow(config, Promise.resolve(params))
 

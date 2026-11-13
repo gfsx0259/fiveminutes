@@ -6,9 +6,10 @@ import { SessionProvider } from "@ory/elements-react/client"
 import { getSettingsFlow, OryPageParams } from "@ory/nextjs/app"
 import "@ory/elements-react/theme/styles.css"
 
-import config from "@/ory.config"
+import { browserConfig } from "@/lib/browser-config"
 
 export default async function SettingsPage(props: OryPageParams) {
+  const config = await browserConfig()
   const flow = await getSettingsFlow(config, props.searchParams)
 
   if (!flow) {

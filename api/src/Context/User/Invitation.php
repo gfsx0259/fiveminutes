@@ -21,8 +21,7 @@ final readonly class Invitation
     {
         $existing = $this->invites->findByEmail($email);
         if ($existing !== null) {
-            $same = $existing->isActive()
-                && $existing->getOrganizationId() === $organization->getId()
+            $same = $existing->getOrganizationId() === $organization->getId()
                 && $existing->getRole() === $role;
             if ($same) {
                 return $existing;
