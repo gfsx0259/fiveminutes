@@ -1,0 +1,16 @@
+[
+  {
+    "schema_id": "default",
+    "state": "active",
+    "traits": {
+      "email": "owner@rider.io"
+    },
+    "credentials": {
+      "password": {
+        "config": {
+          "password": "rider-local"
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,23 @@
+services:
+  auth:
+    build:
+      context: .
+    restart: unless-stopped
+    networks:
+      - dev-leadmarket-network
+    command: ['npm', 'run', 'dev']
+    volumes:
+      - ./:/app/
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.auth.rule=Host(`id.leadmarket.io`) && !(PathPrefix(`/self-service`) || PathPrefix(`/sessions/whoami`))
+      - traefik.http.routers.auth.tls=true
+      - traefik.http.routers.auth.entrypoints=https
+    env_file:
+      - path: .env
+        required: true
+
+networks:
+  dev-leadmarket-network:
+    name: dev-leadmarket-network
+    external: true

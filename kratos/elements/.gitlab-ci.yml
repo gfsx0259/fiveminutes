@@ -1,0 +1,83 @@
+stages:
+  - build
+  - deploy
+
+default:
+  image: docker:28.5.1
+  services:
+    - docker:28.5.1-dind
+
+.default_rules:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+
+variables:
+    PROJECT_NAME: kratos-ui
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    IMAGE_INSTALLER: $CI_REGISTRY/automation/ansible/docker-compose-install/ansible:templated-allinone
+
+build-python: 
+  stage: build
+  tags:
+    - asia
+    - docker
+  rules:
+    -  !reference [.default_rules, rules]
+  before_script:
+    - echo "Login in registry..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - echo "Build image..."
+    - docker build -f ./Dockerfile -t "$IMAGE_TAG" .
+    - echo "List image..."
+    - docker image ls
+    - echo "Pushing..."
+    - docker push $IMAGE_TAG
+
+install:
+  stage: deploy
+  environment:
+    name: ${CI_COMMIT_REF_SLUG}
+    url: http://$PROJECT_NAME-$CI_COMMIT_REF_NAME.$DEPLOY_DOMAIN_NAME/
+    on_stop: uninstall
+  rules:
+    -  !reference [.default_rules, rules]
+  image:
+    name:  $IMAGE_INSTALLER
+    pull_policy: if-not-present
+  tags:
+    - europe
+    - docker
+  variables:
+      INSTALL_TAGS: "precheck,install"
+      INSTALL_IMAGE1: $IMAGE_TAG
+      INSTALL_PROJECT_NAME: ${PROJECT_NAME}
+      INSTALL_COMPOSE_DIR: ""
+      INSTALL_COPY_FILES: ""
+      INSTALL_COPY_TEMPLATE_FILES: "docker-compose.yml;env_file"
+  script:
+    - /installer/start.sh install "$SSH_KEY"
+  needs:
+    - job: build-python
+      artifacts: false
+
+uninstall:
+  stage: deploy
+  image:
+    name:  $IMAGE_INSTALLER
+    pull_policy: if-not-present
+  tags:
+    - europe
+    - docker
+  variables:
+    INSTALL_PROJECT_NAME: ${PROJECT_NAME}
+    INSTALL_COMPOSE_DIR: ""
+    INSTALL_COPY_FILES: ""
+    INSTALL_COPY_TEMPLATE_FILES: "docker-compose.yml"
+  script:
+    - /installer/start.sh uninstall
+  when: manual
+  environment:
+    name: ${CI_COMMIT_REF_SLUG}
+    action: stop

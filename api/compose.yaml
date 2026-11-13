@@ -1,0 +1,46 @@
+name: rider-api
+
+services:
+  api:
+    build:
+      dockerfile: Dockerfile
+      context: .
+      target: dev
+      args:
+        USER_ID: ${UID-1000}
+        GROUP_ID: ${GID-1000}
+    hostname: rider-api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.rider-api.rule=Host(`api.rider.io`) || Host(`api.chase.io`) || Host(`api.marshall.io`)
+      - traefik.http.routers.rider-api.tls=true
+      - traefik.http.routers.rider-api.entrypoints=https
+      - traefik.http.services.rider-api.loadbalancer.server.port=80
+      - traefik.docker.network=dev-leadmarket-network
+    environment:
+      - PHP_IDE_CONFIG=serverName=rider-api
+    env_file:
+      - .env
+    restart: unless-stopped
+    expose:
+      - 80
+    networks:
+      - dev-leadmarket-network
+    volumes:
+      - ./:/app
+      - ./runtime:/app/runtime
+      - ./etc/frankenphp/Caddyfile.dev:/etc/frankenphp/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    tty: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  dev-leadmarket-network:
+    external: true
+    name: dev-leadmarket-network

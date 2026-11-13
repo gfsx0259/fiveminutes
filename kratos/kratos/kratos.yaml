@@ -1,0 +1,111 @@
+version: v0.13.0
+
+serve:
+  public:
+    # base_url is omitted on purpose. Kratos builds flow and redirect URLs
+    # from the request host, so one process can serve id.chase.io and id.marshall.io.
+    cors:
+      enabled: true
+      allowed_origins:
+        - https://id.rider.io
+        - https://id.chase.io
+        - https://id.marshall.io
+      allowed_methods:
+        - GET
+        - POST
+        - OPTIONS
+      allowed_headers:
+        - Cookie
+        - Content-Type
+        - X-CSRF-Token
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+      allow_credentials: true
+
+selfservice:
+  # One static URL. The elements UI passes return_to for the host that started the flow.
+  default_browser_return_url: https://id.rider.io/session
+  allowed_return_urls:
+    - https://id.rider.io
+    - https://id.chase.io
+    - https://id.marshall.io
+    - https://buyer.chase.io
+    - https://seller.chase.io
+    - https://buyer.marshall.io
+    - https://seller.marshall.io
+    - https://owner.rider.io
+
+  methods:
+    password:
+      enabled: true
+      config:
+        haveibeenpwned_enabled: false
+    link:
+      enabled: false
+    code:
+      enabled: false
+
+  flows:
+    error:
+      ui_url: /auth/error
+    settings:
+      ui_url: /settings
+      privileged_session_max_age: 15m
+    recovery:
+      enabled: false
+      ui_url: /auth/recovery
+    verification:
+      enabled: false
+      ui_url: /auth/verification
+    logout:
+      after:
+        default_browser_return_url: /auth/login
+    login:
+      ui_url: /auth/login
+      lifespan: 30m
+    registration:
+      lifespan: 30m
+      ui_url: /auth/registration
+      after:
+        password:
+          hooks:
+            - hook: web_hook
+              config:
+                url: http://rider-api/user/registration
+                method: POST
+                body: file:///etc/config/kratos/webhook.jsonnet
+            - hook: session
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: false
+
+secrets:
+  cookie:
+    - rider-local-cookie-secret-change-me
+  cipher:
+    - 0123456789abcdef0123456789abcdef
+
+ciphers:
+  algorithm: xchacha20-poly1305
+
+hashers:
+  algorithm: bcrypt
+  bcrypt:
+    cost: 8
+
+session:
+  cookie:
+    # Host-only. A session opened on id.chase.io is not sent to id.marshall.io.
+    name: ory_kratos_session
+    path: /
+    same_site: Lax
+    persistent: true
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.json

@@ -1,0 +1,60 @@
+(cors) {
+       @cors_preflight_{args[0]} {
+           method OPTIONS
+           header Origin {args[0]}
+       }
+       handle @cors_preflight_{args[0]} {
+           header {
+               Access-Control-Allow-Origin "{args[0]}"
+               Access-Control-Allow-Credentials "true"
+               Access-Control-Allow-Methods "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+               Access-Control-Allow-Headers "Content-Type,Accept"
+               Access-Control-Max-Age "86400"
+               Vary "Origin"
+           }
+           respond 204
+       }
+
+       @cors_request_{args[0]} {
+           not method OPTIONS
+           header Origin {args[0]}
+       }
+       handle @cors_request_{args[0]} {
+           header {
+               Access-Control-Allow-Origin "{args[0]}"
+               Access-Control-Allow-Credentials "true"
+               Access-Control-Allow-Methods "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+               Access-Control-Allow-Headers "Content-Type,Accept"
+               Vary "Origin"
+           }
+       }
+}
+
+:80 {
+    import cors https://id.rider.io
+    import cors https://id.chase.io
+    import cors https://id.marshall.io
+    import cors https://buyer.chase.io
+    import cors https://seller.chase.io
+    import cors https://buyer.marshall.io
+    import cors https://seller.marshall.io
+    import cors https://owner.rider.io
+
+    root /app/public
+
+    file_server
+
+    php_server {
+        worker {
+             file /app/worker.php
+             match *
+             num 1
+             watch
+        }
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}

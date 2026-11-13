@@ -1,0 +1,5 @@
+# dev
+#NEXT_PUBLIC_ORY_SDK_URL=http://kratos:4433
+#NODE_TLS_REJECT_UNAUTHORIZED=0
+# prod
+{{ lookup('ansible.builtin.env', 'NEXT_PUBLIC_ORY_SDK_URL') }}

@@ -1,0 +1,28 @@
+name: rider-dashboard
+
+services:
+  dashboard:
+    image: node:24
+    working_dir: /app
+    command: ["sh", "-c", "if [ ! -d node_modules/vue ]; then npm install; fi && npm run dev -- --host 0.0.0.0 --port 5173"]
+    volumes:
+      - ./:/app
+      - dashboard-modules:/app/node_modules
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dev-leadmarket-network
+      - traefik.http.routers.rider-dashboard.rule=Host(`buyer.chase.io`) || Host(`seller.chase.io`) || Host(`buyer.marshall.io`) || Host(`seller.marshall.io`) || Host(`owner.rider.io`)
+      - traefik.http.routers.rider-dashboard.entrypoints=https
+      - traefik.http.routers.rider-dashboard.tls=true
+      - traefik.http.services.rider-dashboard.loadbalancer.server.port=5173
+    restart: unless-stopped
+    networks:
+      - dev-leadmarket-network
+
+volumes:
+  dashboard-modules:
+
+networks:
+  dev-leadmarket-network:
+    external: true
+    name: dev-leadmarket-network
