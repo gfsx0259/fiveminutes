@@ -38,6 +38,7 @@ services:
 
   matcher:
     image: rider-api-api
+    pull_policy: never
     hostname: rider-matcher
     entrypoint: ["php", "yii", "lead:match"]
     env_file:

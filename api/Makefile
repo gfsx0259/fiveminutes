@@ -8,7 +8,8 @@ up:
 	test -f .env || cp .env.example .env
 	docker network inspect dev-leadmarket-network >/dev/null 2>&1 || docker network create dev-leadmarket-network
 	if [ "$$(id -u)" = 0 ]; then chown -R $(USER_ID):$(GROUP_ID) .; fi
-	UID=$(USER_ID) GID=$(GROUP_ID) docker compose up -d --build
+	UID=$(USER_ID) GID=$(GROUP_ID) docker compose build api
+	UID=$(USER_ID) GID=$(GROUP_ID) docker compose up -d
 	UID=$(USER_ID) GID=$(GROUP_ID) docker compose run --rm --no-deps --workdir /app --entrypoint composer api install --no-interaction --ignore-platform-req=ext-bcmath
 	UID=$(USER_ID) GID=$(GROUP_ID) docker compose up -d
 	docker compose exec -T api php yii migrate:up --no-interaction
