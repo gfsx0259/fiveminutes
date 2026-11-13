@@ -1,0 +1,8 @@
+tls:
+  certificates:
+    - certFile: /tools/certs/_wildcard.rider.io.pem
+      keyFile: /tools/certs/_wildcard.rider.io-key.pem
+    - certFile: /tools/certs/_wildcard.chase.io.pem
+      keyFile: /tools/certs/_wildcard.chase.io-key.pem
+    - certFile: /tools/certs/_wildcard.marshall.io.pem
+      keyFile: /tools/certs/_wildcard.marshall.io-key.pem

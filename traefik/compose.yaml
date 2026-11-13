@@ -1,0 +1,28 @@
+name: rider-edge
+
+services:
+  traefik:
+    image: traefik:v3.6.25
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --entrypoints.http.address=:80
+      - --entrypoints.http.forwardedHeaders.insecure
+      - --entrypoints.https.address=:443
+      - --accesslog=true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./dynamic:/etc/traefik/dynamic:ro
+      - ./cert:/tools/certs:ro
+    restart: unless-stopped
+    networks:
+      - dev-leadmarket-network
+
+networks:
+  dev-leadmarket-network:
+    name: dev-leadmarket-network
+    external: true
