@@ -145,7 +145,7 @@ const example = computed(() => {
     `curl -X POST ${origin}/v1/lead \\`,
     `  -H 'Authorization: Bearer ${apiKey.value}' \\`,
     `  -H 'Content-Type: application/json' \\`,
-    `  -d '{"phone":"+4915112345678","country_code":"DE","ip":"192.0.2.10","aff_sub":"demo"}'`,
+    `  -d '{"phone":"+4915112345678","email":"ada@example.com","first_name":"Ada","last_name":"Lovelace","country_code":"DE","ip":"192.0.2.10","aff_sub":"demo"}'`,
   ].join('\n')
 })
 
