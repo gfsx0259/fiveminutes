@@ -12,8 +12,10 @@ serve:
         - https://id.marshall.io
         - https://buyer.chase.io
         - https://seller.chase.io
+        - https://admin.chase.io
         - https://buyer.marshall.io
         - https://seller.marshall.io
+        - https://admin.marshall.io
         - https://owner.rider.io
       allowed_methods:
         - GET
@@ -38,8 +40,10 @@ selfservice:
     - https://id.marshall.io
     - https://buyer.chase.io
     - https://seller.chase.io
+    - https://admin.chase.io
     - https://buyer.marshall.io
     - https://seller.marshall.io
+    - https://admin.marshall.io
     - https://owner.rider.io
 
   methods:

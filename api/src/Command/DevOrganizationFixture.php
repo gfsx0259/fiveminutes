@@ -32,9 +32,12 @@ final readonly class DevOrganizationFixture
 
         $buyer = 'buyer@' . $apex;
         $partner = 'partner@' . $apex;
+        $admin = 'admin@' . $apex;
         $this->invitation->open($organization, $buyer, UserRole::Buyer);
         $this->invitation->open($organization, $partner, UserRole::Partner);
+        $this->invitation->open($organization, $admin, UserRole::Admin);
         $output->writeln('invite ' . $buyer . ' buyer');
         $output->writeln('invite ' . $partner . ' partner');
+        $output->writeln('invite ' . $admin . ' admin');
     }
 }

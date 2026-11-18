@@ -9,6 +9,7 @@ use App\Context\User\User;
 use Ramsey\Uuid\UuidFactoryInterface;
 use App\Value\Money;
 
+/** @deprecated Prefer WalletLedger for persisted movements */
 final readonly class Wallet
 {
     public function __construct(
@@ -38,6 +39,9 @@ final readonly class Wallet
             $user->getId(),
             $direction,
             $amount->cents(),
+            TransactionKind::Adjustment,
+            null,
+            null,
             $this->clock->now(),
         );
     }

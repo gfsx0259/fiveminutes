@@ -5,11 +5,15 @@ CREATE TABLE IF NOT EXISTS leads
     buyer_id UUID,
     seller_id Nullable(UUID),
     acceptance_id Nullable(UUID),
+    order_id Nullable(UUID),
     email String,
     phone String,
     first_name String,
     last_name String,
     country LowCardinality(String),
+    traffic_source LowCardinality(String),
+    age LowCardinality(String),
+    gender LowCardinality(String),
     ip String,
     aff_sub String,
     uniq_id String,
@@ -33,3 +37,7 @@ ALTER TABLE leads ADD COLUMN IF NOT EXISTS ip String DEFAULT '';
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS aff_sub String DEFAULT '';
 ALTER TABLE leads MODIFY COLUMN acceptance_id Nullable(UUID);
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS sold_at Nullable(DateTime64(6, 'UTC'));
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS order_id Nullable(UUID);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS traffic_source LowCardinality(String) DEFAULT '';
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS age LowCardinality(String) DEFAULT '';
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS gender LowCardinality(String) DEFAULT '';

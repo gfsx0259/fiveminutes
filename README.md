@@ -32,7 +32,7 @@ docker compose up -d leadmarket-proxy rider-dns
 `rider-dns` — dnsmasq в сети хоста. Он отвечает на `rider.io`, `chase.io`, `marshall.io` и все их поддомены адресом `127.0.0.1`, остальные запросы отдаёт дальше. Chrome с Secure DNS этот dnsmasq не спрашивает, поэтому в `/etc/hosts` нужны явные имена:
 
 ```text
-127.0.0.1 id.rider.io id.chase.io id.marshall.io owner.rider.io api.rider.io api.chase.io api.marshall.io buyer.chase.io seller.chase.io buyer.marshall.io seller.marshall.io kafka.rider.io
+127.0.0.1 id.rider.io id.chase.io id.marshall.io owner.rider.io api.rider.io api.chase.io api.marshall.io buyer.chase.io seller.chase.io admin.chase.io buyer.marshall.io seller.marshall.io admin.marshall.io kafka.rider.io
 ```
 
 После этого поднимаются сервисы Rider, все на сети `dev-leadmarket-network`:

@@ -25,6 +25,14 @@
       </span>
     </div>
 
+    <div v-if="showWallet" class="lm-balance">
+      <div>{{ balanceLabel }}</div>
+      <div class="lm-balance__actions">
+        <button type="button" class="lm-balance__btn" :disabled="walletBusy" @click="deposit">Deposit</button>
+        <button type="button" class="lm-balance__btn" :disabled="walletBusy" @click="withdraw">Withdraw</button>
+      </div>
+    </div>
+
     <nav class="lm-nav">
       <router-link
         v-for="item in menu"
@@ -65,7 +73,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { apiPost } from '@/api'
+import { dollars } from '@/money'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 
@@ -84,22 +94,34 @@ const emit = defineEmits<{
 const route = useRoute()
 const session = useSessionStore()
 
-const menu = computed(() => {
-  const partner = session.payload?.user?.role === 'partner'
-  const board = partner
-    ? [
-        { title: 'Requests', to: '/requests', icon: 'mdi-clipboard-text-outline' },
-        { title: 'Slots', to: '/slots', icon: 'mdi-calendar-check' },
-      ]
-    : [
-        { title: 'Slots', to: '/slots', icon: 'mdi-calendar-check' },
-        { title: 'Requests', to: '/requests', icon: 'mdi-clipboard-text-outline' },
-      ]
+const leads = { title: 'Leads', to: '/leads', icon: 'mdi-format-list-bulleted' }
+const performance = { title: 'Performance', to: '/performance', icon: 'mdi-chart-timeline-variant' }
 
+const menu = computed(() => {
+  const role = session.payload?.user?.role
+  if (role === 'admin') {
+    return [
+      { title: 'Presets', to: '/presets', icon: 'mdi-shape-outline' },
+      { title: 'Orders', to: '/orders', icon: 'mdi-clipboard-text-outline' },
+      { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline' },
+      leads,
+      performance,
+    ]
+  }
+  if (role === 'partner') {
+    return [
+      { title: 'Presets', to: '/presets', icon: 'mdi-shape-outline' },
+      { title: 'Orders', to: '/orders', icon: 'mdi-clipboard-text-outline' },
+      { title: 'Stock', to: '/stock', icon: 'mdi-warehouse' },
+      leads,
+      performance,
+    ]
+  }
   return [
-    { title: 'Leads', to: '/leads', icon: 'mdi-format-list-bulleted' },
-    ...board,
-    { title: 'Performance', to: '/performance', icon: 'mdi-chart-timeline-variant' },
+    { title: 'Caps', to: '/caps', icon: 'mdi-gauge' },
+    { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline' },
+    leads,
+    performance,
   ]
 })
 
@@ -125,4 +147,64 @@ const initials = computed(() => {
   return (letters || name.slice(0, 2) || 'R').toUpperCase()
 })
 
+const showWallet = computed(() => {
+  const role = session.payload?.user?.role
+  return role === 'partner' || role === 'buyer'
+})
+
+const balanceLabel = computed(() => {
+  const user = session.payload?.user
+  if (!user) return ''
+  const cents = user.balanceCents ?? 0
+  return `Balance: ${dollars(cents / 100)}`
+})
+
+const walletBusy = ref(false)
+
+async function deposit(): Promise<void> {
+  walletBusy.value = true
+  try {
+    const data = await apiPost<{ balanceCents: number }>('/wallet/deposit', {})
+    if (session.payload?.user) {
+      session.payload.user.balanceCents = data.balanceCents
+    }
+  } finally {
+    walletBusy.value = false
+  }
+}
+
+async function withdraw(): Promise<void> {
+  walletBusy.value = true
+  try {
+    const data = await apiPost<{ balanceCents: number }>('/wallet/withdraw', {})
+    if (session.payload?.user) {
+      session.payload.user.balanceCents = data.balanceCents
+    }
+  } finally {
+    walletBusy.value = false
+  }
+}
+
 </script>
+
+<style scoped>
+.lm-balance__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.lm-balance__btn {
+  background: rgb(255 255 255 / 8%);
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 8px;
+  color: #e8eaff;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.lm-balance__btn:disabled {
+  opacity: 0.5;
+}
+</style>

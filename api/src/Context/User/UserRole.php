@@ -6,9 +6,12 @@ namespace App\Context\User;
 
 enum UserRole: string
 {
-    /** Майнт лиды и выставляет слот. В прототипе это buyer. */
+    /** Поставляет лиды. Кабинет buyer.<apex>. */
     case Buyer = 'buyer';
 
-    /** Принимает слот и создаёт demand. В прототипе это seller, в LM это партнёр. */
+    /** Покупает пачку. Кабинет seller.<apex>. */
     case Partner = 'partner';
+
+    /** Заводит пресеты и модерирует предложения. Кабинет admin.<apex>. */
+    case Admin = 'admin';
 }

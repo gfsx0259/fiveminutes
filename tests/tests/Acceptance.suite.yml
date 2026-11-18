@@ -13,3 +13,4 @@ modules:
             password: rider-local
             buyer: buyer@chase.io
             partner: partner@chase.io
+            admin: admin@chase.io

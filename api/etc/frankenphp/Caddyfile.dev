@@ -8,7 +8,7 @@
                Access-Control-Allow-Origin "{args[0]}"
                Access-Control-Allow-Credentials "true"
                Access-Control-Allow-Methods "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-               Access-Control-Allow-Headers "Content-Type,Accept"
+               Access-Control-Allow-Headers "Content-Type,Accept,Authorization"
                Access-Control-Max-Age "86400"
                Vary "Origin"
            }
@@ -24,7 +24,7 @@
                Access-Control-Allow-Origin "{args[0]}"
                Access-Control-Allow-Credentials "true"
                Access-Control-Allow-Methods "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-               Access-Control-Allow-Headers "Content-Type,Accept"
+               Access-Control-Allow-Headers "Content-Type,Accept,Authorization"
                Vary "Origin"
            }
        }
@@ -36,8 +36,10 @@
     import cors https://id.marshall.io
     import cors https://buyer.chase.io
     import cors https://seller.chase.io
+    import cors https://admin.chase.io
     import cors https://buyer.marshall.io
     import cors https://seller.marshall.io
+    import cors https://admin.marshall.io
     import cors https://owner.rider.io
 
     root /app/public

@@ -15,12 +15,15 @@ final readonly class Lead
     private string $organizationId;
     private string $buyerId;
     private ?string $sellerId;
-    private ?string $acceptanceId;
+    private ?string $orderId;
     private string $email;
     private string $phone;
     private string $firstName;
     private string $lastName;
     private string $country;
+    private string $trafficSource;
+    private string $age;
+    private string $gender;
     private string $ip;
     private string $affSub;
     private string $uniqId;
@@ -31,12 +34,15 @@ final readonly class Lead
         string $organizationId,
         string $buyerId,
         ?string $sellerId,
-        ?string $acceptanceId,
+        ?string $orderId,
         string $email,
         string $phone,
         string $firstName,
         string $lastName,
         string $country,
+        string $trafficSource,
+        string $age,
+        string $gender,
         string $ip,
         string $affSub,
         string $uniqId,
@@ -50,12 +56,15 @@ final readonly class Lead
         $this->organizationId = $this->requireId($organizationId, 'Organization id is empty');
         $this->buyerId = $this->requireId($buyerId, 'Buyer id is empty');
         $this->sellerId = $this->optionalId($sellerId);
-        $this->acceptanceId = $this->optionalId($acceptanceId);
+        $this->orderId = $this->optionalId($orderId);
         $this->email = trim($email);
         $this->phone = trim($phone);
         $this->firstName = trim($firstName);
         $this->lastName = trim($lastName);
         $this->country = trim($country);
+        $this->trafficSource = trim($trafficSource);
+        $this->age = trim($age);
+        $this->gender = trim($gender);
         $this->ip = trim($ip);
         $this->affSub = trim($affSub);
         $uniqId = trim($uniqId);
@@ -69,9 +78,9 @@ final readonly class Lead
         }
     }
 
-    public function sell(string $sellerId, string $acceptanceId, int $priceCents, DateTimeImmutable $at): self
+    public function sell(string $sellerId, string $orderId, int $priceCents, DateTimeImmutable $at): self
     {
-        return $this->copy($sellerId, $acceptanceId, LeadStatus::Sold, $priceCents, $at, $at);
+        return $this->copy($sellerId, $orderId, LeadStatus::Sold, $priceCents, $at, $at);
     }
 
     public function hold(DateTimeImmutable $at): self
@@ -99,9 +108,9 @@ final readonly class Lead
         return $this->sellerId;
     }
 
-    public function getAcceptanceId(): ?string
+    public function getOrderId(): ?string
     {
-        return $this->acceptanceId;
+        return $this->orderId;
     }
 
     public function getEmail(): string
@@ -127,6 +136,21 @@ final readonly class Lead
     public function getCountry(): string
     {
         return $this->country;
+    }
+
+    public function getTrafficSource(): string
+    {
+        return $this->trafficSource;
+    }
+
+    public function getAge(): string
+    {
+        return $this->age;
+    }
+
+    public function getGender(): string
+    {
+        return $this->gender;
     }
 
     public function getIp(): string
@@ -176,12 +200,15 @@ final readonly class Lead
             $this->organizationId,
             $this->buyerId,
             $this->sellerId,
-            $this->acceptanceId,
+            $this->orderId,
             $this->email,
             $this->phone,
             $this->firstName,
             $this->lastName,
             $this->country,
+            $this->trafficSource,
+            $this->age,
+            $this->gender,
             $this->ip,
             $this->affSub,
             $this->uniqId,
@@ -195,7 +222,7 @@ final readonly class Lead
 
     private function copy(
         ?string $sellerId,
-        ?string $acceptanceId,
+        ?string $orderId,
         LeadStatus $status,
         int $priceCents,
         ?DateTimeInterface $soldAt,
@@ -206,12 +233,15 @@ final readonly class Lead
             $this->organizationId,
             $this->buyerId,
             $sellerId,
-            $acceptanceId,
+            $orderId,
             $this->email,
             $this->phone,
             $this->firstName,
             $this->lastName,
             $this->country,
+            $this->trafficSource,
+            $this->age,
+            $this->gender,
             $this->ip,
             $this->affSub,
             $this->uniqId,

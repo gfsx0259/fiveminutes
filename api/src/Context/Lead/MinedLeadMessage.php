@@ -20,6 +20,9 @@ final readonly class MinedLeadMessage
             'first_name' => $lead->getFirstName(),
             'last_name' => $lead->getLastName(),
             'country' => $lead->getCountry(),
+            'traffic_source' => $lead->getTrafficSource(),
+            'age' => $lead->getAge(),
+            'gender' => $lead->getGender(),
             'ip' => $lead->getIp(),
             'aff_sub' => $lead->getAffSub(),
             'uniq_id' => $lead->getUniqId(),
@@ -47,6 +50,9 @@ final readonly class MinedLeadMessage
             $this->text($body, 'first_name'),
             $this->text($body, 'last_name'),
             $this->text($body, 'country'),
+            $this->optional($body, 'traffic_source'),
+            $this->optional($body, 'age'),
+            $this->optional($body, 'gender'),
             $this->text($body, 'ip'),
             $this->text($body, 'aff_sub'),
             $this->text($body, 'uniq_id'),
@@ -68,5 +74,15 @@ final readonly class MinedLeadMessage
         }
 
         return $value;
+    }
+
+    /**
+     * @param array<mixed, mixed> $body
+     */
+    private function optional(array $body, string $field): string
+    {
+        $value = $body[$field] ?? '';
+
+        return is_string($value) ? trim($value) : '';
     }
 }

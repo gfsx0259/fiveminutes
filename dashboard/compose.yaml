@@ -11,7 +11,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=dev-leadmarket-network
-      - traefik.http.routers.rider-dashboard.rule=Host(`buyer.chase.io`) || Host(`seller.chase.io`) || Host(`buyer.marshall.io`) || Host(`seller.marshall.io`) || Host(`owner.rider.io`)
+      - traefik.http.routers.rider-dashboard.rule=Host(`buyer.chase.io`) || Host(`seller.chase.io`) || Host(`admin.chase.io`) || Host(`buyer.marshall.io`) || Host(`seller.marshall.io`) || Host(`admin.marshall.io`) || Host(`owner.rider.io`)
       - traefik.http.routers.rider-dashboard.entrypoints=https
       - traefik.http.routers.rider-dashboard.tls=true
       - traefik.http.services.rider-dashboard.loadbalancer.server.port=5173

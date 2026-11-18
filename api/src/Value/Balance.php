@@ -34,4 +34,9 @@ final readonly class Balance
 
         return new self($this->cents - $amount->cents());
     }
+
+    public function covers(Money $amount): bool
+    {
+        return $this->cents >= $amount->cents();
+    }
 }

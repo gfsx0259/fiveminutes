@@ -6,12 +6,15 @@ export interface Organization {
   id: string
   name: string
   apex: string
+  markupPercent?: number
+  balanceCents?: number | null
 }
 
 export interface AppUser {
   id: string
   email: string
   role: string
+  balanceCents?: number | null
   organization: Organization | null
 }
 

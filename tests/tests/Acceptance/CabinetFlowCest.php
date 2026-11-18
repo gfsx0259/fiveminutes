@@ -19,7 +19,7 @@ final class CabinetFlowCest
         $I->seeResponseCodeIs(401);
         $I->seeResponseContainsJson(['error' => 'No session']);
 
-        $I->sendGet('/slots');
+        $I->sendGet('/orders');
         $I->seeResponseCodeIs(401);
 
         $I->sendPost('/v1/lead', $this->lead('DE'));
@@ -36,109 +36,83 @@ final class CabinetFlowCest
         $I->seeResponseCodeIs(400);
     }
 
-    public function buyerAndPartnerTradeALead(AcceptanceTester $I): void
+    public function ordersShareALeadByWeight(AcceptanceTester $I): void
     {
-        $I->signIn('buyer');
-        $I->sendGet('/session');
-        $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson(['user' => ['email' => 'buyer@chase.io', 'role' => 'buyer', 'organization' => ['apex' => 'chase.io']]]);
-
         $I->signIn('partner');
-        $I->sendGet('/session');
-        $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson(['user' => ['email' => 'partner@chase.io', 'role' => 'partner']]);
-
-        $I->sendPost('/slots', $this->slot('DE'));
+        $I->sendPost('/presets', $this->preset());
         $I->seeResponseCodeIs(403);
-        $I->seeResponseContainsJson(['error' => 'Only a buyer can open a slot']);
 
-        $I->signIn('buyer');
-        $I->sendPost('/demands', $this->demand('DE'));
-        $I->seeResponseCodeIs(403);
-        $I->seeResponseContainsJson(['error' => 'Only a partner can open a demand']);
-
-        $I->sendPost('/slots', []);
+        $traffic = 'fb' . bin2hex(random_bytes(3));
+        $I->signIn('admin');
+        $I->sendPost('/presets', $this->preset(0, $traffic));
         $I->seeResponseCodeIs(400);
-        $I->seeResponseContainsJson(['errors' => ['geo' => 'Geo must be a country code, like IT']]);
 
-        [$slotGeo, $demandGeo, $stockGeo] = (new GeoPool())->take($this->usedGeos($I), 3);
-        $I->signIn('buyer');
-        $deadline = gmdate('Y-m-d', time() + 7 * 86400);
-
-        $I->sendPost('/slots', $this->slot($slotGeo, $deadline, 60));
+        $I->sendPost('/presets', $this->preset(40, $traffic));
         $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson(['status' => 'open']);
-        $slotId = $this->body($I)['id'];
+        $presetId = $this->body($I)['id'];
 
-        $I->sendPost('/slots/' . $slotId . '/accept');
+        $geo = (new GeoPool())->take($this->usedGeos($I), 1)[0];
+        $today = gmdate('Y-m-d');
+
+        $I->signIn('buyer');
+        $I->sendPost('/orders', $this->order($presetId, $geo, 40, $today));
         $I->seeResponseCodeIs(403);
-        $I->seeResponseContainsJson(['error' => 'Only a partner can accept a slot']);
 
         $I->signIn('partner');
-        $I->sendPost('/slots/' . $slotId . '/accept');
-        $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson(['status' => 'taken']);
+        $I->sendPost('/orders', $this->order($presetId, $geo, 30, $today));
+        $I->seeResponseCodeIs(400);
+        $I->seeResponseContainsJson(['error' => 'Price cannot be below the preset']);
 
-        $I->sendPost('/demands', $this->demand($demandGeo, 40));
+        $I->sendPost('/orders', $this->order($presetId, $geo, 80, $today));
         $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson(['status' => 'open']);
-        $demandId = $this->body($I)['id'];
-
-        $I->sendPost('/demands/' . $demandId . '/accept');
-        $I->seeResponseCodeIs(403);
-        $I->seeResponseContainsJson(['error' => 'Only a buyer can accept a demand']);
+        $I->seeResponseContainsJson(['status' => 'in_progress']);
+        $I->sendPost('/orders', $this->order($presetId, $geo, 40, $today));
+        $I->seeResponseCodeIs(200);
 
         $I->signIn('buyer');
-        $I->sendPost('/demands/' . $demandId . '/accept');
+        $I->sendPost('/offers', $this->offer($presetId, $geo, $today));
         $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson(['status' => 'taken']);
+        $I->seeResponseContainsJson(['status' => 'pending']);
+        $offerId = $this->body($I)['id'];
 
+        $I->sendPost('/offers/' . $offerId . '/approve');
+        $I->seeResponseCodeIs(403);
+
+        $I->signIn('admin');
+        $I->sendPost('/offers/' . $offerId . '/approve');
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson(['status' => 'approved']);
+
+        $I->signIn('buyer');
         $I->sendPost('/api-key');
         $I->seeResponseCodeIs(200);
         $apiKey = $this->body($I)['apiKey'];
         $I->haveHttpHeader('Authorization', 'Bearer ' . $apiKey);
 
-        $I->sendPost('/v1/lead', $this->lead($slotGeo));
-        $I->seeResponseCodeIs(200);
-        $soldOnSlot = $this->body($I)['uuid'];
+        $I->sendPost('/v1/lead', $this->lead('FR', 'other'));
+        $I->seeResponseCodeIs(400);
+        $I->seeResponseContainsJson(['errors' => ['preset' => 'No preset matches this lead']]);
 
-        $I->sendPost('/v1/lead', $this->lead($demandGeo));
-        $I->seeResponseCodeIs(200);
-        $soldOnDemand = $this->body($I)['uuid'];
-
-        $I->sendPost('/v1/lead', $this->lead($stockGeo));
-        $I->seeResponseCodeIs(200);
-        $stocked = $this->body($I)['uuid'];
+        $sold = [];
+        for ($index = 0; $index < 6; $index++) {
+            $I->sendPost('/v1/lead', $this->lead($geo, $traffic));
+            $I->seeResponseCodeIs(200);
+            $sold[] = $this->body($I)['uuid'];
+        }
 
         $I->deleteHeader('Authorization');
-        $slotLead = $I->waitForLead($soldOnSlot, 'sold');
-        $I->assertSame(6000, $slotLead['priceCents']);
-        $I->assertSame($slotGeo, $slotLead['country']);
-
-        $demandLead = $I->waitForLead($soldOnDemand, 'sold');
-        $I->assertSame(4000, $demandLead['priceCents']);
-
-        $stockLead = $I->waitForLead($stocked, 'in_stock');
-        $I->assertSame(0, $stockLead['priceCents']);
-        $I->assertNull($stockLead['sellerId']);
-
         $I->signIn('partner');
-        $I->sendGet('/leads');
-        $I->seeResponseCodeIs(200);
-        $partnerLeads = $this->body($I)['leads'];
-        $I->assertNotFalse($this->find($partnerLeads, $soldOnSlot));
-        $I->assertNotFalse($this->find($partnerLeads, $soldOnDemand));
-        $I->assertFalse($this->find($partnerLeads, $stocked));
+        $prices = [];
+        foreach ($sold as $uuid) {
+            $lead = $I->waitForLead($uuid, 'sold');
+            $prices[] = $lead['priceCents'];
+        }
+        $I->assertSame(4, count(array_filter($prices, static fn (int $price): bool => $price === 8000)));
+        $I->assertSame(2, count(array_filter($prices, static fn (int $price): bool => $price === 4000)));
 
         $I->haveHttpHeader('Authorization', 'Bearer nope');
-        $I->sendPost('/v1/lead', $this->lead($stockGeo));
+        $I->sendPost('/v1/lead', $this->lead($geo));
         $I->seeResponseCodeIs(401);
-
-        $I->deleteHeader('Authorization');
-        $I->haveHttpHeader('Authorization', 'Bearer ' . $apiKey);
-        $I->sendPost('/v1/lead', ['phone' => '123']);
-        $I->seeResponseCodeIs(400);
-        $I->seeResponseContainsJson(['errors' => ['phone' => 'Phone must be E.164, like +4915112345678']]);
     }
 
     /**
@@ -147,16 +121,11 @@ final class CabinetFlowCest
     private function usedGeos(AcceptanceTester $I): array
     {
         $used = [];
-        foreach (['buyer', 'partner'] as $who) {
-            $I->signIn($who);
-            foreach (['/slots', '/demands'] as $path) {
-                $I->sendGet($path);
-                $I->seeResponseCodeIs(200);
-                $key = $path === '/slots' ? 'slots' : 'demands';
-                foreach ($this->body($I)[$key] as $row) {
-                    $used[$row['geo']] = true;
-                }
-            }
+        $I->signIn('partner');
+        $I->sendGet('/orders');
+        $I->seeResponseCodeIs(200);
+        foreach ($this->body($I)['orders'] as $row) {
+            $used[$row['geo']] = true;
         }
 
         return $used;
@@ -165,37 +134,52 @@ final class CabinetFlowCest
     /**
      * @return array<string, mixed>
      */
-    private function slot(string $geo, string $deadline = '2026-12-01', int $price = 50): array
+    private function preset(int $price = 40, string $traffic = 'facebook'): array
     {
         return [
-            'geo' => $geo,
-            'volume' => 5,
-            'price' => $price,
-            'pricing_model' => 'cpl',
-            'deadline' => $deadline,
+            'traffic_source' => $traffic,
+            'age' => '25-34',
+            'gender' => 'm',
+            'cr' => $price === 0 ? 120 : 20,
+            'price' => $price === 0 ? 40 : $price,
         ];
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function demand(string $geo, int $price = 40): array
+    private function order(string $presetId, string $geo, int $price, string $day): array
     {
         return [
+            'preset_id' => $presetId,
             'geo' => $geo,
-            'volume' => 5,
+            'volume' => 10,
             'price' => $price,
-            'pricing_model' => 'cpl',
-            'service_on' => gmdate('Y-m-d'),
+            'kind' => 'day',
+            'service_on' => $day,
             'opens_at' => '00:00',
             'closes_at' => '23:59',
         ];
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function offer(string $presetId, string $geo, string $day): array
+    {
+        return [
+            'preset_id' => $presetId,
+            'geo' => $geo,
+            'volume' => 6,
+            'kind' => 'day',
+            'service_on' => $day,
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
-    private function lead(string $geo): array
+    private function lead(string $geo, string $traffic = 'facebook'): array
     {
         return [
             'phone' => '+1' . random_int(2000000000, 9999999999),
@@ -205,6 +189,9 @@ final class CabinetFlowCest
             'first_name' => 'Ada',
             'last_name' => 'Lovelace',
             'aff_sub' => 'flow',
+            'traffic_source' => $traffic,
+            'age' => '25-34',
+            'gender' => 'm',
         ];
     }
 
@@ -216,20 +203,5 @@ final class CabinetFlowCest
         $decoded = json_decode($I->grabResponse(), true);
 
         return is_array($decoded) ? $decoded : [];
-    }
-
-    /**
-     * @param list<array<string, mixed>> $leads
-     * @return array<string, mixed>|false
-     */
-    private function find(array $leads, string $uuid): array|false
-    {
-        foreach ($leads as $lead) {
-            if (($lead['uuid'] ?? '') === $uuid) {
-                return $lead;
-            }
-        }
-
-        return false;
     }
 }

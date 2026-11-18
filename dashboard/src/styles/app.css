@@ -85,3 +85,124 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.page-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.page-head > div {
+  min-width: 0;
+}
+
+.page-head > :last-child {
+  flex-shrink: 0;
+}
+
+.v-dialog > .v-overlay__scrim {
+  background: #11162c70 !important;
+  opacity: 1 !important;
+}
+
+.v-dialog > .v-overlay__content {
+  display: flex;
+  margin: 24px;
+  max-height: calc(100dvh - 48px);
+  max-width: min(100%, calc(100vw - 48px));
+  overflow: hidden;
+}
+
+.v-dialog > .v-overlay__content > .v-card {
+  background: #fff !important;
+  border: 1px solid var(--lm-border) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 20px 70px #10153533 !important;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 28px 28px 32px !important;
+  width: 100%;
+}
+
+.v-dialog .v-card-title {
+  color: #070916;
+  flex: 0 0 auto;
+  font-size: 22px !important;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
+  padding: 0 !important;
+  white-space: normal;
+}
+
+.v-dialog .v-card-text > p:first-child {
+  color: var(--lm-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
+.v-dialog .v-card-text {
+  color: var(--lm-foreground);
+  flex: 1 1 auto;
+  font-size: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 0 0 !important;
+}
+
+.v-dialog .v-card-actions {
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  min-height: 40px;
+  padding: 4px 0 0 !important;
+}
+
+.ui-form {
+  display: grid;
+  font-size: 13px;
+  gap: 16px;
+  margin-top: 16px;
+  min-width: 0;
+}
+
+.ui-form__row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-dialog__error {
+  color: #c42f50;
+  font-size: 14px;
+  margin: 12px 0 0;
+}
+
+@media (max-width: 767px) {
+  .page-head {
+    display: grid;
+  }
+
+  .v-dialog > .v-overlay__content > .v-card {
+    padding: 24px 24px 28px !important;
+  }
+
+  .v-dialog .v-card-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .ui-form__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

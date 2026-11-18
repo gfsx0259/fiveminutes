@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace App\Api;
 
-use App\Api\Form\DemandForm;
-use App\Api\Form\SlotForm;
+use App\Api\Form\OfferForm;
+use App\Api\Form\OrderForm;
+use App\Api\Form\PresetForm;
 use App\Context\Identity\CurrentUser;
 use App\Context\Identity\NoAccountException;
 use App\Context\Identity\NoSessionException;
-use App\Context\Market\CabinetListings;
-use App\Context\Market\ListingMissingException;
-use App\Context\Market\Posting;
+use App\Context\Market\Cabinet;
+use App\Context\Market\OfferDesk;
+use App\Context\Market\OfferMissingException;
+use App\Context\Market\OrderDesk;
+use App\Context\Market\OrderMissingException;
+use App\Context\Market\PresetDesk;
+use App\Context\Market\PresetMissingException;
+use App\Context\Market\Warehouse;
 use App\Context\User\User;
-use App\Context\User\UserRole;
 use DomainException;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
@@ -26,101 +31,180 @@ final readonly class MarketController
 {
     public function __construct(
         private CurrentUser $currentUser,
-        private Posting $posting,
-        private CabinetListings $listings,
+        private PresetDesk $presets,
+        private OrderDesk $orders,
+        private OfferDesk $offers,
+        private Cabinet $cabinet,
+        private Warehouse $warehouse,
         private DataResponseFactoryInterface $responses,
         private RequestProviderInterface $requests,
         private CurrentRoute $route,
     ) {}
 
-    public function slots(): ResponseInterface
+    public function presets(): ResponseInterface
     {
-        try {
-            $user = $this->user();
-        } catch (NoSessionException | NoAccountException $exception) {
-            return $this->sessionFailure($exception);
-        }
-
-        return $this->responses->createResponse(['slots' => $this->listings->slots($user)]);
+        return $this->list(fn (User $user): array => ['presets' => $this->cabinet->presets($user)]);
     }
 
-    public function openSlot(SlotForm $form): ResponseInterface
+    public function openPreset(PresetForm $form): ResponseInterface
     {
         try {
-            $user = $this->requireRole(UserRole::Buyer, 'Only a buyer can open a slot');
-            $slot = $this->posting->openSlot(
-                $user,
-                $form->geo(),
-                $form->volume(),
-                $form->priceCents(),
-                $form->pricingModel(),
-                $form->deadlineAt(),
+            $preset = $this->presets->open(
+                $this->user(),
+                $form->country(),
+                $form->trafficSource(),
+                $form->age(),
+                $form->gender(),
+                $form->cr(),
+                $form->cplPriceCents(),
+                $form->cpaPriceCents(),
             );
-        } catch (NoSessionException | NoAccountException | DomainException $exception) {
-            return $this->sessionFailure($exception);
-        } catch (InvalidArgumentException $exception) {
-            return $this->responses->createResponse(['error' => $exception->getMessage()], 400);
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
         }
 
-        return $this->responses->createResponse(['id' => $slot->getId(), 'status' => $slot->getStatus()->value]);
+        return $this->responses->createResponse(['id' => $preset->getId()]);
     }
 
-    public function acceptSlot(): ResponseInterface
+    public function deletePreset(): ResponseInterface
     {
         try {
-            $user = $this->requireRole(UserRole::Partner, 'Only a partner can accept a slot');
-            $acceptance = $this->posting->acceptSlot($user, $this->id());
-        } catch (NoSessionException | NoAccountException | DomainException | ListingMissingException $exception) {
-            return $this->sessionFailure($exception);
+            $this->presets->remove($this->user(), $this->id());
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
         }
 
-        return $this->responses->createResponse(['id' => $acceptance->getId(), 'status' => 'taken']);
+        return $this->responses->createResponse(['ok' => true]);
     }
 
-    public function demands(): ResponseInterface
+    public function orders(): ResponseInterface
     {
-        try {
-            $user = $this->user();
-        } catch (NoSessionException | NoAccountException $exception) {
-            return $this->sessionFailure($exception);
-        }
-
-        return $this->responses->createResponse(['demands' => $this->listings->demands($user)]);
+        return $this->list(fn (User $user): array => ['orders' => $this->cabinet->orders($user)]);
     }
 
-    public function openDemand(DemandForm $form): ResponseInterface
+    public function openOrder(OrderForm $form): ResponseInterface
     {
         try {
-            $user = $this->requireRole(UserRole::Partner, 'Only a partner can open a demand');
-            $demand = $this->posting->openDemand(
-                $user,
+            $order = $this->orders->open(
+                $this->user(),
+                $form->presetId(),
                 $form->geo(),
                 $form->volume(),
                 $form->priceCents(),
-                $form->pricingModel(),
+                $form->paymentModel(),
+                $form->stock(),
                 $form->serviceOn(),
                 $form->opensAt(),
                 $form->closesAt(),
+                $form->stockLeadGender(),
             );
-        } catch (NoSessionException | NoAccountException | DomainException $exception) {
-            return $this->sessionFailure($exception);
-        } catch (InvalidArgumentException $exception) {
-            return $this->responses->createResponse(['error' => $exception->getMessage()], 400);
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
         }
 
-        return $this->responses->createResponse(['id' => $demand->getId(), 'status' => $demand->getStatus()->value]);
+        return $this->responses->createResponse([
+            'id' => $order->getId(),
+            'status' => $order->getStatus()->value,
+            'supplied' => $order->getSuppliedCount(),
+        ]);
     }
 
-    public function acceptDemand(): ResponseInterface
+    public function warehouse(): ResponseInterface
+    {
+        return $this->list(fn (User $user): array => ['stock' => $this->warehouse->inventory($user)]);
+    }
+
+    public function pauseOrder(): ResponseInterface
+    {
+        return $this->changeOrder(fn (User $user, string $id) => $this->orders->pause($user, $id));
+    }
+
+    public function resumeOrder(): ResponseInterface
+    {
+        return $this->changeOrder(fn (User $user, string $id) => $this->orders->resume($user, $id));
+    }
+
+    public function finishOrder(): ResponseInterface
+    {
+        return $this->changeOrder(fn (User $user, string $id) => $this->orders->finish($user, $id));
+    }
+
+    public function caps(): ResponseInterface
+    {
+        return $this->list(fn (User $user): array => ['caps' => $this->cabinet->caps($user)]);
+    }
+
+    public function offers(): ResponseInterface
+    {
+        return $this->list(fn (User $user): array => ['offers' => $this->cabinet->offers($user)]);
+    }
+
+    public function openOffer(OfferForm $form): ResponseInterface
     {
         try {
-            $user = $this->requireRole(UserRole::Buyer, 'Only a buyer can accept a demand');
-            $acceptance = $this->posting->acceptDemand($user, $this->id());
-        } catch (NoSessionException | NoAccountException | DomainException | ListingMissingException $exception) {
-            return $this->sessionFailure($exception);
+            $offer = $this->offers->open(
+                $this->user(),
+                $form->presetId(),
+                $form->geo(),
+                $form->volume(),
+                $form->stock(),
+                $form->serviceOn(),
+            );
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
         }
 
-        return $this->responses->createResponse(['id' => $acceptance->getId(), 'status' => 'taken']);
+        return $this->responses->createResponse(['id' => $offer->getId(), 'status' => $offer->getStatus()->value]);
+    }
+
+    public function approveOffer(): ResponseInterface
+    {
+        return $this->changeOffer(fn (User $user, string $id) => $this->offers->approve($user, $id));
+    }
+
+    public function rejectOffer(): ResponseInterface
+    {
+        return $this->changeOffer(fn (User $user, string $id) => $this->offers->reject($user, $id));
+    }
+
+    /**
+     * @param callable(User): array<string, mixed> $body
+     */
+    private function list(callable $body): ResponseInterface
+    {
+        try {
+            return $this->responses->createResponse($body($this->user()));
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
+        }
+    }
+
+    /**
+     * @param callable(User, string): \App\Context\Market\Order $change
+     */
+    private function changeOrder(callable $change): ResponseInterface
+    {
+        try {
+            $order = $change($this->user(), $this->id());
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
+        }
+
+        return $this->responses->createResponse(['id' => $order->getId(), 'status' => $order->getStatus()->value]);
+    }
+
+    /**
+     * @param callable(User, string): \App\Context\Market\Offer $change
+     */
+    private function changeOffer(callable $change): ResponseInterface
+    {
+        try {
+            $offer = $change($this->user(), $this->id());
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
+        }
+
+        return $this->responses->createResponse(['id' => $offer->getId(), 'status' => $offer->getStatus()->value]);
     }
 
     private function user(): User
@@ -128,33 +212,40 @@ final readonly class MarketController
         return $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie'));
     }
 
-    private function requireRole(UserRole $role, string $message): User
-    {
-        $user = $this->user();
-        if ($user->getRole() !== $role) {
-            throw new DomainException($message);
-        }
-
-        return $user;
-    }
-
     private function id(): string
     {
         return (string) $this->route->getArgument('id');
     }
 
-    private function sessionFailure(Throwable $exception): ResponseInterface
+    private function conflict(string $message): bool
+    {
+        foreach (['not in progress', 'not paused', 'not pending', 'already finished', 'no room', 'cannot be removed'] as $needle) {
+            if (str_contains($message, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function failure(Throwable $exception): ResponseInterface
     {
         if ($exception instanceof NoSessionException) {
             return $this->responses->createResponse(['error' => 'No session'], 401);
         }
-        if ($exception instanceof ListingMissingException) {
+        if ($exception instanceof PresetMissingException || $exception instanceof OrderMissingException || $exception instanceof OfferMissingException) {
             return $this->responses->createResponse(['error' => $exception->getMessage()], 404);
         }
-        if ($exception instanceof DomainException && str_contains($exception->getMessage(), 'not open')) {
+        if ($exception instanceof InvalidArgumentException) {
+            return $this->responses->createResponse(['error' => $exception->getMessage()], 400);
+        }
+        if ($exception instanceof DomainException && $this->conflict($exception->getMessage())) {
             return $this->responses->createResponse(['error' => $exception->getMessage()], 409);
         }
+        if ($exception instanceof NoAccountException || $exception instanceof DomainException) {
+            return $this->responses->createResponse(['error' => $exception->getMessage()], 403);
+        }
 
-        return $this->responses->createResponse(['error' => $exception->getMessage()], 403);
+        throw $exception;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Context\Lead;
 
+use App\Context\Market\Permit;
 use App\Context\User\NotBuyerException;
 use App\Context\User\UserRepository;
 use App\Context\User\UserRole;
@@ -14,6 +15,7 @@ final readonly class Intake
         private UserRepository $users,
         private LeadFactory $leads,
         private LeadQueue $queue,
+        private Permit $permits,
     ) {}
 
     /**
@@ -30,6 +32,7 @@ final readonly class Intake
         }
 
         $lead = $this->leads->receive($buyer, new LeadSubmission($body));
+        $this->permits->assertRecognized($lead);
         $this->queue->publish($lead);
 
         return $lead;

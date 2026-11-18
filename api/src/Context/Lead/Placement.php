@@ -15,8 +15,8 @@ class Placement
     public function __construct(
         #[Column(type: 'uuid', primary: true, name: 'lead_uuid')]
         private readonly string $leadUuid,
-        #[Column(type: 'uuid', name: 'acceptance_id', nullable: true)]
-        private readonly ?string $acceptanceId,
+        #[Column(type: 'uuid', name: 'order_id', nullable: true)]
+        private readonly ?string $orderId,
         #[Column(type: 'uuid', name: 'seller_id', nullable: true)]
         private readonly ?string $sellerId,
         #[Column(type: 'integer', name: 'price_cents', typecast: 'int')]
@@ -29,7 +29,7 @@ class Placement
         if ($this->priceCents < 0) {
             throw new InvalidArgumentException('Price must be zero or positive');
         }
-        $sold = $this->acceptanceId !== null;
+        $sold = $this->orderId !== null;
         if ($sold !== ($this->sellerId !== null) || $sold !== ($this->soldAt !== null) || $sold !== ($this->priceCents > 0)) {
             throw new InvalidArgumentException('Placement must be sold or stocked as a whole');
         }
@@ -40,9 +40,9 @@ class Placement
         return $this->leadUuid;
     }
 
-    public function getAcceptanceId(): ?string
+    public function getOrderId(): ?string
     {
-        return $this->acceptanceId;
+        return $this->orderId;
     }
 
     public function getSellerId(): ?string
