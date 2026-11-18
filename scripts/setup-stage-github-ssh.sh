@@ -24,8 +24,9 @@ Host github.com-fiveminutes
 EOF
 fi
 
-cd /opt/rider 2>/dev/null || true
 if [[ -d /opt/rider/.git ]]; then
+  git config --global --add safe.directory /opt/rider 2>/dev/null || true
+  cd /opt/rider
   git remote set-url origin git@github.com-fiveminutes:gfsx0259/fiveminutes.git 2>/dev/null || true
 fi
 
