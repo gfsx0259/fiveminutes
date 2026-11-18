@@ -1,4 +1,4 @@
-.PHONY: up
+.PHONY: up deploy-stage
 .DEFAULT_GOAL := up
 
 up:
@@ -7,3 +7,6 @@ up:
 	$(MAKE) -C kratos up
 	$(MAKE) -C api up
 	$(MAKE) -C dashboard up
+
+deploy-stage:
+	./scripts/deploy-stage.sh

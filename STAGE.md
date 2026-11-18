@@ -94,3 +94,44 @@ curl -X POST https://api.marshall.io/v1/lead \
 | Админ Chase | `admin@chase.io` | `https://id.chase.io`, кабинет `https://admin.chase.io` |
 | Байер Marshall | `buyer@marshall.io` | `https://id.marshall.io`, кабинет `https://buyer.marshall.io` |
 | Партнёр Marshall | `partner@marshall.io` | `https://id.marshall.io`, кабинет `https://seller.marshall.io` |
+| Админ Marshall | `admin@marshall.io` | `https://id.marshall.io`, кабинет `https://admin.marshall.io` |
+
+## Деплой на стенд
+
+Код в `/opt/rider` на `2.29.205.3`. После `git push` в `main`:
+
+```bash
+cd /path/to/rider
+./scripts/deploy-stage.sh
+```
+
+Скрипт по умолчанию делает `git fetch` на стенде. Если deploy key ещё не добавлен в GitHub, он сам переключится на `rsync`.
+
+### Deploy key (один раз)
+
+На стенде: `/root/.ssh/github_fiveminutes`, `origin` через хост `github.com-fiveminutes`. Добавь **read-only** deploy key в репозиторий:
+
+```bash
+export GITHUB_TOKEN='classic PAT с scope repo'
+./scripts/register-github-deploy-key.sh
+```
+
+Либо вручную: [Deploy keys](https://github.com/gfsx0259/fiveminutes/settings/keys) — публичный ключ:
+
+```bash
+ssh root@2.29.205.3 'cat /root/.ssh/github_fiveminutes.pub'
+```
+
+Проверка:
+
+```bash
+ssh root@2.29.205.3 'cd /opt/rider && git fetch origin && git log -1 --oneline origin/main'
+```
+
+### Принудительный rsync
+
+```bash
+RIDER_DEPLOY_RSYNC=1 ./scripts/deploy-stage.sh
+```
+
+Серты Traefik (mkcert) — в `meta/cert` рядом с репо; скрипт докинет их в `traefik/cert/`, если на стенде нет wildcard-файлов.
