@@ -3,6 +3,10 @@
     <header v-if="heading" class="preset-offer-summary__head">
       <div class="preset-offer-summary__title-row">
         <strong class="preset-offer-summary__title">{{ heading }}</strong>
+        <span class="preset-offer-summary__title-vertical">
+          <v-icon :icon="verticalIcon(vertical)" :color="verticalColor(vertical)" size="16" />
+          <span>{{ verticalLabel(vertical) }}</span>
+        </span>
         <span v-if="badge" class="preset-offer-summary__badge">{{ badge }}</span>
       </div>
       <span v-if="paymentModel" class="preset-offer-summary__model">{{ modelLabel(paymentModel) }}</span>
@@ -18,27 +22,21 @@
         </div>
         <span class="preset-offer-summary__sep" aria-hidden="true" />
         <div class="preset-offer-summary__cell">
-          <span class="preset-offer-summary__label">Vertical</span>
-          <span class="preset-offer-summary__value">
-            <v-icon :icon="verticalIcon(vertical)" :color="verticalColor(vertical)" size="16" />
-            <span>{{ verticalLabel(vertical) }}</span>
-          </span>
-        </div>
-        <span class="preset-offer-summary__sep" aria-hidden="true" />
-        <div class="preset-offer-summary__cell">
           <span class="preset-offer-summary__label">Traffic</span>
           <span class="preset-offer-summary__value">
             <v-icon :icon="trafficIcon(trafficSource)" :color="trafficColor(trafficSource)" size="16" />
             <span>{{ trafficLabel(trafficSource) }}</span>
           </span>
         </div>
+        <template v-if="conversion != null && conversion > 0">
+          <span class="preset-offer-summary__sep" aria-hidden="true" />
+          <div class="preset-offer-summary__cell">
+            <span class="preset-offer-summary__label">CR</span>
+            <span class="preset-offer-summary__cr">{{ conversion }}%</span>
+          </div>
+        </template>
       </div>
-      <div class="preset-offer-summary__row">
-        <div v-if="conversion != null && conversion > 0" class="preset-offer-summary__cell">
-          <span class="preset-offer-summary__label">CR</span>
-          <span class="preset-offer-summary__cr">{{ conversion }}%</span>
-        </div>
-        <span v-if="conversion != null && conversion > 0" class="preset-offer-summary__sep" aria-hidden="true" />
+      <div class="preset-offer-summary__row preset-offer-summary__row--price">
         <div class="preset-offer-summary__cell">
           <span class="preset-offer-summary__label">{{ amountLabel }}</span>
           <span class="preset-offer-summary__payout">{{ dollars(payoutCents / 100) }}</span>
@@ -113,6 +111,16 @@ const countryName = computed(() =>
   font-weight: 700;
 }
 
+.preset-offer-summary__title-vertical {
+  align-items: center;
+  color: #5c6078;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 5px;
+  margin-left: 4px;
+}
+
 .preset-offer-summary__badge {
   background: #e8f5e9;
   border-radius: 999px;
@@ -143,6 +151,10 @@ const countryName = computed(() =>
   display: flex;
   flex-wrap: wrap;
   gap: 10px 18px;
+}
+
+.preset-offer-summary__row--price {
+  padding-top: 2px;
 }
 
 .preset-offer-summary__cell {

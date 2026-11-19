@@ -112,10 +112,10 @@
     </UiField>
     <div class="ui-form__row">
       <UiField label="Opens" icon="mdi-clock-time-four-outline">
-        <UiInput v-model="opensAt" type="time" />
+        <UiTimeField v-model="opensAt" label="Opens" />
       </UiField>
       <UiField label="Closes" icon="mdi-clock-time-four-outline">
-        <UiInput v-model="closesAt" type="time" />
+        <UiTimeField v-model="closesAt" label="Closes" :minute-step="15" :extra-minutes="[59]" />
       </UiField>
     </div>
 
@@ -143,6 +143,8 @@ import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import UiTimeField from '@/components/ui/UiTimeField.vue'
+import { defaultOpensForServiceDate } from '@/timeDefaults'
 import { ISO2_COUNTRIES } from '@/countries'
 import {
   trafficColor,
@@ -181,7 +183,7 @@ const volume = ref('1000')
 const price = ref('50')
 const serviceOn = ref(utcDay(0))
 const serviceQuick = ref('today')
-const opensAt = ref('00:00')
+const opensAt = ref(defaultOpensForServiceDate(utcDay(0), utcDay(0)))
 const closesAt = ref('23:59')
 
 const serviceQuickItems = [
@@ -319,8 +321,15 @@ watch(open, (value) => {
   price.value = initial ? String(initial.floorPriceCents / 100) : '50'
   serviceOn.value = utcDay(0)
   serviceQuick.value = 'today'
-  opensAt.value = '00:00'
+  opensAt.value = defaultOpensForServiceDate(utcDay(0), utcDay(0))
   closesAt.value = '23:59'
+})
+
+watch(serviceOn, (iso) => {
+  if (!open.value || !iso) {
+    return
+  }
+  opensAt.value = defaultOpensForServiceDate(iso, utcDay(0))
 })
 
 watch(vertical, (value, old) => {

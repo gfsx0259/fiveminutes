@@ -128,6 +128,14 @@ defineProps<{
 .ui-field--icon :deep(.ui-date input) {
   padding-inline-start: 38px;
 }
+
+.ui-field :deep(.ui-time) {
+  box-shadow: 0 2px 3px #22225504;
+}
+
+.ui-field--icon :deep(.ui-time__input) {
+  padding-inline-start: 38px;
+}
 </style>
 
 <style>
