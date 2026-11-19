@@ -167,6 +167,12 @@
           </span>
           <span v-else class="text-medium-emphasis">—</span>
         </template>
+        <template #item.firstName="{ item }">
+          {{ item.firstName || '—' }}
+        </template>
+        <template #item.lastName="{ item }">
+          {{ item.lastName || '—' }}
+        </template>
         <template #item.email="{ item }">
           {{ item.email || '—' }}
         </template>
@@ -389,6 +395,8 @@ const headers = computed(() => {
     { title: 'Vertical', key: 'vertical' },
     { title: 'Country', key: 'country' },
     { title: 'Traffic source', key: 'trafficSource' },
+    { title: 'First name', key: 'firstName' },
+    { title: 'Last name', key: 'lastName' },
     { title: 'Phone', key: 'phone' },
     { title: 'Email', key: 'email' },
     { title: 'IP', key: 'ip' },
@@ -702,8 +710,8 @@ async function copyKey(): Promise<void> {
 
 function exportCsv(): void {
   const header = isAdmin.value
-    ? ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'Phone', 'Email', 'IP', 'Buyer', 'Partner', 'Status']
-    : ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'Phone', 'Email', 'IP', 'Status']
+    ? ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'First name', 'Last name', 'Phone', 'Email', 'IP', 'Buyer', 'Partner', 'Status']
+    : ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'First name', 'Last name', 'Phone', 'Email', 'IP', 'Status']
   downloadCsv('leads.csv', [header, ...filtered.value.map(csvRow)])
 }
 
@@ -713,6 +721,8 @@ function csvRow(lead: LeadTableRow): string[] {
     lead.vertical ? verticalLabel(lead.vertical) : '',
     lead.country,
     lead.trafficSource ? trafficLabel(lead.trafficSource) : '',
+    lead.firstName,
+    lead.lastName,
     lead.phone,
     lead.email,
     lead.ip,

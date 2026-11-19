@@ -77,26 +77,7 @@
               placeholder="Any type"
               empty-label="Any type"
               clearable
-            >
-              <template #value="{ items }">
-                <span v-if="items.length === 0" class="stock-select__placeholder">Any type</span>
-                <span
-                  v-else
-                  class="order-type order-type--filter"
-                  :class="items[0].value === 'stock' ? 'order-type--stock' : 'order-type--live'"
-                >
-                  {{ items[0].title }}
-                </span>
-              </template>
-              <template #option="{ item }">
-                <span
-                  class="order-type order-type--filter"
-                  :class="item.value === 'stock' ? 'order-type--stock' : 'order-type--live'"
-                >
-                  {{ item.title }}
-                </span>
-              </template>
-            </UiSelect>
+            />
           </UiLabeledField>
           <UiField label="Date" icon="mdi-calendar-range">
             <UiDateField v-model="filterServiceOn" label="Date" class="orders-filter-date" />

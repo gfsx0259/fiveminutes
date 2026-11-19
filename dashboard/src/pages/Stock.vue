@@ -118,6 +118,26 @@
       item-value="presetId"
       hover
     >
+      <template #header.dailyCap="{ column }">
+        <span class="stock-th-hint">
+          <span>{{ column.title }}</span>
+          <v-tooltip location="top" max-width="300">
+            <template #activator="{ props: tipProps }">
+              <span
+                class="stock-th-hint__icon"
+                v-bind="tipProps"
+                tabindex="0"
+                role="button"
+                aria-label="What Live today means"
+                @click.stop
+              >
+                <v-icon icon="mdi-information-outline" size="14" />
+              </span>
+            </template>
+            <span>Leads supplied from your live today orders</span>
+          </v-tooltip>
+        </span>
+      </template>
       <template #item.offerId="{ item }">
         <span class="stock-offer-id">{{ offerId(item) }}</span>
       </template>
@@ -285,7 +305,7 @@ const headers = [
   { title: 'Conversion', key: 'conversion', align: 'center' as const, width: '6%' },
   { title: 'Payout', key: 'stockPriceCents', align: 'end' as const, width: '8%' },
   { title: 'Quantity', key: 'available', align: 'end' as const, width: '9%' },
-  { title: 'Daily cap', key: 'dailyCap', align: 'center' as const, width: '11%' },
+  { title: 'Live today', key: 'dailyCap', align: 'center' as const, width: '10%' },
   { title: 'Updated', key: 'updatedAt', align: 'center' as const, width: '9%' },
   { title: '', key: 'actions', sortable: false, align: 'end' as const, width: '14%' },
 ]
@@ -606,6 +626,27 @@ onMounted(() => {
 .stock-actions__more[aria-expanded='true'] {
   background: #efecff;
   color: #3512bc;
+}
+
+.stock-th-hint {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.stock-th-hint__icon {
+  align-items: center;
+  color: #8b90a8;
+  cursor: help;
+  display: inline-flex;
+  line-height: 0;
+}
+
+.stock-th-hint__icon:hover,
+.stock-th-hint__icon:focus-visible {
+  color: #3512bc;
+  outline: none;
 }
 
 .stock-row-menu__list {

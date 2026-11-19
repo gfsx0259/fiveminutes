@@ -28,8 +28,11 @@
       </UiField>
       <p class="stock-buy__caps">
         Available: <strong>{{ target.available }}</strong>
-        <span v-if="target.dailyCapVolume > 0">
-          · Daily cap today: <strong>{{ target.dailyCapSupplied }}/{{ target.dailyCapVolume }}</strong>
+        <span
+          v-if="target.dailyCapVolume > 0"
+          title="Leads supplied from your live today orders"
+        >
+          · Live today: <strong>{{ target.dailyCapSupplied }}/{{ target.dailyCapVolume }}</strong>
         </span>
       </p>
 
