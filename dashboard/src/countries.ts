@@ -265,3 +265,8 @@ export const COUNTRY_SELECT_ITEMS: readonly CountrySelectItem[] = [
   .map((c) => ({ title: `${c.code} — ${c.name}`, value: c.code }))
   .sort((a, b) => a.title.localeCompare(b.title))
 
+const COUNTRY_NAMES = new Map(ISO2_COUNTRIES.map((country) => [country.code, country.name]))
+
+export function countryName(code: string): string {
+  return COUNTRY_NAMES.get(code.toUpperCase()) ?? code
+}

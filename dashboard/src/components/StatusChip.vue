@@ -2,7 +2,7 @@
   <span
     v-if="status"
     class="status-chip"
-    :data-tone="tone"
+    :data-tone="chipTone"
     :title="title || undefined"
   >
     {{ label }}
@@ -17,6 +17,7 @@ const props = defineProps<{
   status?: string | null
   title?: string | null
   label?: string
+  tone?: string
 }>()
 
 const toneMap: Record<string, string> = {
@@ -92,7 +93,7 @@ const labelMap: Record<string, string> = {
   fraud: 'Fraud',
 }
 
-const tone = computed(() => toneMap[props.status || ''] || 'default')
+const chipTone = computed(() => props.tone || toneMap[props.status || ''] || 'default')
 
 const label = computed(() => {
   if (props.label) return props.label

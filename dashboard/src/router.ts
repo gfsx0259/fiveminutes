@@ -1,16 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Caps from '@/pages/Caps.vue'
+import Dashboard from '@/pages/Dashboard.vue'
+import Home from '@/pages/Home.vue'
 import Leads from '@/pages/Leads.vue'
 import Offers from '@/pages/Offers.vue'
 import Orders from '@/pages/Orders.vue'
 import Performance from '@/pages/Performance.vue'
 import PresetPage from '@/pages/PresetPage.vue'
+import Reports from '@/pages/Reports.vue'
 import Stock from '@/pages/Stock.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/leads' },
+    { path: '/', component: Home },
+    { path: '/dashboard', component: Dashboard },
+    { path: '/reports', component: Reports },
     { path: '/leads', component: Leads },
     { path: '/send-lead', redirect: '/leads' },
     { path: '/presets', component: PresetPage },

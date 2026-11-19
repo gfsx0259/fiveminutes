@@ -100,10 +100,11 @@ const menu = computed(() => {
   }
   if (role === 'partner') {
     return [
+      { title: 'Dashboard', to: '/dashboard', icon: 'mdi-view-dashboard-outline' },
       { title: 'Buy leads', to: '/stock', icon: 'mdi-warehouse' },
       { title: 'My orders', to: '/orders', icon: 'mdi-clipboard-text-outline' },
       { title: 'My leads', to: '/leads', icon: 'mdi-format-list-bulleted' },
-      performance,
+      { title: 'Reports', to: '/reports', icon: 'mdi-file-chart-outline' },
     ]
   }
   return [

@@ -25,6 +25,8 @@ const crumb = computed(() => {
       : 'Buyer cabinet'
 
   const byPath: Record<string, string> = {
+    '/dashboard': 'Dashboard',
+    '/reports': 'Reports',
     '/stock': 'Buy Leads',
     '/orders': role === 'partner' ? 'My orders' : 'Orders',
     '/leads': role === 'partner' ? 'My leads' : 'Leads',

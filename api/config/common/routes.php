@@ -19,6 +19,7 @@ return [
         Route::post('/user/registration')->action([RegistrationController::class, 'create'])->name('user-registration'),
         Route::get('/session')->action([SessionController::class, 'show'])->name('session'),
         Route::post('/organization/markup')->action([OrganizationController::class, 'setMarkup'])->name('organization-markup'),
+        Route::get('/wallet/transactions')->action([WalletController::class, 'transactions'])->name('wallet-transactions'),
         Route::post('/wallet/deposit')->action([WalletController::class, 'deposit'])->name('wallet-deposit'),
         Route::post('/wallet/withdraw')->action([WalletController::class, 'withdraw'])->name('wallet-withdraw'),
         Route::post('/v1/lead')->action([LeadController::class, 'create'])->name('lead-create'),

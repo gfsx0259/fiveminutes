@@ -10,6 +10,7 @@ use App\Context\Identity\NoAccountException;
 use App\Context\Identity\NoSessionException;
 use App\Context\Wallet\InsufficientBalanceException;
 use App\Context\Wallet\WalletDesk;
+use App\Context\Wallet\WalletHistory;
 use DomainException;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
@@ -22,9 +23,21 @@ final readonly class WalletController
     public function __construct(
         private CurrentUser $currentUser,
         private WalletDesk $desk,
+        private WalletHistory $history,
         private DataResponseFactoryInterface $responses,
         private RequestProviderInterface $requests,
     ) {}
+
+    public function transactions(): ResponseInterface
+    {
+        try {
+            $user = $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie'));
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
+        }
+
+        return $this->responses->createResponse(['transactions' => $this->history->forUser($user)]);
+    }
 
     public function deposit(WalletAdjustForm $form): ResponseInterface
     {

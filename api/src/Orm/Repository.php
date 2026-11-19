@@ -30,10 +30,14 @@ abstract class Repository extends SelectRepository
      * @param array<string, mixed> $scope
      * @return Collection<int, TEntity>
      */
-    protected function ordered(array $scope): Collection
+    protected function ordered(array $scope, ?int $limit = null): Collection
     {
+        $select = $this->select()->where($scope)->orderBy('createdAt', 'DESC');
+        if ($limit !== null) {
+            $select = $select->limit($limit);
+        }
         /** @var list<TEntity> $entities */
-        $entities = array_values($this->select()->where($scope)->orderBy('createdAt', 'DESC')->fetchAll());
+        $entities = array_values($select->fetchAll());
 
         return new ArrayCollection($entities);
     }
