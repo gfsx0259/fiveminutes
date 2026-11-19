@@ -1,11 +1,14 @@
 <template>
   <span v-if="!iso" class="country-pick country-pick--empty">{{ empty }}</span>
   <span v-else class="country-pick">
-    <CountryFlag :code="iso" :size="size" />
+    <span class="country-pick__flag">
+      <CountryFlag :code="iso" :size="size" />
+    </span>
     <span
       v-if="showLabel"
       class="country-pick__label"
       :class="{ 'country-pick__label--code': labelMode === 'code' }"
+      :title="text"
     >{{ text }}</span>
   </span>
 </template>
@@ -50,10 +53,17 @@ const text = computed(() => (labelMode.value === 'name' ? countryName(iso.value)
   align-items: center;
   display: inline-flex;
   gap: 8px;
+  max-width: 100%;
   min-width: 0;
+  width: 100%;
+}
+
+.country-pick__flag {
+  flex-shrink: 0;
 }
 
 .country-pick__label {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -122,7 +122,9 @@
         <span class="stock-offer-id">{{ offerId(item) }}</span>
       </template>
       <template #item.country="{ item }">
-        <CountryPick :code="item.country" label="name" />
+        <div class="stock-geo-cell">
+          <CountryPick :code="item.country" label="name" />
+        </div>
       </template>
       <template #item.vertical="{ item }">
         <span class="stock-entity">
@@ -384,6 +386,9 @@ function relativeUpdated(iso: string | null): string {
     return '—'
   }
   const at = new Date(iso).getTime()
+  if (!Number.isFinite(at) || at < Date.UTC(2000, 0, 1)) {
+    return '—'
+  }
   const diff = Date.now() - at
   const min = Math.floor(diff / 60_000)
   if (min < 1) {
@@ -496,6 +501,12 @@ onMounted(() => {
 
 .stock-filter-panel__reset :deep(.ui-btn--ghost .v-btn__content) {
   line-height: 1;
+}
+
+.stock-geo-cell {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .stock-entity {

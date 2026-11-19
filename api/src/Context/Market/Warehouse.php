@@ -36,7 +36,9 @@ final readonly class Warehouse
                 continue;
             }
             $available = $this->leads->countInStockForPreset($organizationId, $preset);
-            $latest = $this->leads->latestStockAtForPreset($organizationId, $preset);
+            $latest = $available > 0
+                ? $this->leads->latestStockAtForPreset($organizationId, $preset)
+                : null;
             $cap = $daily[$preset->getId()] ?? ['volume' => 0, 'supplied' => 0];
             $rows[] = [
                 'presetId' => $preset->getId(),

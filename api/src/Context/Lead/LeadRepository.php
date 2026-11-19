@@ -110,7 +110,12 @@ final readonly class LeadRepository
             return null;
         }
 
-        return new DateTimeImmutable((string) $latest);
+        $at = new DateTimeImmutable((string) $latest);
+        if ((int) $at->format('Y') < 2000) {
+            return null;
+        }
+
+        return $at;
     }
 
     public function countInStockForPreset(string $organizationId, Preset $preset, ?string $leadGender = null): int
