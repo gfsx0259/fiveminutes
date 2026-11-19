@@ -1,8 +1,10 @@
 <template>
   <div>
-    <div class="mb-4">
-      <h1>{{ pageTitle }}</h1>
-      <p>{{ leadLine }}</p>
+    <div class="page-head">
+      <div>
+        <h1>{{ pageTitle }}</h1>
+        <p>{{ leadLine }}</p>
+      </div>
     </div>
 
     <v-tabs v-if="isBuyer" v-model="tab" color="primary" class="lead-tabs">

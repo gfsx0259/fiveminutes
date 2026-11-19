@@ -2,22 +2,31 @@
   <span v-if="!iso" class="country-pick country-pick--empty">{{ empty }}</span>
   <span v-else class="country-pick">
     <CountryFlag :code="iso" :size="size" />
-    <span v-if="showCode" class="country-pick__code">{{ iso }}</span>
+    <span
+      v-if="showLabel"
+      class="country-pick__label"
+      :class="{ 'country-pick__label--code': labelMode === 'code' }"
+    >{{ text }}</span>
   </span>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import CountryFlag from '@/components/CountryFlag.vue'
+import { countryName } from '@/countries'
 
 const props = withDefaults(defineProps<{
   code?: string | null
   size?: number
   showCode?: boolean
+  label?: 'code' | 'name'
+  showLabel?: boolean
   empty?: string
 }>(), {
   size: 16,
   showCode: true,
+  label: undefined,
+  showLabel: undefined,
   empty: '—',
 })
 
@@ -28,6 +37,12 @@ const iso = computed(() => {
   }
   return raw.toUpperCase()
 })
+
+const labelMode = computed(() => props.label ?? (props.showCode ? 'code' : 'name'))
+
+const showLabel = computed(() => props.showLabel ?? true)
+
+const text = computed(() => (labelMode.value === 'name' ? countryName(iso.value) : iso.value))
 </script>
 
 <style scoped>
@@ -38,7 +53,14 @@ const iso = computed(() => {
   min-width: 0;
 }
 
-.country-pick__code {
+.country-pick__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.country-pick__label--code {
   font-variant-numeric: tabular-nums;
 }
 

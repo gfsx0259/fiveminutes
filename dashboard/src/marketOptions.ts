@@ -27,14 +27,14 @@ export const verticals = [
 ]
 
 const verticalIconMap: Record<string, string> = {
-  gambling: 'mdi-slot-machine',
-  betting: 'mdi-soccer',
+  gambling: 'mdi-dice-5',
+  betting: 'mdi-trophy-outline',
   crypto: 'mdi-bitcoin',
-  forex: 'mdi-chart-timeline-variant',
-  dating: 'mdi-heart',
-  nutra: 'mdi-pill',
-  finance: 'mdi-bank',
-  other: 'mdi-shape-outline',
+  forex: 'mdi-chart-bar',
+  dating: 'mdi-heart-outline',
+  nutra: 'mdi-leaf',
+  finance: 'mdi-database-outline',
+  other: 'mdi-dots-horizontal',
 }
 
 const verticalColorMap: Record<string, string> = {
@@ -43,7 +43,7 @@ const verticalColorMap: Record<string, string> = {
   crypto: '#fb8c00',
   forex: '#1e88e5',
   dating: '#ec407a',
-  nutra: '#8e24aa',
+  nutra: '#43a047',
   finance: '#00897b',
   other: '#5c6078',
 }
@@ -78,7 +78,7 @@ export function verticalLabel(value: string): string {
 }
 
 export function verticalIcon(value: string): string {
-  return verticalIconMap[value] ?? 'mdi-shape-outline'
+  return verticalIconMap[value] ?? 'mdi-dots-horizontal'
 }
 
 export function verticalColor(value: string): string {

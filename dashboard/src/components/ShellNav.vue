@@ -104,7 +104,7 @@ const menu = computed(() => {
       { title: 'Buy leads', to: '/stock', icon: 'mdi-warehouse' },
       { title: 'My orders', to: '/orders', icon: 'mdi-clipboard-text-outline' },
       { title: 'My leads', to: '/leads', icon: 'mdi-format-list-bulleted' },
-      { title: 'Reports', to: '/reports', icon: 'mdi-file-chart-outline' },
+      { title: 'Reports', to: '/reports', icon: 'mdi-account-outline' },
     ]
   }
   return [

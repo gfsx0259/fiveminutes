@@ -1,8 +1,10 @@
 <template>
   <div class="stock-page">
-    <div class="stock-intro">
-      <h1>Buy Leads</h1>
-      <p>Purchase verified affiliate leads from trusted traffic suppliers.</p>
+    <div class="page-head">
+      <div>
+        <h1>Buy Leads</h1>
+        <p>Purchase verified affiliate leads from trusted traffic suppliers.</p>
+      </div>
     </div>
 
     <v-alert v-if="market.error" type="error" variant="tonal" class="mb-4">{{ market.error }}</v-alert>
@@ -120,7 +122,7 @@
         <span class="stock-offer-id">{{ offerId(item) }}</span>
       </template>
       <template #item.country="{ item }">
-        <CountryPick :code="item.country" />
+        <CountryPick :code="item.country" label="name" />
       </template>
       <template #item.vertical="{ item }">
         <span class="stock-entity">
@@ -280,7 +282,7 @@ const availabilityItems = [
 
 const headers = [
   { title: 'Offer ID', key: 'offerId', sortable: false, width: '8%' },
-  { title: 'GEO', key: 'country', width: '8%' },
+  { title: 'GEO', key: 'country', width: '11%' },
   { title: 'Vertical', key: 'vertical', width: '10%' },
   { title: 'Traffic Source', key: 'trafficSource', width: '11%' },
   { title: 'Model', key: 'paymentModel', width: '6%' },
@@ -419,22 +421,6 @@ onMounted(() => {
   width: 100%;
 }
 
-.stock-intro {
-  margin-bottom: 4px;
-}
-
-.stock-intro h1 {
-  margin-bottom: 6px;
-}
-
-.stock-intro p {
-  color: #5c6078;
-  font-size: 15px;
-  line-height: 1.45;
-  margin: 0 0 12px;
-  max-width: 48rem;
-}
-
 .stock-count {
   color: #5c6078;
   font-size: 13px;
@@ -491,9 +477,28 @@ onMounted(() => {
 }
 
 .stock-filter-panel__reset {
+  align-self: end;
   display: flex;
   justify-content: flex-end;
   padding-bottom: 1px;
+}
+
+.stock-filter-panel__reset :deep(.ui-btn--ghost) {
+  font-size: 14px;
+  height: auto !important;
+  min-height: var(--lm-control-height) !important;
+  padding: 0 12px !important;
+}
+
+.stock-filter-panel__reset :deep(.ui-btn--ghost .v-btn__prepend .v-icon) {
+  font-size: 18px !important;
+  height: 18px !important;
+  margin-top: 0 !important;
+  width: 18px !important;
+}
+
+.stock-filter-panel__reset :deep(.ui-btn--ghost .v-btn__content) {
+  line-height: 1;
 }
 
 .stock-entity {

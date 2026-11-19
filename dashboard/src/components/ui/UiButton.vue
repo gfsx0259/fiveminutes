@@ -40,6 +40,22 @@ const emit = defineEmits<{
   text-transform: none;
 }
 
+.ui-btn :deep(.v-btn__content) {
+  align-items: center;
+  line-height: 1.2;
+}
+
+.ui-btn :deep(.v-btn__prepend) {
+  align-self: center;
+  margin-inline-end: 6px;
+}
+
+.ui-btn :deep(.v-btn__prepend .v-icon) {
+  font-size: calc(1em + 3px);
+  height: calc(1em + 3px);
+  width: calc(1em + 3px);
+}
+
 .ui-btn--primary {
   background: linear-gradient(120deg, #6650ee, #5339e5) !important;
   box-shadow: 0 2px 3px #4933bf12;
