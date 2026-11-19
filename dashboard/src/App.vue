@@ -74,6 +74,7 @@
         </div>
       </header>
       <div class="lm-page">
+        <PageBreadcrumbs />
         <router-view />
       </div>
     </v-main>
@@ -82,6 +83,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import PageBreadcrumbs from '@/components/PageBreadcrumbs.vue'
 import ShellNav from '@/components/ShellNav.vue'
 import TopbarWallet from '@/components/TopbarWallet.vue'
 import UiButton from '@/components/ui/UiButton.vue'

@@ -86,6 +86,22 @@
   }
 }
 
+.lm-breadcrumbs {
+  color: #8b90a8;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.lm-breadcrumbs__sep {
+  margin: 0 6px;
+}
+
+.lm-breadcrumbs__current {
+  color: #5b45e8;
+  font-weight: 600;
+}
+
 .lm-page .ui-table-card,
 .lm-page .ui-data-table-shell,
 .lm-page .ui-filter-panel {

@@ -541,13 +541,15 @@ html:has(.lm-nav-dialog) {
   align-items: center;
   background: #fff;
   border: 1px solid #e6e4f2;
-  border-radius: 999px;
+  border-radius: 10px;
+  box-sizing: border-box;
   color: #303861;
   display: inline-flex;
   font-size: 13px;
   gap: 8px;
+  height: var(--lm-control-height);
   line-height: 1.2;
-  padding: 6px 14px 6px 12px;
+  padding: 0 14px 0 12px;
   white-space: nowrap;
 }
 
@@ -571,7 +573,8 @@ html:has(.lm-nav-dialog) {
   border-radius: 10px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  min-height: 36px !important;
+  height: var(--lm-control-height) !important;
+  min-height: var(--lm-control-height) !important;
   padding-inline: 16px !important;
   text-transform: none !important;
 }

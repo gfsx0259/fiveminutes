@@ -1,11 +1,5 @@
 <template>
   <div class="stock-page">
-    <nav class="stock-breadcrumbs" aria-label="Breadcrumb">
-      <span>Partner Cabinet</span>
-      <span class="stock-breadcrumbs__sep">/</span>
-      <span class="stock-breadcrumbs__current">Buy Leads</span>
-    </nav>
-
     <div class="stock-intro">
       <h1>Buy Leads</h1>
       <p>Purchase verified affiliate leads from trusted traffic suppliers.</p>
@@ -79,9 +73,9 @@
         <UiLabeledField label="Availability">
           <UiSelect v-model="filterAvailability" :items="availabilityItems" placeholder="Any" empty-label="Any" clearable />
         </UiLabeledField>
-      </div>
-      <div class="stock-filter-panel__actions">
-        <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+        <div class="stock-filter-panel__reset">
+          <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+        </div>
       </div>
     </section>
 
@@ -364,22 +358,6 @@ onMounted(() => {
   width: 100%;
 }
 
-.stock-breadcrumbs {
-  color: #8b90a8;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 10px;
-}
-
-.stock-breadcrumbs__sep {
-  margin: 0 6px;
-}
-
-.stock-breadcrumbs__current {
-  color: #5b45e8;
-  font-weight: 600;
-}
-
 .stock-intro {
   margin-bottom: 4px;
 }
@@ -441,15 +419,16 @@ onMounted(() => {
 }
 
 .stock-filters__row {
+  align-items: end;
   display: grid;
   gap: 14px 12px;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr)) auto;
 }
 
-.stock-filter-panel__actions {
+.stock-filter-panel__reset {
   display: flex;
   justify-content: flex-end;
-  margin-top: 12px;
+  padding-bottom: 1px;
 }
 
 .stock-entity {
@@ -510,11 +489,25 @@ onMounted(() => {
   .stock-filters__row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .stock-filter-panel__reset {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 700px) {
   .stock-filters__row {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stock-filter-panel__reset {
+    grid-column: auto;
+    justify-content: stretch;
+  }
+
+  .stock-filter-panel__reset .ui-btn {
+    width: 100%;
   }
 
   .stock-actions {
