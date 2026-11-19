@@ -63,17 +63,20 @@ const emit = defineEmits<{
 }
 
 .ui-btn--outline {
-  background: #fff !important;
+  background: transparent !important;
   border: 1px solid #9685ff !important;
+  box-shadow: none !important;
   color: #3512bc !important;
 }
 
-.ui-btn--outline :deep(.v-btn__overlay) {
+.ui-btn--outline :deep(.v-btn__overlay),
+.ui-btn--outline :deep(.v-btn__underlay) {
   opacity: 0 !important;
 }
 
 .ui-btn--outline:hover {
-  filter: brightness(0.98);
+  background: #efecff !important;
+  filter: none;
 }
 
 .ui-btn--outline.v-btn--disabled {

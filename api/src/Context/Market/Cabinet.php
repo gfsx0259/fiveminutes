@@ -66,6 +66,7 @@ final readonly class Cabinet
             $rows[] = [
                 'id' => $order->getId(),
                 'presetId' => $order->getPresetId(),
+                'vertical' => $preset?->getVertical() ?? '',
                 'trafficSource' => $preset?->getTrafficSource() ?? '',
                 'age' => $preset?->getAge() ?? '',
                 'gender' => $preset?->getGender() ?? '',

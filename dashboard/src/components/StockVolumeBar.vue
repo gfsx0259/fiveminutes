@@ -1,7 +1,17 @@
 <template>
-  <div class="stock-vol" :class="{ 'stock-vol--solo': !showBar }">
+  <div
+    class="stock-vol"
+    :class="{
+      'stock-vol--solo': !showBar,
+      'stock-vol--fraction': showBar && showFraction,
+    }"
+  >
     <template v-if="showBar">
-      <div class="stock-vol__labels" :style="{ '--fill': `${fill}%` }">
+      <div
+        class="stock-vol__labels"
+        :class="{ 'stock-vol__labels--fraction': showFraction }"
+        :style="showFraction ? undefined : { '--fill': `${fill}%` }"
+      >
         <span class="stock-vol__count">{{ countLabel }}</span>
       </div>
       <div class="stock-vol__track">
@@ -22,18 +32,27 @@ const props = withDefaults(
     /** When set, label can show share of parent (`value / parent` if partial). */
     parent?: number
     showBar?: boolean
+    /** Stock orders: show a full bar while keeping supplied/volume label. */
+    barFull?: boolean
   }>(),
-  { showBar: true },
+  { showBar: true, barFull: false },
+)
+
+const showFraction = computed(
+  () => props.parent !== undefined && props.parent > 0,
 )
 
 const countLabel = computed(() => {
-  if (props.parent !== undefined && props.parent > 0 && props.value < props.parent) {
+  if (showFraction.value) {
     return `${props.value} / ${props.parent}`
   }
   return String(props.value)
 })
 
 const fill = computed(() => {
+  if (props.barFull && props.max > 0) {
+    return 100
+  }
   if (props.max < 1 || props.value < 1) {
     return 0
   }
@@ -55,11 +74,25 @@ const fill = computed(() => {
   width: auto;
 }
 
+.stock-vol--fraction {
+  gap: 7px;
+}
+
 .stock-vol__labels {
   height: 14px;
   overflow: visible;
   position: relative;
   width: 100%;
+}
+
+.stock-vol__labels--fraction {
+  text-align: center;
+}
+
+.stock-vol__labels--fraction .stock-vol__count {
+  display: inline-block;
+  position: static;
+  transform: none;
 }
 
 .stock-vol__count {

@@ -276,6 +276,10 @@ html:has(.lm-nav-dialog) {
   white-space: nowrap;
 }
 
+.lm-nav__item--section-end {
+  margin-bottom: 10px;
+}
+
 .lm-nav__item:hover:not(.lm-nav__item--active) {
   background: #ffffff0b;
 }

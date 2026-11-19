@@ -31,7 +31,10 @@
         :key="item.to"
         :to="item.to"
         class="lm-nav__item"
-        :class="{ 'lm-nav__item--active': route.path === item.to }"
+        :class="{
+          'lm-nav__item--active': route.path === item.to,
+          'lm-nav__item--section-end': item.sectionAfter,
+        }"
         :title="item.title"
         :aria-label="item.title"
         @click="emit('navigate')"
@@ -84,32 +87,39 @@ const emit = defineEmits<{
 const route = useRoute()
 const session = useSessionStore()
 
-const leads = { title: 'Leads', to: '/leads', icon: 'mdi-format-list-bulleted' }
-const performance = { title: 'Performance', to: '/performance', icon: 'mdi-chart-timeline-variant' }
+interface NavItem {
+  title: string
+  to: string
+  icon: string
+  sectionAfter?: boolean
+}
 
-const menu = computed(() => {
+const leads: NavItem = { title: 'Leads', to: '/leads', icon: 'mdi-format-list-bulleted' }
+const performance: NavItem = { title: 'Performance', to: '/performance', icon: 'mdi-chart-timeline-variant' }
+
+const menu = computed((): NavItem[] => {
   const role = session.payload?.user?.role
   if (role === 'admin') {
     return [
       { title: 'Presets', to: '/presets', icon: 'mdi-shape-outline' },
       { title: 'Orders', to: '/orders', icon: 'mdi-clipboard-text-outline' },
-      { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline' },
+      { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline', sectionAfter: true },
       leads,
       performance,
     ]
   }
   if (role === 'partner') {
     return [
-      { title: 'Dashboard', to: '/dashboard', icon: 'mdi-view-dashboard-outline' },
+      { title: 'Dashboard', to: '/dashboard', icon: 'mdi-view-dashboard-outline', sectionAfter: true },
       { title: 'Buy leads', to: '/stock', icon: 'mdi-warehouse' },
       { title: 'My orders', to: '/orders', icon: 'mdi-clipboard-text-outline' },
-      { title: 'My leads', to: '/leads', icon: 'mdi-format-list-bulleted' },
+      { title: 'My leads', to: '/leads', icon: 'mdi-format-list-bulleted', sectionAfter: true },
       { title: 'Reports', to: '/reports', icon: 'mdi-account-outline' },
     ]
   }
   return [
     { title: 'Caps', to: '/caps', icon: 'mdi-gauge' },
-    { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline' },
+    { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline', sectionAfter: true },
     leads,
     performance,
   ]

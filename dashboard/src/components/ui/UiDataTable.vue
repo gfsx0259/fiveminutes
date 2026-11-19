@@ -169,6 +169,16 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
   justify-content: flex-start;
 }
 
+.ui-data-table :deep(th.v-data-table-column--align-center .v-data-table-header__content) {
+  justify-content: center;
+  width: 100%;
+}
+
+.ui-data-table :deep(th.v-data-table-column--align-end .v-data-table-header__content) {
+  justify-content: flex-end;
+  width: 100%;
+}
+
 .ui-data-table :deep(.v-data-table-header__sort-icon.v-icon) {
   color: inherit;
   flex: 0 0 13px;
@@ -199,8 +209,26 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 .ui-data-table :deep(tbody td) {
   border-bottom: 1px solid var(--lm-lavender) !important;
   font-size: var(--lm-font-table);
-  height: 38px;
+  height: auto;
+  min-height: 38px;
+  padding-block: 8px;
   text-align: left;
+  vertical-align: middle;
+}
+
+/* Compact row actions; overrides .lm-page default 40px control height */
+.ui-data-table :deep(tbody td .ui-btn.v-btn:not(.v-btn--icon)) {
+  height: 34px !important;
+  min-height: 34px !important;
+}
+
+.ui-data-table :deep(tbody td .ui-table-cell-actions) {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  max-width: 100%;
 }
 
 .ui-data-table :deep(tbody tr:hover td) {
@@ -212,9 +240,14 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
   content: none !important;
 }
 
-.ui-data-table :deep(.v-data-table-column--align-end),
-.ui-data-table :deep(.v-data-table__th--align-end) {
-  text-align: right !important;
+.ui-data-table :deep(thead th.v-data-table-column--align-center),
+.ui-data-table :deep(tbody td.v-data-table-column--align-center) {
+  text-align: center !important;
+}
+
+.ui-data-table :deep(thead th.v-data-table-column--align-end),
+.ui-data-table :deep(tbody td.v-data-table-column--align-end) {
+  text-align: end !important;
 }
 
 .ui-data-table :deep(.v-btn--icon) {

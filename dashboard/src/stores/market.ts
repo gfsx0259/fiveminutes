@@ -19,6 +19,7 @@ export interface PresetRow {
 export interface OrderRow {
   id: string
   presetId: string
+  vertical?: string
   trafficSource: string
   age: string
   gender: string
@@ -67,6 +68,32 @@ export interface StockOfferRow {
   updatedAt: string | null
 }
 
+const warehouseDemoDailyCaps: ReadonlyArray<{ volume: number, supplied: number }> = [
+  { volume: 70, supplied: 10 },
+  { volume: 100, supplied: 35 },
+  { volume: 50, supplied: 50 },
+]
+
+function applyWarehouseDemoDailyCaps(rows: StockOfferRow[]): StockOfferRow[] {
+  if (!import.meta.env.DEV) {
+    return rows
+  }
+  if (rows.some((row) => row.dailyCapVolume > 0)) {
+    return rows
+  }
+  return rows.map((row, index) => {
+    const sample = warehouseDemoDailyCaps[index]
+    if (!sample) {
+      return row
+    }
+    return {
+      ...row,
+      dailyCapVolume: sample.volume,
+      dailyCapSupplied: sample.supplied,
+    }
+  })
+}
+
 export interface OfferRow {
   id: string
   presetId: string
@@ -110,7 +137,21 @@ export const useMarketStore = defineStore('market', () => {
   }
 
   async function loadWarehouse(): Promise<void> {
-    await load('/warehouse', 'stock', stock, 'Склад не прочитался')
+    loading.value = true
+    error.value = ''
+    try {
+      const response = await api('/warehouse')
+      if (!response.ok) {
+        error.value = `Склад не прочитался: ${response.status}`
+        return
+      }
+      const body = await response.json() as { stock?: StockOfferRow[] }
+      stock.value = applyWarehouseDemoDailyCaps(body.stock ?? [])
+    } catch {
+      error.value = 'Склад не прочитался'
+    } finally {
+      loading.value = false
+    }
   }
 
   async function createPreset(body: Record<string, string | number>): Promise<void> {

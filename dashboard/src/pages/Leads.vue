@@ -32,6 +32,9 @@
 
     <section v-if="showJournal" class="ui-filter-panel">
       <div class="lead-filters">
+        <UiField v-if="orderFilter" label="Order" icon="mdi-clipboard-list-outline">
+          <span class="lead-order-filter">{{ orderDisplayId(orderFilter) }}</span>
+        </UiField>
         <UiField label="Status" icon="mdi-list-status">
           <UiSelect v-model="status" :items="statuses" placeholder="All statuses" empty-label="All statuses" clearable />
         </UiField>
@@ -39,7 +42,7 @@
           <UiSelect v-model="country" :items="countries" placeholder="All countries" empty-label="All countries" clearable />
         </UiField>
       </div>
-      <div v-if="filteredOut" class="lead-filters__actions">
+      <div v-if="filtersActive" class="lead-filters__actions">
         <UiButton variant="ghost" @click="clearFilters">Clear</UiButton>
       </div>
     </section>
@@ -122,7 +125,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '@/api'
 import CountryPick from '@/components/CountryPick.vue'
 import LeadDetailDialog from '@/components/LeadDetailDialog.vue'
@@ -136,9 +140,12 @@ import { downloadCsv } from '@/csv'
 import { apiOrigin } from '@/host'
 import { sampleLead, sampleLeadJson } from '@/leadBody'
 import { genderLabel } from '@/marketOptions'
+import { orderDisplayId } from '@/orderDisplay'
 import { useLeadStore, type CabinetLead } from '@/stores/leads'
 import { useSessionStore } from '@/stores/session'
 
+const route = useRoute()
+const router = useRouter()
 const session = useSessionStore()
 const leadStore = useLeadStore()
 const isBuyer = computed(() => session.payload?.user?.role === 'buyer')
@@ -146,12 +153,25 @@ const isPartner = computed(() => session.payload?.user?.role === 'partner')
 const tab = ref<'journal' | 'send'>('journal')
 const showJournal = computed(() => !isBuyer.value || tab.value === 'journal')
 const pageTitle = computed(() => (isPartner.value ? 'My leads' : 'Leads'))
+const orderFilter = ref<string | null>(null)
+
 const leadLine = computed(() => {
   const role = session.payload?.user?.role
-  if (role === 'partner') return 'Leads you purchased and their conversion status.'
-  if (role === 'admin') return 'Leads of this organization'
-  return 'Leads you mined'
+  let line = 'Leads you mined'
+  if (role === 'partner') line = 'Leads you purchased and their conversion status.'
+  else if (role === 'admin') line = 'Leads of this organization'
+  if (orderFilter.value) {
+    return `${line} Showing leads for order ${orderDisplayId(orderFilter.value)}.`
+  }
+  return line
 })
+
+function syncOrderFromRoute(): void {
+  const raw = route.query.order
+  orderFilter.value = typeof raw === 'string' && raw !== '' ? raw : null
+}
+
+watch(() => route.query.order, syncOrderFromRoute, { immediate: true })
 const apiKey = ref('')
 const keyBusy = ref(false)
 const keyError = ref('')
@@ -211,12 +231,17 @@ const statuses = computed(() => [...new Set(leadStore.leads.map((lead) => lead.s
 const countries = computed(() => [...new Set(leadStore.leads.map((lead) => lead.country).filter(Boolean))].sort())
 
 const filtered = computed(() => leadStore.leads.filter((lead) => {
+  if (orderFilter.value && lead.orderId !== orderFilter.value) return false
   if (status.value && lead.status !== status.value) return false
   if (country.value && lead.country !== country.value) return false
   return true
 }))
 
-const filteredOut = computed(() => filtered.value.length !== leadStore.leads.length)
+const filtersActive = computed(() => (
+  orderFilter.value !== null
+  || status.value !== null
+  || country.value !== null
+))
 
 const example = computed(() => {
   const origin = apiOrigin(window.location.hostname)
@@ -231,6 +256,12 @@ const example = computed(() => {
 function clearFilters(): void {
   status.value = null
   country.value = null
+  if (orderFilter.value) {
+    orderFilter.value = null
+    const query = { ...route.query }
+    delete query.order
+    void router.replace({ path: route.path, query })
+  }
 }
 
 function when(value: string): string {
@@ -385,6 +416,19 @@ onMounted(() => {
   display: flex;
   gap: 16px;
   justify-content: space-between;
+}
+
+.lead-order-filter {
+  align-items: center;
+  background: #efecff;
+  border-radius: 9px;
+  color: #3512bc;
+  display: inline-flex;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  height: var(--lm-control-height);
+  padding: 0 12px;
 }
 
 .lead-table :deep(tbody tr) {

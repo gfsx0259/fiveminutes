@@ -140,19 +140,16 @@
         {{ modelLabel(item.paymentModel) }}
       </template>
       <template #item.conversion="{ item }">
-        <span class="stock-cr" :class="{ 'stock-cr--high': item.conversion >= 8 }">
-          {{ item.conversion }}%
-        </span>
+        <span
+          class="stock-cr"
+          :class="item.conversion >= 8 ? 'stock-cr--high' : 'stock-cr--low'"
+        >{{ item.conversion }}%</span>
       </template>
       <template #item.stockPriceCents="{ item }">
-        <span class="stock-payout">{{ dollars(item.stockPriceCents / 100) }}</span>
+        <span class="stock-payout">{{ payoutDollars(item.stockPriceCents) }}</span>
       </template>
       <template #item.available="{ item }">
-        <StockVolumeBar
-          :value="item.available"
-          :max="qtyMax(item)"
-          :show-bar="item.available > 0"
-        />
+        <span class="stock-qty">{{ item.available }}</span>
       </template>
       <template #item.dailyCap="{ item }">
         <StockVolumeBar
@@ -167,7 +164,7 @@
         {{ relativeUpdated(item.updatedAt) }}
       </template>
       <template #item.actions="{ item }">
-        <div class="stock-actions">
+        <div class="stock-actions ui-table-cell-actions">
           <UiButton
             class="stock-actions__btn"
             variant="primary"
@@ -178,7 +175,7 @@
             Buy
           </UiButton>
           <UiButton class="stock-actions__btn" variant="outline" @click="openOrder(item)">
-            Make Offer
+            Make order
           </UiButton>
           <v-menu location="bottom end" content-class="stock-row-menu">
             <template #activator="{ props: menuProps }">
@@ -247,7 +244,7 @@ import {
   verticalLabel,
   verticals,
 } from '@/marketOptions'
-import { dollars } from '@/money'
+import { dollars, wholeDollars } from '@/money'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore, type StockOfferRow } from '@/stores/market'
 const market = useMarketStore()
@@ -281,16 +278,16 @@ const availabilityItems = [
 ]
 
 const headers = [
-  { title: 'Offer ID', key: 'offerId', sortable: false, width: '8%' },
-  { title: 'GEO', key: 'country', width: '11%' },
-  { title: 'Vertical', key: 'vertical', width: '10%' },
-  { title: 'Traffic Source', key: 'trafficSource', width: '11%' },
-  { title: 'Model', key: 'paymentModel', width: '6%' },
-  { title: 'CR', key: 'conversion', align: 'end' as const, width: '6%' },
+  { title: 'Offer ID', key: 'offerId', sortable: false, align: 'start' as const, width: '8%' },
+  { title: 'GEO', key: 'country', align: 'start' as const, width: '11%' },
+  { title: 'Vertical', key: 'vertical', align: 'start' as const, width: '10%' },
+  { title: 'Traffic Source', key: 'trafficSource', align: 'start' as const, width: '11%' },
+  { title: 'Model', key: 'paymentModel', align: 'center' as const, width: '6%' },
+  { title: 'CR', key: 'conversion', align: 'center' as const, width: '6%' },
   { title: 'Payout', key: 'stockPriceCents', align: 'end' as const, width: '8%' },
-  { title: 'Quantity', key: 'available', width: '11%' },
-  { title: 'Daily cap', key: 'dailyCap', width: '11%' },
-  { title: 'Updated', key: 'updatedAt', width: '9%' },
+  { title: 'Quantity', key: 'available', align: 'end' as const, width: '9%' },
+  { title: 'Daily cap', key: 'dailyCap', align: 'center' as const, width: '11%' },
+  { title: 'Updated', key: 'updatedAt', align: 'center' as const, width: '9%' },
   { title: '', key: 'actions', sortable: false, align: 'end' as const, width: '14%' },
 ]
 
@@ -332,8 +329,8 @@ watch(filtered, () => {
   }
 })
 
-function qtyMax(row: StockOfferRow): number {
-  return Math.max(row.available, row.dailyCapVolume, 1)
+function payoutDollars(cents: number): string {
+  return cents % 100 === 0 ? wholeDollars(cents / 100) : dollars(cents / 100)
 }
 
 function isVerticalChipActive(value: string): boolean {
@@ -516,18 +513,36 @@ onMounted(() => {
 }
 
 .stock-cr {
-  color: #5c6078;
-  font-size: 13px;
+  border-radius: 8px;
+  display: inline-block;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+  line-height: 1.2;
+  min-width: 2.75rem;
+  padding: 4px 10px;
+  text-align: center;
+}
+
+.stock-cr--low {
+  background: #eef0f6;
+  color: #3d446e;
 }
 
 .stock-cr--high {
-  color: #2e7d32;
+  background: #e5f6ea;
+  color: #1d7a3a;
   font-weight: 700;
 }
 
 .stock-payout {
+  color: #070916;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.stock-qty {
   color: #070916;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
@@ -680,6 +695,16 @@ onMounted(() => {
   height: 36px !important;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+}
+
+.stock-market-table .ui-data-table :deep(th.v-data-table-column--align-center .v-data-table-header__content) {
+  justify-content: center;
+  width: 100%;
+}
+
+.stock-market-table .ui-data-table :deep(th.v-data-table-column--align-end .v-data-table-header__content) {
+  justify-content: flex-end;
+  width: 100%;
 }
 
 .stock-market-table .ui-data-table :deep(thead th:first-child),
