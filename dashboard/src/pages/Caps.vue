@@ -104,7 +104,7 @@ const headers = computed(() => [
   { title: 'Model', key: 'paymentModel' },
   { title: 'CR', key: 'cr' },
   { title: 'Geo', key: 'geo' },
-  { title: 'When', key: 'when' },
+  { title: 'Date', key: 'when' },
   { title: 'Supplied', key: 'supplied' },
   ...(isBuyer.value ? [{ title: '', key: 'actions', sortable: false }] : []),
 ])

@@ -1,3 +1,31 @@
+.v-snackbar.v-snackbar--bottom {
+  justify-content: center !important;
+  margin-bottom: 25px;
+  padding-inline: 16px;
+}
+
+.v-snackbar .v-snackbar__wrapper {
+  background: #252443 !important;
+  border-radius: 12px !important;
+  box-shadow: var(--lm-shadow) !important;
+  color: #fff !important;
+  font-size: 13px;
+  max-width: calc(100vw - 32px);
+  min-height: 0 !important;
+  min-width: 0 !important;
+  padding: 13px 20px !important;
+}
+
+.v-snackbar .v-snackbar__content {
+  padding: 0 !important;
+}
+
+.v-snackbar .v-snackbar__content,
+.v-snackbar .v-snackbar__actions,
+.v-snackbar .v-btn {
+  color: #fff !important;
+}
+
 .v-table.v-table--hover > .v-table__wrapper > table > tbody > tr:hover > td {
   background: #faf8ff !important;
 }

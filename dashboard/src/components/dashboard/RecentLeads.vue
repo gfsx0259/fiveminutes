@@ -54,7 +54,7 @@ const props = defineProps<{
 const headers = [
   { title: 'Time', key: 'at', sortable: false, width: 130 },
   { title: 'Lead', key: 'name', sortable: false },
-  { title: 'GEO', key: 'country', sortable: false, width: 90 },
+  { title: 'Country', key: 'country', sortable: false, width: 90 },
   { title: 'Traffic', key: 'trafficSource', sortable: false, width: 130 },
   { title: 'Model', key: 'model', sortable: false, width: 80 },
   { title: 'Price', key: 'cost', sortable: false, align: 'end' as const, width: 100 },

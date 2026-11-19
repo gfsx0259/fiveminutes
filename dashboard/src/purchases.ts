@@ -1,3 +1,4 @@
+import { verticalFromAffSub } from '@/orderDisplay'
 import type { CabinetLead } from '@/stores/leads'
 import type { OrderRow } from '@/stores/market'
 
@@ -7,6 +8,7 @@ export type PeriodKey = 'today' | 'yesterday' | '7' | '30' | 'month'
 
 export interface Purchase {
   lead: CabinetLead
+  vertical: string
   at: number
   model: string
   cost: number
@@ -72,11 +74,36 @@ export const periodItems: { title: string, value: PeriodKey }[] = [
   { title: 'This month', value: 'month' },
 ]
 
-export function purchasesOf(leads: CabinetLead[], orders: OrderRow[]): Purchase[] {
+function leadVertical(
+  lead: CabinetLead,
+  orderById: Map<string, OrderRow>,
+  presetVertical: Map<string, string>,
+): string {
+  const orderId = lead.orderId
+  if (orderId) {
+    const order = orderById.get(orderId)
+    if (order) {
+      const fromOrder = order.vertical || presetVertical.get(order.presetId) || ''
+      if (fromOrder !== '') {
+        return fromOrder
+      }
+    }
+  }
+  return verticalFromAffSub(lead.affSub)
+}
+
+export function purchasesOf(
+  leads: CabinetLead[],
+  orders: OrderRow[],
+  presets: { id: string, vertical: string }[] = [],
+): Purchase[] {
   const models = new Map(orders.map((order) => [order.id, order.paymentModel]))
+  const orderById = new Map(orders.map((order) => [order.id, order]))
+  const presetVertical = new Map(presets.map((preset) => [preset.id, preset.vertical]))
   return leads
     .map((lead) => ({
       lead,
+      vertical: leadVertical(lead, orderById, presetVertical),
       at: Date.parse(lead.soldAt ?? lead.createdAt),
       model: lead.orderId ? models.get(lead.orderId) ?? '' : '',
       cost: (lead.partnerPriceCents ?? lead.priceCents) / 100,
@@ -108,7 +135,7 @@ export function totalsOf(list: Purchase[]): PurchaseTotals {
   }
 }
 
-export type BreakdownGroup = 'country' | 'traffic' | 'model' | 'time'
+export type BreakdownGroup = 'country' | 'vertical' | 'traffic' | 'model' | 'time'
 
 export interface BreakdownRow extends PurchaseTotals {
   key: string
@@ -133,6 +160,7 @@ export function breakdownOf(list: Purchase[], group: BreakdownGroup, unit: Perio
 
 function groupKey(purchase: Purchase, group: BreakdownGroup, unit: Period['unit']): [string, string | number] {
   if (group === 'country') return [purchase.lead.country, purchase.lead.country]
+  if (group === 'vertical') return [purchase.vertical, purchase.vertical]
   if (group === 'traffic') return [purchase.lead.trafficSource, purchase.lead.trafficSource]
   if (group === 'model') return [purchase.model, purchase.model]
   const start = unit === 'hour' ? Math.floor(purchase.at / HOUR) * HOUR : startOfDay(purchase.at)

@@ -33,9 +33,6 @@
 
     <section class="ui-filter-panel stock-filter-panel">
       <div class="stock-filters__row">
-        <UiLabeledField label="Geography">
-          <CountryMultiSelect v-model="filterCountries" />
-        </UiLabeledField>
         <UiLabeledField label="Vertical">
           <UiSelect
             v-model="filterVerticals"
@@ -59,6 +56,9 @@
               <span>{{ item.title }}</span>
             </template>
           </UiSelect>
+        </UiLabeledField>
+        <UiLabeledField label="Country">
+          <CountryMultiSelect v-model="filterCountries" />
         </UiLabeledField>
         <UiLabeledField label="Traffic Source">
           <UiSelect
@@ -216,14 +216,12 @@
     <StockBuyDialog v-model="buyOpen" :target="buyTarget" @bought="refresh" />
     <OrderFormDialog v-model="orderOpen" :initial-preset-id="orderPresetId" @created="onOrderCreated" />
 
-    <v-snackbar v-model="copyNotice" location="bottom center" color="success" :timeout="2500">
-      Preset ID copied
-    </v-snackbar>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { showToast } from '@/composables/useToast'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
@@ -250,7 +248,6 @@ import { dollars, wholeDollars } from '@/money'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore, type StockOfferRow } from '@/stores/market'
 const market = useMarketStore()
-const copyNotice = ref(false)
 
 const filterVerticals = ref<string[]>([])
 const filterCountries = ref<string[]>([])
@@ -281,11 +278,11 @@ const availabilityItems = [
 
 const headers = [
   { title: 'Offer ID', key: 'offerId', sortable: false, align: 'start' as const, width: '8%' },
-  { title: 'GEO', key: 'country', align: 'start' as const, width: '11%' },
   { title: 'Vertical', key: 'vertical', align: 'start' as const, width: '10%' },
+  { title: 'Country', key: 'country', align: 'start' as const, width: '11%' },
   { title: 'Traffic Source', key: 'trafficSource', align: 'start' as const, width: '11%' },
   { title: 'Model', key: 'paymentModel', align: 'center' as const, width: '6%' },
-  { title: 'CR', key: 'conversion', align: 'center' as const, width: '6%' },
+  { title: 'Conversion', key: 'conversion', align: 'center' as const, width: '6%' },
   { title: 'Payout', key: 'stockPriceCents', align: 'end' as const, width: '8%' },
   { title: 'Quantity', key: 'available', align: 'end' as const, width: '9%' },
   { title: 'Daily cap', key: 'dailyCap', align: 'center' as const, width: '11%' },
@@ -371,9 +368,9 @@ function openOrder(row: StockOfferRow): void {
 async function copyPresetId(presetId: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(presetId)
-    copyNotice.value = true
+    showToast('Preset ID copied')
   } catch {
-    /* clipboard unavailable */
+    showToast('Copy unavailable')
   }
 }
 

@@ -14,6 +14,15 @@
           <CountryPick :code="item.key" />
           <span class="breakdown-table__muted">{{ countryName(item.key) }}</span>
         </span>
+        <span v-else-if="group === 'vertical'" class="breakdown-table__country">
+          <v-icon
+            v-if="item.key"
+            :icon="verticalIcon(item.key)"
+            :color="verticalColor(item.key)"
+            size="18"
+          />
+          <span class="breakdown-table__muted">{{ item.key ? verticalLabel(item.key) : '—' }}</span>
+        </span>
         <TrafficSourceLabel v-else-if="group === 'traffic'" :source="item.key" />
         <ModelTag v-else-if="group === 'model'" :model="item.key" />
         <span v-else>{{ timeLabel(item) }}</span>
@@ -65,6 +74,7 @@ import ModelTag from '@/components/ModelTag.vue'
 import TrafficSourceLabel from '@/components/TrafficSourceLabel.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import { countryName } from '@/countries'
+import { verticalColor, verticalIcon, verticalLabel } from '@/marketOptions'
 import { dollars } from '@/money'
 import { HOUR, percent, timeOf, type BreakdownGroup, type BreakdownRow, type Period, type PurchaseTotals } from '@/purchases'
 
@@ -81,7 +91,13 @@ watch(() => props.group, (group) => {
   sortBy.value = [group === 'time' ? { key: 'key', order: 'asc' } : { key: 'spent', order: 'desc' }]
 })
 
-const dimension = computed(() => ({ country: 'Country', traffic: 'Traffic', model: 'Model', time: props.unit === 'hour' ? 'Hour' : 'Day' })[props.group])
+const dimension = computed(() => ({
+  country: 'Country',
+  vertical: 'Vertical',
+  traffic: 'Traffic source',
+  model: 'Payment model',
+  time: props.unit === 'hour' ? 'Hour' : 'Day',
+}[props.group]))
 
 const headers = computed(() => [
   { title: dimension.value, key: 'key', width: 200, sortRaw: (left: BreakdownRow, right: BreakdownRow) => compare(left.order, right.order) },

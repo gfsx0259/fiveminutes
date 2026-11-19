@@ -78,6 +78,7 @@
         <router-view />
       </div>
     </v-main>
+    <UiToastHost />
   </v-app>
 </template>
 
@@ -85,6 +86,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import PageBreadcrumbs from '@/components/PageBreadcrumbs.vue'
 import ShellNav from '@/components/ShellNav.vue'
+import UiToastHost from '@/components/UiToastHost.vue'
 import TopbarWallet from '@/components/TopbarWallet.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { loginUrl, logout } from '@/host'

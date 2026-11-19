@@ -248,16 +248,25 @@ async function rejectLead(): Promise<void> {
   padding: 32px;
 }
 
-.lead-detail__table th {
+.lead-detail__table :deep(th),
+.lead-detail__table :deep(td) {
+  padding-block: 10px;
+  vertical-align: middle;
+}
+
+.lead-detail__table :deep(th) {
   color: var(--lm-muted);
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.35;
   padding-right: 16px;
-  vertical-align: top;
   white-space: nowrap;
   width: 140px;
 }
 
-.lead-detail__table td {
+.lead-detail__table :deep(td) {
+  font-size: 13px;
+  line-height: 1.35;
   word-break: break-word;
 }
 

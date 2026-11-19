@@ -111,10 +111,10 @@ const menu = computed((): NavItem[] => {
   if (role === 'partner') {
     return [
       { title: 'Dashboard', to: '/dashboard', icon: 'mdi-view-dashboard-outline', sectionAfter: true },
-      { title: 'Buy leads', to: '/stock', icon: 'mdi-warehouse' },
+      { title: 'Buy leads', to: '/stock', icon: 'mdi-cart-outline' },
       { title: 'My orders', to: '/orders', icon: 'mdi-clipboard-text-outline' },
-      { title: 'My leads', to: '/leads', icon: 'mdi-format-list-bulleted', sectionAfter: true },
-      { title: 'Reports', to: '/reports', icon: 'mdi-account-outline' },
+      { title: 'My leads', to: '/leads', icon: 'mdi-account-outline', sectionAfter: true },
+      { title: 'Reports', to: '/reports', icon: 'mdi-chart-timeline-variant' },
     ]
   }
   return [

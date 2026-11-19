@@ -14,7 +14,28 @@
       <UiField label="Period" icon="mdi-calendar-range">
         <UiSelect v-model="periodKey" :items="periodItems" />
       </UiField>
-      <UiField label="Country" icon="mdi-earth">
+      <UiField label="Vertical">
+        <UiSelect
+          v-model="vertical"
+          :items="verticalItems"
+          placeholder="All verticals"
+          empty-label="All verticals"
+          clearable
+        >
+          <template #value="{ items }">
+            <span v-if="items.length === 0" class="stock-select__placeholder">All verticals</span>
+            <span v-else class="stock-select-pick">
+              <v-icon :icon="verticalIcon(String(items[0].value))" :color="verticalColor(String(items[0].value))" size="16" />
+              <span>{{ items[0].title }}</span>
+            </span>
+          </template>
+          <template #option="{ item }">
+            <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="16" />
+            <span>{{ item.title }}</span>
+          </template>
+        </UiSelect>
+      </UiField>
+      <UiField label="Country">
         <UiSelect
           v-model="country"
           :items="countryItems"
@@ -24,19 +45,46 @@
           search-placeholder="Search country"
           clearable
         >
+          <template #value="{ items }">
+            <span v-if="items.length === 0" class="stock-select__placeholder">All countries</span>
+            <span v-else class="stock-select-pick">
+              <CountryFlag :code="String(items[0].value)" :size="16" />
+              <span>{{ items[0].title }}</span>
+            </span>
+          </template>
           <template #option="{ item }">
             <CountryFlag :code="String(item.value)" :size="16" />
             <span>{{ item.title }}</span>
           </template>
         </UiSelect>
       </UiField>
-      <UiField label="Traffic" icon="mdi-bullhorn-outline">
-        <UiSelect v-model="traffic" :items="trafficSources" placeholder="All traffic" empty-label="All traffic" clearable />
+      <UiField label="Traffic source">
+        <UiSelect
+          v-model="traffic"
+          :items="trafficSources"
+          placeholder="All sources"
+          empty-label="All sources"
+          clearable
+        >
+          <template #value="{ items }">
+            <span v-if="items.length === 0" class="stock-select__placeholder">All sources</span>
+            <span v-else class="stock-select-pick">
+              <v-icon :icon="trafficIcon(String(items[0].value))" :color="trafficColor(String(items[0].value))" size="16" />
+              <span>{{ items[0].title }}</span>
+            </span>
+          </template>
+          <template #option="{ item }">
+            <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="16" />
+            <span>{{ item.title }}</span>
+          </template>
+        </UiSelect>
       </UiField>
-      <UiField label="Model" icon="mdi-cash-multiple">
+      <UiField label="Payment model">
         <UiSelect v-model="model" :items="paymentModels" placeholder="All models" empty-label="All models" clearable />
       </UiField>
-      <UiButton variant="ghost" @click="clearFilters">Clear</UiButton>
+      <div class="reports__filters-reset">
+        <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+      </div>
     </section>
 
     <div class="reports__totals">
@@ -87,7 +135,17 @@ import UiSelect from '@/components/ui/UiSelect.vue'
 import type { TooltipRow } from '@/charts'
 import { countryName } from '@/countries'
 import { downloadCsv } from '@/csv'
-import { modelLabel, paymentModels, trafficLabel, trafficSources } from '@/marketOptions'
+import {
+  modelLabel,
+  paymentModels,
+  trafficColor,
+  trafficIcon,
+  trafficLabel,
+  trafficSources,
+  verticalColor,
+  verticalIcon,
+  verticalLabel,
+} from '@/marketOptions'
 import { dollars, wholeDollars } from '@/money'
 import {
   between,
@@ -109,6 +167,7 @@ const leadStore = useLeadStore()
 const market = useMarketStore()
 
 const periodKey = ref<string>('7')
+const vertical = ref<string | null>(null)
 const country = ref<string | null>(null)
 const traffic = ref<string | null>(null)
 const model = ref<string | null>(null)
@@ -120,16 +179,32 @@ const legend = [
   { label: 'CR', color: '#3412b9', line: true },
 ]
 
-const purchases = computed(() => purchasesOf(leadStore.leads, market.orders))
+const purchases = computed(() => purchasesOf(leadStore.leads, market.orders, market.presets))
 const period = computed(() => periodOf(periodKey.value as PeriodKey, now.value))
+
+const verticalItems = computed(() => [...new Set(purchases.value.map((purchase) => purchase.vertical).filter(Boolean))]
+  .map((code) => ({ title: verticalLabel(code), value: code }))
+  .sort((left, right) => left.title.localeCompare(right.title)))
 
 const countryItems = computed(() => [...new Set(purchases.value.map((purchase) => purchase.lead.country).filter(Boolean))]
   .map((code) => ({ title: countryName(code), value: code }))
   .sort((left, right) => left.title.localeCompare(right.title)))
 
-const matching = computed(() => purchases.value.filter((purchase) => (!country.value || purchase.lead.country === country.value)
-  && (!traffic.value || purchase.lead.trafficSource === traffic.value)
-  && (!model.value || purchase.model === model.value)))
+const matching = computed(() => purchases.value.filter((purchase) => {
+  if (vertical.value && purchase.vertical !== vertical.value) {
+    return false
+  }
+  if (country.value && purchase.lead.country !== country.value) {
+    return false
+  }
+  if (traffic.value && purchase.lead.trafficSource !== traffic.value) {
+    return false
+  }
+  if (model.value && purchase.model !== model.value) {
+    return false
+  }
+  return true
+}))
 
 const inPeriod = computed(() => between(matching.value, period.value.from, period.value.to))
 const current = computed(() => totalsOf(inPeriod.value))
@@ -141,8 +216,9 @@ const rows = computed(() => breakdownOf(inPeriod.value, group.value as Breakdown
 
 const groupItems = computed(() => [
   { title: 'Country', value: 'country' },
-  { title: 'Traffic', value: 'traffic' },
-  { title: 'Model', value: 'model' },
+  { title: 'Vertical', value: 'vertical' },
+  { title: 'Traffic source', value: 'traffic' },
+  { title: 'Payment model', value: 'model' },
   { title: period.value.unit === 'hour' ? 'Hour' : 'Day', value: 'time' },
 ])
 
@@ -186,8 +262,9 @@ function outcomeTooltip(index: number): TooltipRow[] {
   ]
 }
 
-function clearFilters(): void {
+function resetFilters(): void {
   periodKey.value = '7'
+  vertical.value = null
   country.value = null
   traffic.value = null
   model.value = null
@@ -197,6 +274,7 @@ function exportCsv(): void {
   const header = ['Group', 'Leads', 'Delivered', 'In work', 'Approved', 'Rejected', 'Approval rate %', 'Spent', 'Avg cost / lead', 'Cost / approved', 'Share of spend %']
   const label = (key: string, order: string | number): string => {
     if (group.value === 'country') return countryName(key)
+    if (group.value === 'vertical') return key ? verticalLabel(key) : '—'
     if (group.value === 'traffic') return trafficLabel(key)
     if (group.value === 'model') return modelLabel(key)
     return new Date(Number(order)).toISOString()
@@ -218,7 +296,7 @@ function exportCsv(): void {
 
 async function refresh(): Promise<void> {
   now.value = Date.now()
-  await Promise.all([leadStore.load(), market.loadOrders()])
+  await Promise.all([leadStore.load(), market.loadOrders(), market.loadPresets()])
 }
 
 onMounted(() => {
@@ -241,8 +319,33 @@ onMounted(() => {
   align-items: end;
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
   padding-top: 18px;
+}
+
+.reports__filters-reset {
+  align-self: end;
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 1px;
+}
+
+.reports__filters-reset :deep(.ui-btn--ghost) {
+  font-size: 14px;
+  height: auto !important;
+  min-height: var(--lm-control-height) !important;
+  padding: 0 12px !important;
+}
+
+.reports__filters-reset :deep(.ui-btn--ghost .v-btn__prepend .v-icon) {
+  font-size: 18px !important;
+  height: 18px !important;
+  margin-top: 0 !important;
+  width: 18px !important;
+}
+
+.reports__filters-reset :deep(.ui-btn--ghost .v-btn__content) {
+  line-height: 1;
 }
 
 .reports__totals {

@@ -5,13 +5,13 @@
     multiple
     searchable
     clearable
-    placeholder="All GEOs"
+    placeholder="All countries"
     search-placeholder="Search country"
-    empty-label="All GEOs"
+    empty-label="All countries"
     :menu-min-width="280"
   >
     <template #value="{ items }">
-      <span v-if="items.length === 0" class="stock-select__placeholder">All GEOs</span>
+      <span v-if="items.length === 0" class="stock-select__placeholder">All countries</span>
       <span v-else class="stock-select-picks">
         <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
           <CountryFlag :code="String(item.value)" :size="14" />
@@ -21,7 +21,7 @@
     </template>
     <template #empty>
       <v-icon icon="mdi-earth" size="16" color="#5b45e8" />
-      <span>All GEOs</span>
+      <span>All countries</span>
     </template>
     <template #option="{ item }">
       <CountryFlag :code="String(item.value)" :size="16" />

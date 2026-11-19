@@ -64,7 +64,7 @@
               </template>
             </UiSelect>
           </UiLabeledField>
-          <UiLabeledField label="Geography">
+          <UiLabeledField label="Country">
             <CountryMultiSelect v-model="filterCountries" />
           </UiLabeledField>
           <UiLabeledField label="Traffic source">
@@ -199,13 +199,13 @@
                 <button type="button" @click="copyLeadId(item.uuid)">
                   Copy lead ID
                 </button>
-                <button type="button" @click="copyText(item.uuid)">
+                <button type="button" @click="copyWithLabel(item.uuid, 'UUID')">
                   Copy UUID
                 </button>
-                <button type="button" @click="copyText(item.phone)">
+                <button type="button" @click="copyWithLabel(item.phone, 'Phone')">
                   Copy phone
                 </button>
-                <button type="button" @click="copyText(item.email)">
+                <button type="button" @click="copyWithLabel(item.email, 'Email')">
                   Copy email
                 </button>
                 <button
@@ -282,6 +282,7 @@ import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
+import { showToast } from '@/composables/useToast'
 import { downloadCsv } from '@/csv'
 import { apiOrigin } from '@/host'
 import { sampleLead, sampleLeadJson } from '@/leadBody'
@@ -386,7 +387,7 @@ const headers = computed(() => {
   const rows: { title: string; key: string; sortable?: boolean; width?: number; align?: 'start' | 'center' | 'end' }[] = [
     { title: 'Lead ID', key: 'leadId', sortable: false },
     { title: 'Vertical', key: 'vertical' },
-    { title: 'GEO', key: 'country' },
+    { title: 'Country', key: 'country' },
     { title: 'Traffic source', key: 'trafficSource' },
     { title: 'Phone', key: 'phone' },
     { title: 'Email', key: 'email' },
@@ -546,15 +547,20 @@ function leadCanConvert(lead: CabinetLead): boolean {
   return role === 'partner' || role === 'buyer' || role === 'admin'
 }
 
-async function copyText(value: string): Promise<void> {
+async function copyWithLabel(value: string | null | undefined, label: string): Promise<void> {
   if (!value) {
     return
   }
-  await navigator.clipboard.writeText(value)
+  try {
+    await navigator.clipboard.writeText(value)
+    showToast(`${label} copied`)
+  } catch {
+    showToast('Copy unavailable. Open lead details to select the value.')
+  }
 }
 
 async function copyLeadId(uuid: string): Promise<void> {
-  await navigator.clipboard.writeText(leadDisplayId(uuid))
+  await copyWithLabel(leadDisplayId(uuid), 'Lead ID')
 }
 
 async function approveLeadRow(item: CabinetLead): Promise<void> {
@@ -686,13 +692,18 @@ function sendFailure(decoded: unknown, status: number): string {
 
 async function copyKey(): Promise<void> {
   if (!apiKey.value) return
-  await navigator.clipboard.writeText(apiKey.value)
+  try {
+    await navigator.clipboard.writeText(apiKey.value)
+    showToast('API key copied')
+  } catch {
+    showToast('Copy unavailable')
+  }
 }
 
 function exportCsv(): void {
   const header = isAdmin.value
-    ? ['Lead ID', 'Vertical', 'GEO', 'Traffic source', 'Phone', 'Email', 'IP', 'Buyer', 'Partner', 'Status']
-    : ['Lead ID', 'Vertical', 'GEO', 'Traffic source', 'Phone', 'Email', 'IP', 'Status']
+    ? ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'Phone', 'Email', 'IP', 'Buyer', 'Partner', 'Status']
+    : ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'Phone', 'Email', 'IP', 'Status']
   downloadCsv('leads.csv', [header, ...filtered.value.map(csvRow)])
 }
 

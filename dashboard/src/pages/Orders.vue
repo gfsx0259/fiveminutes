@@ -6,7 +6,7 @@
         <p v-if="isPartner">Day and stock orders you opened. Create new day orders from Buy leads.</p>
         <p v-else>Day orders for today or tomorrow. Partner payout is at or above the preset floor; the platform fee is charged to the buyer.</p>
       </div>
-      <UiButton v-if="isPartner" variant="outline" icon="mdi-warehouse" @click="goBuy">Buy leads</UiButton>
+      <UiButton v-if="isPartner" variant="outline" icon="mdi-cart-outline" @click="goBuy">Buy leads</UiButton>
       <UiButton v-else variant="outline" icon="mdi-plus" @click="show">Create</UiButton>
     </div>
 
@@ -43,7 +43,7 @@
               </template>
             </UiSelect>
           </UiLabeledField>
-          <UiLabeledField label="Geography">
+          <UiLabeledField label="Country">
             <CountryMultiSelect v-model="filterCountries" />
           </UiLabeledField>
           <UiLabeledField label="Traffic source">
@@ -98,9 +98,9 @@
               </template>
             </UiSelect>
           </UiLabeledField>
-          <UiLabeledField label="When">
-            <UiDateField v-model="filterServiceOn" label="When" class="orders-filter-date" />
-          </UiLabeledField>
+          <UiField label="Date" icon="mdi-calendar-range">
+            <UiDateField v-model="filterServiceOn" label="Date" class="orders-filter-date" />
+          </UiField>
         </div>
         <div class="orders-filters__toolbar-end">
           <UiButton
@@ -291,6 +291,7 @@ import StockVolumeBar from '@/components/StockVolumeBar.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiDateField from '@/components/ui/UiDateField.vue'
+import UiField from '@/components/ui/UiField.vue'
 import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
@@ -307,6 +308,7 @@ import {
   verticals,
 } from '@/marketOptions'
 import { dollars, wholeDollars } from '@/money'
+import { showToast } from '@/composables/useToast'
 import { orderDisplayId, orderWhenDay } from '@/orderDisplay'
 import { useMarketStore, type OrderRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
@@ -412,11 +414,11 @@ function orderTypeLabel(item: OrderRow): string {
 const partnerLeadColumns = [
   { title: 'Order ID', key: 'id', sortable: false, align: 'start' as const },
   { title: 'Vertical', key: 'vertical', align: 'start' as const },
-  { title: 'GEO', key: 'geo', align: 'start' as const },
+  { title: 'Country', key: 'geo', align: 'start' as const },
   { title: 'Traffic source', key: 'trafficSource', align: 'start' as const },
   { title: 'Model', key: 'paymentModel', align: 'center' as const },
   { title: 'Type', key: 'orderType', align: 'center' as const },
-  { title: 'When', key: 'whenDay', align: 'center' as const },
+  { title: 'Date', key: 'whenDay', align: 'center' as const },
   { title: 'Supplied', key: 'supplied', align: 'center' as const, width: '9rem' },
   { title: 'Order cost', key: 'orderCostCents', align: 'end' as const },
 ]
@@ -468,11 +470,18 @@ function orderHasLifecycleActions(item: OrderRow): boolean {
   return item.status !== 'finished'
 }
 
+const orderActionToasts: Record<'pause' | 'resume' | 'finish', string> = {
+  pause: 'Order paused',
+  resume: 'Order resumed',
+  finish: 'Order finished',
+}
+
 async function act(id: string, action: 'pause' | 'resume' | 'finish'): Promise<void> {
   acting.value = id
   actionError.value = ''
   try {
     await market.actOrder(id, action)
+    showToast(orderActionToasts[action])
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : 'Статус не сменился'
   } finally {

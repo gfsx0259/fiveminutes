@@ -71,7 +71,7 @@
         </template>
         <ActiveOrders :orders="market.orders" :now="now" />
       </UiCard>
-      <UiCard title="Top GEOs" subtitle="By spend for the period">
+      <UiCard title="Top countries" subtitle="By spend for the period">
         <template #actions>
           <router-link class="dashboard__link" to="/reports">Reports <v-icon icon="mdi-arrow-right" size="14" /></router-link>
         </template>
@@ -136,7 +136,7 @@ const orderOpen = ref(false)
 const now = ref(Date.now())
 let clock: ReturnType<typeof setInterval> | undefined
 
-const purchases = computed(() => purchasesOf(leadStore.leads, market.orders))
+const purchases = computed(() => purchasesOf(leadStore.leads, market.orders, market.presets))
 const period = computed(() => periodOf(periodKey.value as PeriodKey, now.value))
 const inPeriod = computed(() => between(purchases.value, period.value.from, period.value.to))
 const current = computed(() => totalsOf(inPeriod.value))

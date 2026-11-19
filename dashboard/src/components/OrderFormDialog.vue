@@ -45,7 +45,7 @@
       </UiField>
 
       <div class="ui-form__row">
-        <UiField label="GEO *" icon="mdi-earth">
+        <UiField label="Country *" icon="mdi-earth">
           <UiSelect
             v-model="country"
             :items="countryItems"
@@ -371,7 +371,7 @@ function utcDay(offset: number): string {
 async function create(): Promise<void> {
   const preset = matchedPreset.value
   if (!preset) {
-    formError.value = 'Select vertical, GEO and traffic source that match a catalog preset'
+    formError.value = 'Select vertical, country and traffic source that match a catalog preset'
     return
   }
   const qty = Number(volume.value)
@@ -444,18 +444,14 @@ async function create(): Promise<void> {
   width: 100%;
 }
 
-.order-form__segmented {
-  display: block;
-  width: 100%;
-}
-
-.order-form__segmented :deep(.ui-segmented) {
+.order-form__date :deep(.order-form__segmented.ui-segmented) {
   display: flex;
   width: 100%;
 }
 
 .order-form__segmented :deep(.ui-segmented__item) {
   flex: 1 1 0;
+  min-width: 0;
   text-align: center;
 }
 

@@ -116,6 +116,18 @@ defineProps<{
   color: var(--lm-muted);
   opacity: 0.8;
 }
+
+.ui-field :deep(.ui-date) {
+  box-shadow: 0 2px 3px #22225504;
+}
+
+.ui-field--icon :deep(.ui-date > button) {
+  display: none;
+}
+
+.ui-field--icon :deep(.ui-date input) {
+  padding-inline-start: 38px;
+}
 </style>
 
 <style>
@@ -129,9 +141,5 @@ defineProps<{
 
 .ui-field--icon:has(.ui-select--conceal-icon) .ui-select {
   padding-inline-start: 12px;
-}
-
-.ui-field--icon:has(.ui-date) .ui-field__icon {
-  display: none;
 }
 </style>

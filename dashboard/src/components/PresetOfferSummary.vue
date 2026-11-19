@@ -10,7 +10,7 @@
     <div class="preset-offer-summary__body">
       <div class="preset-offer-summary__row">
         <div class="preset-offer-summary__cell">
-          <span class="preset-offer-summary__label">GEO</span>
+          <span class="preset-offer-summary__label">Country</span>
           <span class="preset-offer-summary__value">
             <CountryFlag :code="country" :size="16" />
             <span>{{ countryName }}</span>

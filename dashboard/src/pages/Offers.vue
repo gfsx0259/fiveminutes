@@ -70,7 +70,7 @@ const headers = computed(() => [
   { title: 'Status', key: 'status' },
   { title: 'Traffic', key: 'trafficSource' },
   { title: 'Geo', key: 'geo' },
-  { title: 'When', key: 'when' },
+  { title: 'Date', key: 'when' },
   { title: 'Supplied', key: 'supplied' },
   ...(isAdmin.value ? [{ title: 'Supplier', key: 'buyerEmail' }] : []),
   { title: '', key: 'actions', sortable: false },

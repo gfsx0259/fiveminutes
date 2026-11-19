@@ -1,16 +1,16 @@
 <template>
   <div class="ui-table-pagination">
     <div class="ui-table-pagination__left">
-      <label class="ui-table-pagination__per-page">
-        <span class="ui-table-pagination__per-page-label">Items per page</span>
-        <select
-          class="ui-table-pagination__select"
-          :value="itemsPerPage"
-          @change="onPerPage(($event.target as HTMLSelectElement).value)"
-        >
-          <option v-for="n in itemsPerPageOptions" :key="n" :value="n">{{ n }}</option>
-        </select>
-      </label>
+      <div class="ui-table-pagination__per-page">
+        <span class="ui-table-pagination__per-page-label">Per page</span>
+        <UiSelect
+          class="ui-table-pagination__per-page-select"
+          :model-value="itemsPerPage"
+          :items="perPageItems"
+          :menu-min-width="128"
+          @update:model-value="onPerPageSelect"
+        />
+      </div>
       <span class="ui-table-pagination__range">{{ rangeLabel }}</span>
     </div>
     <nav class="ui-table-pagination__nav" aria-label="Pagination">
@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
 
 const props = withDefaults(defineProps<{
   page: number
@@ -65,6 +66,10 @@ const emit = defineEmits<{
   'update:page': [page: number]
   'update:itemsPerPage': [n: number]
 }>()
+
+const perPageItems = computed(() =>
+  props.itemsPerPageOptions.map((n) => ({ title: String(n), value: n })),
+)
 
 const rangeLabel = computed(() => {
   if (props.itemsLength === 0) {
@@ -104,9 +109,9 @@ function go(next: number): void {
   }
 }
 
-function onPerPage(raw: string): void {
-  const n = Number(raw)
-  if (Number.isFinite(n) && n > 0) {
+function onPerPageSelect(value: unknown): void {
+  const n = Number(value)
+  if (Number.isFinite(n) && n > 0 && n !== props.itemsPerPage) {
     emit('update:itemsPerPage', n)
     emit('update:page', 1)
   }
@@ -136,22 +141,24 @@ function onPerPage(raw: string): void {
 .ui-table-pagination__per-page {
   align-items: center;
   display: inline-flex;
+  flex-shrink: 0;
   gap: 8px;
 }
 
 .ui-table-pagination__per-page-label {
   font-weight: 500;
+  white-space: nowrap;
 }
 
-.ui-table-pagination__select {
-  background: #fff;
-  border: 1px solid #d8d5eb;
-  border-radius: 8px;
-  color: #303861;
+.ui-table-pagination__per-page-select {
+  width: 76px;
+}
+
+.ui-table-pagination__per-page-select :deep(.ui-select) {
   font-size: 13px;
   font-weight: 600;
   min-height: 32px;
-  padding: 4px 28px 4px 10px;
+  padding: 4px 8px 4px 10px;
 }
 
 .ui-table-pagination__range {
