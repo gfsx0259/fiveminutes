@@ -11,8 +11,8 @@
       <button
         type="button"
         class="stock-chip"
-        :class="{ 'stock-chip--all': filterVertical === '' }"
-        @click="filterVertical = ''"
+        :class="{ 'stock-chip--all': filterVerticals.length === 0 }"
+        @click="filterVerticals = []"
       >
         All
       </button>
@@ -21,10 +21,10 @@
         :key="item.value"
         type="button"
         class="stock-chip"
-        :class="{ 'stock-chip--active': filterVertical === item.value }"
-        @click="filterVertical = item.value"
+        :class="{ 'stock-chip--active': isVerticalChipActive(item.value) }"
+        @click="selectVerticalChip(item.value)"
       >
-        <v-icon :icon="verticalIcon(item.value)" :color="verticalColor(item.value)" size="16" />
+        <v-icon :icon="verticalIcon(item.value)" :color="verticalColor(item.value)" size="18" />
         {{ item.title }}
       </button>
     </section>
@@ -32,31 +32,55 @@
     <section class="ui-filter-panel stock-filter-panel">
       <div class="stock-filters__row">
         <UiLabeledField label="Geography">
-          <UiSelect
-            v-model="filterCountry"
-            :items="countryItems"
-            placeholder="All GEOs"
-            empty-label="All GEOs"
-            clearable
-          />
+          <CountryMultiSelect v-model="filterCountries" />
         </UiLabeledField>
         <UiLabeledField label="Vertical">
           <UiSelect
-            v-model="filterVerticalSelect"
+            v-model="filterVerticals"
             :items="verticalItems"
             placeholder="All verticals"
             empty-label="All verticals"
+            multiple
             clearable
-          />
+          >
+            <template #value="{ items }">
+              <span v-if="items.length === 0" class="stock-select__placeholder">All verticals</span>
+              <span v-else class="stock-select-picks">
+                <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
+                  <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="14" />
+                  {{ item.title }}
+                </span>
+              </span>
+            </template>
+            <template #option="{ item }">
+              <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="16" />
+              <span>{{ item.title }}</span>
+            </template>
+          </UiSelect>
         </UiLabeledField>
         <UiLabeledField label="Traffic Source">
           <UiSelect
-            v-model="filterTraffic"
+            v-model="filterTraffics"
             :items="trafficSources"
             placeholder="All sources"
             empty-label="All sources"
+            multiple
             clearable
-          />
+          >
+            <template #value="{ items }">
+              <span v-if="items.length === 0" class="stock-select__placeholder">All sources</span>
+              <span v-else class="stock-select-picks">
+                <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
+                  <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="14" />
+                  {{ item.title }}
+                </span>
+              </span>
+            </template>
+            <template #option="{ item }">
+              <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="16" />
+              <span>{{ item.title }}</span>
+            </template>
+          </UiSelect>
         </UiLabeledField>
         <UiLabeledField label="Payment model">
           <UiSelect
@@ -152,8 +176,27 @@
             Buy
           </UiButton>
           <UiButton class="stock-actions__btn" variant="outline" @click="openOrder(item)">
-            Make offer
+            Make Offer
           </UiButton>
+          <v-menu location="bottom end" content-class="stock-row-menu">
+            <template #activator="{ props: menuProps }">
+              <button
+                type="button"
+                class="stock-actions__more"
+                v-bind="menuProps"
+                :aria-label="`More actions for offer ${offerId(item)}`"
+                title="More"
+              >
+                <v-icon icon="mdi-dots-horizontal" size="20" />
+              </button>
+            </template>
+            <div class="stock-row-menu__list">
+              <button type="button" @click="copyPresetId(item.presetId)">
+                <v-icon icon="mdi-content-copy" size="16" />
+                Copy preset ID
+              </button>
+            </div>
+          </v-menu>
         </div>
       </template>
       <template #bottom>
@@ -171,11 +214,16 @@
 
     <StockBuyDialog v-model="buyOpen" :target="buyTarget" @bought="refresh" />
     <OrderFormDialog v-model="orderOpen" :initial-preset-id="orderPresetId" @created="onOrderCreated" />
+
+    <v-snackbar v-model="copyNotice" location="bottom center" color="success" :timeout="2500">
+      Preset ID copied
+    </v-snackbar>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
 import StockBuyDialog from '@/components/StockBuyDialog.vue'
@@ -200,13 +248,12 @@ import {
 import { dollars } from '@/money'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore, type StockOfferRow } from '@/stores/market'
-import { ISO2_COUNTRIES } from '@/countries'
-
 const market = useMarketStore()
+const copyNotice = ref(false)
 
-const filterVertical = ref('')
-const filterCountry = ref<string | null>(null)
-const filterTraffic = ref<string | null>(null)
+const filterVerticals = ref<string[]>([])
+const filterCountries = ref<string[]>([])
+const filterTraffics = ref<string[]>([])
 const filterModel = ref<string | null>(null)
 const filterCr = ref<string | null>(null)
 const filterAvailability = ref<string | null>(null)
@@ -219,7 +266,6 @@ const buyTarget = ref<StockBuyTarget | null>(null)
 const orderOpen = ref(false)
 const orderPresetId = ref<string | null>(null)
 
-const countryItems = computed(() => ISO2_COUNTRIES.map((c) => ({ title: c.name, value: c.code })))
 const verticalItems = computed(() => verticals.map((v) => ({ title: v.title, value: v.value })))
 
 const crItems = [
@@ -232,13 +278,6 @@ const availabilityItems = [
   { title: 'Out of stock', value: 'empty' },
 ]
 
-const filterVerticalSelect = computed({
-  get: () => filterVertical.value || null,
-  set: (value: string | null) => {
-    filterVertical.value = value ?? ''
-  },
-})
-
 const headers = [
   { title: 'Offer ID', key: 'offerId', sortable: false, width: '8%' },
   { title: 'GEO', key: 'country', width: '8%' },
@@ -250,18 +289,18 @@ const headers = [
   { title: 'Quantity', key: 'available', width: '11%' },
   { title: 'Daily cap', key: 'dailyCap', width: '11%' },
   { title: 'Updated', key: 'updatedAt', width: '9%' },
-  { title: '', key: 'actions', sortable: false, align: 'end' as const, width: '12%' },
+  { title: '', key: 'actions', sortable: false, align: 'end' as const, width: '14%' },
 ]
 
 const filtered = computed(() => {
   return market.stock.filter((row) => {
-    if (filterVertical.value && row.vertical !== filterVertical.value) {
+    if (filterVerticals.value.length > 0 && !filterVerticals.value.includes(row.vertical)) {
       return false
     }
-    if (filterCountry.value && row.country !== filterCountry.value) {
+    if (filterCountries.value.length > 0 && !filterCountries.value.includes(row.country)) {
       return false
     }
-    if (filterTraffic.value && row.trafficSource !== filterTraffic.value) {
+    if (filterTraffics.value.length > 0 && !filterTraffics.value.includes(row.trafficSource)) {
       return false
     }
     if (filterModel.value && row.paymentModel !== filterModel.value) {
@@ -295,10 +334,23 @@ function qtyMax(row: StockOfferRow): number {
   return Math.max(row.available, row.dailyCapVolume, 1)
 }
 
+function isVerticalChipActive(value: string): boolean {
+  return filterVerticals.value.length === 1 && filterVerticals.value[0] === value
+}
+
+/** Chips set exactly one vertical (shortcut); use the dropdown for multi-select. */
+function selectVerticalChip(value: string): void {
+  if (isVerticalChipActive(value)) {
+    filterVerticals.value = []
+    return
+  }
+  filterVerticals.value = [value]
+}
+
 function resetFilters(): void {
-  filterVertical.value = ''
-  filterCountry.value = null
-  filterTraffic.value = null
+  filterVerticals.value = []
+  filterCountries.value = []
+  filterTraffics.value = []
   filterModel.value = null
   filterCr.value = null
   filterAvailability.value = null
@@ -313,6 +365,15 @@ function openBuy(row: StockOfferRow): void {
 function openOrder(row: StockOfferRow): void {
   orderPresetId.value = row.presetId
   orderOpen.value = true
+}
+
+async function copyPresetId(presetId: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(presetId)
+    copyNotice.value = true
+  } catch {
+    /* clipboard unavailable */
+  }
 }
 
 function onOrderCreated(): void {
@@ -393,14 +454,18 @@ onMounted(() => {
   background: #fff;
   border: 1px solid #e4e1f5;
   border-radius: 999px;
+  box-sizing: border-box;
   color: #3512bc;
   cursor: pointer;
   display: inline-flex;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  gap: 6px;
-  padding: 7px 14px;
+  gap: 8px;
+  height: 42px;
+  line-height: 1;
+  padding: 0 16px;
   transition: border-color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
 }
 
 .stock-chip--all {
@@ -470,19 +535,88 @@ onMounted(() => {
 }
 
 .stock-actions {
+  align-items: center;
   display: inline-flex;
   flex-wrap: nowrap;
-  gap: 6px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
 .stock-actions__btn {
   flex-shrink: 0;
   font-size: 12px !important;
-  height: 32px !important;
+  height: 34px !important;
+  letter-spacing: 0 !important;
+  min-height: 34px !important;
   min-width: 0 !important;
   padding-inline: 12px !important;
   white-space: nowrap;
+}
+
+.stock-actions__btn :deep(.v-btn__prepend) {
+  margin-inline-end: 4px;
+}
+
+.stock-actions__more {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: #5c6078;
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 34px;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  width: 28px;
+}
+
+.stock-actions__more:hover,
+.stock-actions__more[aria-expanded='true'] {
+  background: #efecff;
+  color: #3512bc;
+}
+
+.stock-row-menu__list {
+  background: #fff;
+  border: 1px solid #e4e1f5;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgb(39 32 100 / 8%);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 168px;
+  padding: 6px;
+}
+
+.stock-row-menu__list > button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: #070916;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 13px;
+  gap: 9px;
+  line-height: 20px;
+  min-height: 36px;
+  padding: 7px 9px;
+  text-align: left;
+  width: 100%;
+}
+
+.stock-row-menu__list > button:hover,
+.stock-row-menu__list > button:focus-visible {
+  background: #efecff;
+  color: #3512bc;
+  font-weight: 600;
+  outline: none;
 }
 
 @media (max-width: 1280px) {
@@ -556,8 +690,13 @@ onMounted(() => {
 .stock-market-table .ui-data-table :deep(tbody td) {
   background: #fff !important;
   border-bottom: 8px solid #f8f8ff !important;
-  height: 52px;
+  min-height: 52px;
+  padding-block: 9px;
   vertical-align: middle;
+}
+
+.stock-market-table .ui-data-table :deep(tbody td:last-child) {
+  padding-inline: 12px 10px;
 }
 
 .stock-market-table .ui-data-table :deep(tbody tr:hover td) {
@@ -574,5 +713,12 @@ onMounted(() => {
 
 .stock-market-table .ui-data-table :deep(.v-data-table-footer) {
   display: none;
+}
+</style>
+
+<style>
+.stock-row-menu.v-overlay__content {
+  background: transparent;
+  box-shadow: none;
 }
 </style>

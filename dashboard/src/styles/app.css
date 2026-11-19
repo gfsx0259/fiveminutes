@@ -86,6 +86,29 @@
   }
 }
 
+.stock-select-picks {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.stock-select-pick {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 4px;
+  line-height: 1.2;
+}
+
+.stock-select__placeholder {
+  color: var(--lm-muted);
+  opacity: 0.8;
+}
+
 .lm-breadcrumbs {
   color: #8b90a8;
   font-size: 13px;

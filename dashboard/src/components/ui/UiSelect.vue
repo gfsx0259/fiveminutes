@@ -12,7 +12,10 @@
         v-bind="{ ...attrs, ...menuProps }"
         type="button"
         class="ui-select"
-        :class="{ 'ui-select--conceal-icon': concealFieldIcon && hasValue }"
+        :class="{
+          'ui-select--conceal-icon': concealFieldIcon && hasValue,
+          'ui-select--multiple': multiple,
+        }"
         :disabled="disabled"
         @mousedown="measure"
         @paste="emit('paste', $event)"
@@ -228,6 +231,18 @@ const clearAll = () => {
   padding: 0 10px 0 12px;
   text-align: left;
   width: 100%;
+}
+
+.ui-select--multiple {
+  height: auto;
+  min-height: var(--lm-control-height);
+  padding-block: 5px;
+}
+
+.ui-select--multiple .ui-select__value {
+  flex-wrap: wrap;
+  gap: 6px;
+  row-gap: 4px;
 }
 
 .ui-select:disabled {
