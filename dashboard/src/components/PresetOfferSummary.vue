@@ -40,7 +40,7 @@
         </div>
         <span v-if="conversion != null && conversion > 0" class="preset-offer-summary__sep" aria-hidden="true" />
         <div class="preset-offer-summary__cell">
-          <span class="preset-offer-summary__label">Payout</span>
+          <span class="preset-offer-summary__label">{{ amountLabel }}</span>
           <span class="preset-offer-summary__payout">{{ dollars(payoutCents / 100) }}</span>
         </div>
       </div>
@@ -63,16 +63,20 @@ import {
 } from '@/marketOptions'
 import { dollars } from '@/money'
 
-const props = defineProps<{
-  vertical: string
-  country: string
-  trafficSource: string
-  paymentModel?: string
-  payoutCents: number
-  conversion?: number | null
-  heading?: string
-  badge?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    vertical: string
+    country: string
+    trafficSource: string
+    paymentModel?: string
+    payoutCents: number
+    conversion?: number | null
+    heading?: string
+    badge?: string
+    amountLabel?: string
+  }>(),
+  { amountLabel: 'Payout' },
+)
 
 const countryName = computed(() =>
   ISO2_COUNTRIES.find((c) => c.code === props.country)?.name ?? props.country,

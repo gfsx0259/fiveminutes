@@ -20,6 +20,7 @@
         :traffic-source="target.trafficSource"
         :payment-model="target.paymentModel"
         :payout-cents="target.stockPriceCents"
+        amount-label="Price"
         :conversion="target.conversion"
       />
 

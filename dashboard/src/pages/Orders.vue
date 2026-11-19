@@ -397,7 +397,7 @@ const partnerLeadColumns = [
   { title: 'Vertical', key: 'vertical', align: 'start' as const },
   { title: 'Country', key: 'geo', align: 'start' as const },
   { title: 'Traffic source', key: 'trafficSource', align: 'start' as const },
-  { title: 'Model', key: 'paymentModel', align: 'center' as const },
+  { title: 'Payment model', key: 'paymentModel', align: 'center' as const },
   { title: 'Type', key: 'orderType', align: 'center' as const },
   { title: 'Date', key: 'whenDay', align: 'center' as const },
   { title: 'Supplied', key: 'supplied', align: 'center' as const, width: '9rem' },

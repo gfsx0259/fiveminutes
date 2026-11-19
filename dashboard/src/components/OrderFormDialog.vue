@@ -19,6 +19,7 @@
       :traffic-source="matchedPreset.trafficSource"
       :payment-model="matchedPreset.paymentModel"
       :payout-cents="matchedPreset.floorPriceCents"
+      amount-label="Price"
       :conversion="matchedPreset.cr"
     />
 
@@ -123,7 +124,6 @@
       :price-per-lead-cents="priceCents"
       :quantity="volumeQty"
       :balance-cents="balanceCents"
-      price-label="Payout per lead"
       total-label="Total cost"
     />
   </FormDialog>
@@ -271,7 +271,7 @@ const matchedPreset = computed(() => {
   })[0]
 })
 
-const priceLabel = computed(() => 'Payout (per lead) *')
+const priceLabel = computed(() => 'Price (per lead) *')
 
 const pricePlaceholder = computed(() => {
   const floor = matchedPreset.value?.floorPriceCents
@@ -382,7 +382,7 @@ async function create(): Promise<void> {
   const priceNum = Number(price.value)
   const floor = preset.floorPriceCents / 100
   if (!Number.isFinite(priceNum) || priceNum < floor) {
-    formError.value = `Payout must be at least ${dollars(floor)}`
+    formError.value = `Price must be at least ${dollars(floor)}`
     return
   }
   if (!serviceOn.value) {
