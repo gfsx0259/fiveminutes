@@ -27,6 +27,15 @@ final class PresetForm extends AbstractInput
         #[Required(message: 'Gender is required', notPassedMessage: 'Gender is required')]
         #[In(values: ['m', 'f', 'all'], message: 'Gender must be male, female or all')]
         public readonly string $gender = '',
+        #[Required(message: 'Vertical is required', notPassedMessage: 'Vertical is required')]
+        #[In(
+            values: ['gambling', 'betting', 'crypto', 'forex', 'dating', 'nutra', 'finance', 'other'],
+            message: 'Vertical is not supported',
+        )]
+        public readonly string $vertical = '',
+        #[Required(message: 'Payment model is required', notPassedMessage: 'Payment model is required')]
+        #[In(values: ['cpl', 'cpa'], message: 'Payment model must be cpl or cpa')]
+        public readonly string $payment_model = '',
         #[Required]
         #[Integer(
             min: 0,
@@ -40,19 +49,19 @@ final class PresetForm extends AbstractInput
         #[Required]
         #[Integer(
             min: 1,
-            incorrectInputMessage: 'CPL price must be a positive whole number of dollars',
-            notNumberMessage: 'CPL price must be a positive whole number of dollars',
-            lessThanMinMessage: 'CPL price must be a positive whole number of dollars',
+            incorrectInputMessage: 'Floor price must be a positive whole number of dollars',
+            notNumberMessage: 'Floor price must be a positive whole number of dollars',
+            lessThanMinMessage: 'Floor price must be a positive whole number of dollars',
         )]
-        public readonly int $cpl_price = 0,
+        public readonly int $floor_price = 0,
         #[Required]
         #[Integer(
             min: 1,
-            incorrectInputMessage: 'CPA price must be a positive whole number of dollars',
-            notNumberMessage: 'CPA price must be a positive whole number of dollars',
-            lessThanMinMessage: 'CPA price must be a positive whole number of dollars',
+            incorrectInputMessage: 'Stock price must be a positive whole number of dollars',
+            notNumberMessage: 'Stock price must be a positive whole number of dollars',
+            lessThanMinMessage: 'Stock price must be a positive whole number of dollars',
         )]
-        public readonly int $cpa_price = 0,
+        public readonly int $stock_price = 0,
     ) {}
 
     public function country(): string
@@ -75,18 +84,28 @@ final class PresetForm extends AbstractInput
         return $this->gender;
     }
 
+    public function vertical(): string
+    {
+        return $this->vertical;
+    }
+
+    public function paymentModel(): string
+    {
+        return $this->payment_model;
+    }
+
     public function cr(): int
     {
         return $this->cr;
     }
 
-    public function cplPriceCents(): int
+    public function floorPriceCents(): int
     {
-        return $this->cpl_price * 100;
+        return $this->floor_price * 100;
     }
 
-    public function cpaPriceCents(): int
+    public function stockPriceCents(): int
     {
-        return $this->cpa_price * 100;
+        return $this->stock_price * 100;
     }
 }

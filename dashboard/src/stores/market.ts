@@ -8,9 +8,11 @@ export interface PresetRow {
   trafficSource: string
   age: string
   gender: string
+  vertical: string
+  paymentModel: string
   cr: number
-  cplPriceCents: number
-  cpaPriceCents: number
+  floorPriceCents: number
+  stockPriceCents: number
   createdAt: string
 }
 
@@ -50,16 +52,19 @@ export interface CapRow {
   supplied: number
 }
 
-export interface StockLeaf {
+export interface StockOfferRow {
   presetId: string
+  vertical: string
   country: string
   trafficSource: string
-  age: string
-  gender: string
-  cr: number
-  cplPriceCents: number
-  cpaPriceCents: number
+  paymentModel: string
+  conversion: number
+  stockPriceCents: number
+  floorPriceCents: number
   available: number
+  dailyCapVolume: number
+  dailyCapSupplied: number
+  updatedAt: string | null
 }
 
 export interface OfferRow {
@@ -84,7 +89,7 @@ export const useMarketStore = defineStore('market', () => {
   const orders = ref<OrderRow[]>([])
   const caps = ref<CapRow[]>([])
   const offers = ref<OfferRow[]>([])
-  const stock = ref<StockLeaf[]>([])
+  const stock = ref<StockOfferRow[]>([])
   const loading = ref(false)
   const error = ref('')
 

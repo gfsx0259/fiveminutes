@@ -82,7 +82,7 @@
         hover
       >
         <template #item.country="{ item }">
-          {{ flag(item.country) }} {{ item.country }}
+          <CountryPick :code="item.country" />
         </template>
         <template #item.crValue="{ item }">
           {{ item.cr }}
@@ -120,9 +120,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import CountryPick from '@/components/CountryPick.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
-import { dollars, flag } from '@/money'
+import { dollars } from '@/money'
 import { useLeadStore, type CabinetLead } from '@/stores/leads'
 import { useSessionStore } from '@/stores/session'
 
@@ -330,32 +331,62 @@ const rows = computed(() => {
   return aggregateBuyer()
 })
 
-const summary = computed(() => {
+type PerfSummary = {
+  leads: number
+  sold?: number
+  approved?: number
+  rejected?: number
+  spent?: number
+  earnings?: number
+  partnerSales?: number
+  profit?: number
+}
+
+const summary = computed((): PerfSummary => {
   if (isPartner.value) {
-    const spent = rows.value.reduce((sum, row) => sum + (row.spent as number), 0)
+    const spent = rows.value.reduce((sum, row) => sum + ((row as { spent?: number }).spent ?? 0), 0)
     return { leads: rows.value.reduce((sum, row) => sum + row.leads, 0), spent }
   }
   if (isAdmin.value) {
     return rows.value.reduce(
-      (sum, row) => ({
-        leads: sum.leads + row.leads,
-        sold: sum.sold + row.sold,
-        approved: sum.approved + row.approved,
-        rejected: sum.rejected + row.rejected,
-        partnerSales: sum.partnerSales + row.partnerSales,
-        profit: sum.profit + row.profit,
-      }),
+      (sum, row) => {
+        const adminRow = row as {
+          leads: number
+          sold: number
+          approved: number
+          rejected: number
+          partnerSales: number
+          profit: number
+        }
+        return {
+          leads: sum.leads + adminRow.leads,
+          sold: (sum.sold ?? 0) + adminRow.sold,
+          approved: (sum.approved ?? 0) + adminRow.approved,
+          rejected: (sum.rejected ?? 0) + adminRow.rejected,
+          partnerSales: (sum.partnerSales ?? 0) + adminRow.partnerSales,
+          profit: (sum.profit ?? 0) + adminRow.profit,
+        }
+      },
       { leads: 0, sold: 0, approved: 0, rejected: 0, partnerSales: 0, profit: 0 },
     )
   }
   return rows.value.reduce(
-    (sum, row) => ({
-      leads: sum.leads + row.leads,
-      sold: sum.sold + row.sold,
-      approved: sum.approved + row.approved,
-      rejected: sum.rejected + row.rejected,
-      earnings: sum.earnings + row.earnings,
-    }),
+    (sum, row) => {
+      const buyerRow = row as {
+        leads: number
+        sold: number
+        approved: number
+        rejected: number
+        earnings: number
+      }
+      return {
+        leads: sum.leads + buyerRow.leads,
+        sold: (sum.sold ?? 0) + buyerRow.sold,
+        approved: (sum.approved ?? 0) + buyerRow.approved,
+        rejected: (sum.rejected ?? 0) + buyerRow.rejected,
+        earnings: (sum.earnings ?? 0) + buyerRow.earnings,
+      }
+    },
     { leads: 0, sold: 0, approved: 0, rejected: 0, earnings: 0 },
   )
 })
@@ -388,6 +419,6 @@ onMounted(() => {
   color: var(--lm-muted);
   font-size: 13px;
   margin: 6px 0 0;
-  max-width: 52rem;
+  max-width: none;
 }
 </style>

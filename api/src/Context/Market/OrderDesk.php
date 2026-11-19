@@ -56,13 +56,15 @@ final readonly class OrderDesk
             throw new InvalidArgumentException('Geo must be the preset country');
         }
         $model = PaymentModel::from($paymentModel);
+        if ($preset->getPaymentModel() !== $model->value) {
+            throw new InvalidArgumentException('Payment model does not match the preset');
+        }
         if ($stock) {
-            $priceCents = $preset->priceFor($model);
+            $priceCents = $preset->getStockPriceCents();
         } else {
             $price = new Money($priceCents);
-            if ($price->isBelow(new Money($preset->priceFor($model)))) {
-                $label = $model === PaymentModel::Cpl ? 'CPL' : 'CPA';
-                throw new InvalidArgumentException('Price cannot be below the ' . $label . ' price');
+            if ($price->isBelow(new Money($preset->getFloorPriceCents()))) {
+                throw new InvalidArgumentException('Price cannot be below the floor price');
             }
         }
         if ($stock) {
@@ -72,7 +74,7 @@ final readonly class OrderDesk
             }
         }
 
-        $unitCents = $stock ? $preset->priceFor($model) : $priceCents;
+        $unitCents = $stock ? $preset->getStockPriceCents() : $priceCents;
         $freshPartner = $this->users->findByPK($partner->getId());
         if (!$freshPartner instanceof User) {
             throw new DomainException('Partner was not found');

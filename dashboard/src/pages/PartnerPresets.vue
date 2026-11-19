@@ -3,7 +3,7 @@
     <div class="page-head">
       <div>
         <h1>Presets</h1>
-        <p>Leads this organization offers. An order is for today or tomorrow.</p>
+        <p>Create a day order for a preset. Payout must be at least the floor price.</p>
       </div>
     </div>
 
@@ -27,11 +27,11 @@
         <UiField label="Platform" icon="mdi-bullhorn-outline">
           <UiSelect v-model="platform" :items="platforms" placeholder="All platforms" empty-label="All platforms" clearable />
         </UiField>
-        <UiField label="Gender" icon="mdi-gender-male-female">
-          <UiSelect v-model="gender" :items="genderItems" placeholder="All genders" empty-label="All genders" clearable />
+        <UiField label="Vertical" icon="mdi-shape-outline">
+          <UiSelect v-model="verticalFilter" :items="verticalItems" placeholder="All verticals" empty-label="All verticals" clearable />
         </UiField>
-        <UiField label="Age" icon="mdi-account-outline">
-          <UiSelect v-model="age" :items="ages" placeholder="All ages" empty-label="All ages" clearable />
+        <UiField label="Model" icon="mdi-cash-multiple">
+          <UiSelect v-model="modelFilter" :items="modelItems" placeholder="All models" empty-label="All models" clearable />
         </UiField>
       </div>
       <div v-if="filtering" class="lead-filters__actions">
@@ -49,22 +49,19 @@
       </template>
       <UiDataTable :headers="headers" :items="rows" :loading="market.loading" item-value="id" hover>
         <template #item.country="{ item }">
-          <span class="country-pick">
-            <CountryFlag :code="item.country" :size="16" />
-            {{ item.country }}
-          </span>
+          <CountryPick :code="item.country" />
         </template>
         <template #item.trafficSource="{ item }">
           {{ trafficLabel(item.trafficSource) }}
         </template>
-        <template #item.gender="{ item }">
-          {{ genderLabel(item.gender) }}
+        <template #item.vertical="{ item }">
+          {{ verticalLabel(item.vertical) }}
         </template>
-        <template #item.cplPriceCents="{ item }">
-          {{ dollars(item.cplPriceCents / 100) }}
+        <template #item.paymentModel="{ item }">
+          {{ modelLabel(item.paymentModel) }}
         </template>
-        <template #item.cpaPriceCents="{ item }">
-          {{ dollars(item.cpaPriceCents / 100) }}
+        <template #item.floorPriceCents="{ item }">
+          {{ dollars(item.floorPriceCents / 100) }}
         </template>
         <template #item.actions="{ item }">
           <UiButton variant="outline" @click="order(item.id)">Create order</UiButton>
@@ -82,6 +79,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import CountryFlag from '@/components/CountryFlag.vue'
+import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
@@ -89,7 +87,7 @@ import UiField from '@/components/ui/UiField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import { COUNTRY_SELECT_ITEMS } from '@/countries'
-import { genderLabel, trafficLabel } from '@/marketOptions'
+import { modelLabel, trafficLabel, verticalLabel } from '@/marketOptions'
 import { dollars } from '@/money'
 import { useMarketStore, type PresetRow } from '@/stores/market'
 
@@ -98,17 +96,16 @@ const open = ref(false)
 const presetId = ref<string | null>(null)
 const country = ref<string | null>(null)
 const platform = ref<string | null>(null)
-const gender = ref<string | null>(null)
-const age = ref<string | null>(null)
+const verticalFilter = ref<string | null>(null)
+const modelFilter = ref<string | null>(null)
 
 const headers = [
   { title: 'Country', key: 'country' },
+  { title: 'Vertical', key: 'vertical' },
   { title: 'Traffic', key: 'trafficSource' },
-  { title: 'Age', key: 'age' },
-  { title: 'Gender', key: 'gender' },
+  { title: 'Model', key: 'paymentModel' },
   { title: 'CR', key: 'cr' },
-  { title: 'CPL', key: 'cplPriceCents' },
-  { title: 'CPA', key: 'cpaPriceCents' },
+  { title: 'Floor', key: 'floorPriceCents' },
   { title: '', key: 'actions', sortable: false },
 ]
 
@@ -118,15 +115,15 @@ const countryItems = computed(() => {
 })
 
 const platforms = computed(() => distinct((preset) => preset.trafficSource, trafficLabel))
-const genderItems = computed(() => distinct((preset) => preset.gender, genderLabel))
-const ages = computed(() => distinct((preset) => preset.age, (value) => value))
-const filtering = computed(() => Boolean(country.value || platform.value || gender.value || age.value))
+const verticalItems = computed(() => distinct((preset) => preset.vertical, verticalLabel))
+const modelItems = computed(() => distinct((preset) => preset.paymentModel, modelLabel))
+const filtering = computed(() => Boolean(country.value || platform.value || verticalFilter.value || modelFilter.value))
 
 const rows = computed(() => market.presets.filter((preset) => {
   if (country.value && preset.country !== country.value) return false
   if (platform.value && preset.trafficSource !== platform.value) return false
-  if (gender.value && preset.gender !== gender.value) return false
-  if (age.value && preset.age !== age.value) return false
+  if (verticalFilter.value && preset.vertical !== verticalFilter.value) return false
+  if (modelFilter.value && preset.paymentModel !== modelFilter.value) return false
   return true
 }))
 
@@ -143,8 +140,8 @@ function distinct(pick: (preset: PresetRow) => string, label: (value: string) =>
 function clearFilters(): void {
   country.value = null
   platform.value = null
-  gender.value = null
-  age.value = null
+  verticalFilter.value = null
+  modelFilter.value = null
 }
 
 function order(id: string): void {

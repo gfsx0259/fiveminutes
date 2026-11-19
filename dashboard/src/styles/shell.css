@@ -431,29 +431,53 @@ html:has(.lm-nav-dialog) {
   width: 36px;
 }
 
+.lm-app .v-application__wrap {
+  display: flex;
+  flex-direction: row;
+  min-height: 100%;
+}
+
+.lm-app .v-main {
+  flex: 1 1 auto;
+  max-width: 100%;
+  min-width: 0;
+  width: auto;
+}
+
 .lm-workspace {
   background:
     radial-gradient(ellipse at 6% 0%, #ece8ff88, transparent 50%),
     #f8f8ff !important;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-width: 0;
+  width: 100%;
 }
 
 .lm-workspace > .v-main__wrap {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-width: 0;
+  width: 100%;
 }
 
 .lm-topbar {
   align-items: center;
   background: transparent;
   border-bottom: 1px solid #f2f0ff;
+  box-sizing: border-box;
   display: flex;
+  flex-shrink: 0;
   gap: 12px;
   height: 52px;
   justify-content: flex-end;
   min-width: 0;
-  padding: 0 24px;
+  padding: 0 clamp(16px, 2.5vw, 32px);
   position: sticky;
   top: 0;
+  width: 100%;
   z-index: 6;
 }
 
@@ -506,6 +530,52 @@ html:has(.lm-nav-dialog) {
   height: 20px;
 }
 
+.lm-topbar-wallet {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.lm-topbar-wallet__pill {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e6e4f2;
+  border-radius: 999px;
+  color: #303861;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 8px;
+  line-height: 1.2;
+  padding: 6px 14px 6px 12px;
+  white-space: nowrap;
+}
+
+.lm-topbar-wallet__icon {
+  color: #5b45e8;
+  flex-shrink: 0;
+}
+
+.lm-topbar-wallet__label {
+  color: #5c6078;
+  font-weight: 500;
+}
+
+.lm-topbar-wallet__amount {
+  color: #101828;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.lm-topbar-wallet__add {
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  min-height: 36px !important;
+  padding-inline: 16px !important;
+  text-transform: none !important;
+}
+
 .lm-clock {
   font-variant-numeric: tabular-nums;
 }
@@ -527,11 +597,17 @@ html:has(.lm-nav-dialog) {
 }
 
 .lm-page {
-  margin: 0 auto;
-  max-width: 1800px;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  margin: 0;
+  max-width: none;
   min-width: 0;
-  padding: 16px 24px 24px;
+  padding: 20px clamp(16px, 2.5vw, 32px) 28px;
   width: 100%;
+}
+
+.lm-page > * {
+  max-width: 100%;
 }
 
 .lm-page h1 {

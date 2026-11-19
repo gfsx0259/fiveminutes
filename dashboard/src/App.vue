@@ -66,7 +66,10 @@
           </svg>
         </button>
         <div class="lm-topbar__right">
+          <TopbarWallet v-if="showWallet" />
+          <span v-if="showWallet" class="lm-topbar__divider" aria-hidden="true" />
           <span class="lm-clock">{{ clock }}</span>
+          <span class="lm-topbar__divider" aria-hidden="true" />
           <span class="lm-topbar__avatar">{{ initials }}</span>
         </div>
       </header>
@@ -80,6 +83,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import ShellNav from '@/components/ShellNav.vue'
+import TopbarWallet from '@/components/TopbarWallet.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { loginUrl, logout } from '@/host'
 import { useSessionStore } from '@/stores/session'
@@ -101,6 +105,11 @@ const email = computed(() => {
   if (!identity || typeof identity !== 'object') return session.payload?.user?.email ?? ''
   const traits = (identity as { traits?: { email?: string } }).traits
   return traits?.email || session.payload?.user?.email || ''
+})
+
+const showWallet = computed(() => {
+  const role = session.payload?.user?.role
+  return role === 'partner' || role === 'buyer'
 })
 
 const initials = computed(() => {

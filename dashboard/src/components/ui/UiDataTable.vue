@@ -67,6 +67,18 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 .ui-data-table-shell {
   min-height: 350px;
   position: relative;
+  width: 100%;
+}
+
+.ui-data-table :deep(.v-data-table),
+.ui-data-table :deep(.v-table),
+.ui-data-table :deep(.v-table__wrapper),
+.ui-data-table :deep(.v-table__wrapper > table) {
+  width: 100%;
+}
+
+.ui-data-table:not(.resizable-cols) :deep(.v-table__wrapper > table) {
+  table-layout: fixed;
 }
 
 .ui-data-table-shell--loading .ui-data-table :deep(tbody) {

@@ -2,37 +2,38 @@
   <FormDialog
     :model-value="open"
     title="Create order"
-    hint="Today or tomorrow. The country comes from the preset."
-    submit-label="Save"
+    hint="Create a new order to purchase leads from the marketplace."
+    submit-label="Create order"
     :error="formError"
     :loading="busy"
     :max-width="640"
     @update:model-value="open = $event"
     @submit="create"
   >
-    <UiField label="Preset">
-      <UiSelect v-model="presetId" :items="presetItems" placeholder="Preset" searchable search-placeholder="Search preset">
+    <UiField label="Vertical">
+      <UiSelect v-model="vertical" :items="verticals" placeholder="Vertical" />
+    </UiField>
+    <UiField label="GEO">
+      <UiSelect v-model="country" :items="countryItems" placeholder="Country" searchable search-placeholder="Search country">
         <template #value="{ items }">
-          <span v-if="items.length === 0">Preset</span>
+          <span v-if="items.length === 0">Country</span>
           <span v-else class="preset-pick">
-            <CountryFlag :code="countryOf(items[0].value)" :size="16" />
+            <CountryFlag :code="String(items[0].value)" :size="16" />
             <span>{{ items[0].title }}</span>
           </span>
         </template>
         <template #option="{ item }">
-          <CountryFlag :code="countryOf(item.value)" :size="16" />
+          <CountryFlag :code="String(item.value)" :size="16" />
           <span>{{ item.title }}</span>
         </template>
       </UiSelect>
     </UiField>
-    <div class="ui-form__row">
-      <UiField label="Volume">
-        <UiInput v-model="volume" type="number" placeholder="10" />
-      </UiField>
-      <UiField label="Model">
-        <UiSelect v-model="model" :items="paymentModels" placeholder="CPL" />
-      </UiField>
-    </div>
+    <UiField label="Model">
+      <UiSelect v-model="model" :items="paymentModels" placeholder="CPL" />
+    </UiField>
+    <UiField label="Traffic source">
+      <UiSelect v-model="trafficSource" :items="trafficSources" placeholder="Source" />
+    </UiField>
     <UiField :label="priceLabel">
       <UiInput v-model="price" type="number" placeholder="50" />
     </UiField>
@@ -40,6 +41,9 @@
       <UiSelect v-model="serviceOn" :items="dates" placeholder="Today" />
     </UiField>
     <div class="ui-form__row">
+      <UiField label="Quantity">
+        <UiInput v-model="volume" type="number" placeholder="1000" />
+      </UiField>
       <UiField label="Opens">
         <UiInput v-model="opensAt" type="time" />
       </UiField>
@@ -60,7 +64,8 @@ import FormDialog from '@/components/FormDialog.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
-import { genderLabel, paymentModels, trafficLabel } from '@/marketOptions'
+import { ISO2_COUNTRIES } from '@/countries'
+import { paymentModels, trafficSources, verticals } from '@/marketOptions'
 import { dollars } from '@/money'
 import { useMarketStore } from '@/stores/market'
 
@@ -78,61 +83,73 @@ const busy = ref(false)
 const formError = ref('')
 const notice = ref(false)
 const createdId = ref('')
-const presetId = ref<string | null>(null)
-const volume = ref('10')
-const price = ref('50')
+
+const vertical = ref<string | null>(null)
+const country = ref<string | null>(null)
+const trafficSource = ref<string | null>(null)
 const model = ref('cpl')
+const volume = ref('1000')
+const price = ref('50')
 const serviceOn = ref(utcDay(0))
 const opensAt = ref('00:00')
 const closesAt = ref('23:59')
+
+const countryItems = computed(() => ISO2_COUNTRIES.map((c) => ({ title: c.name, value: c.code })))
 
 const dates = computed(() => [
   { title: `Today · ${shown(utcDay(0))}`, value: utcDay(0) },
   { title: `Tomorrow · ${shown(utcDay(1))}`, value: utcDay(1) },
 ])
 
-const presetItems = computed(() => market.presets.map((preset) => ({
-  title: `${preset.country} · ${trafficLabel(preset.trafficSource)} · ${preset.age} · ${genderLabel(preset.gender)} · CPL ${dollars(preset.cplPriceCents / 100)} · CPA ${dollars(preset.cpaPriceCents / 100)}`,
-  value: preset.id,
-})))
+const matchedPreset = computed(() => {
+  return market.presets.find((preset) => {
+    if (vertical.value && preset.vertical !== vertical.value) return false
+    if (country.value && preset.country !== country.value) return false
+    if (trafficSource.value && preset.trafficSource !== trafficSource.value) return false
+    if (model.value && preset.paymentModel !== model.value) return false
+    return true
+  })
+})
 
 const priceLabel = computed(() => {
-  const preset = selected()
-  if (!preset) return 'Price, USD'
-  const cents = model.value === 'cpa' ? preset.cpaPriceCents : preset.cplPriceCents
-  return `Price, USD · from ${dollars(cents / 100)}`
+  const preset = matchedPreset.value
+  if (!preset) {
+    return 'Payout per lead, USD'
+  }
+  return `Payout per lead, USD · from ${dollars(preset.floorPriceCents / 100)}`
 })
 
 watch(open, (value) => {
-  if (!value) return
+  if (!value) {
+    return
+  }
+  if (market.presets.length === 0) {
+    void market.loadPresets()
+  }
   formError.value = ''
-  presetId.value = props.initialPresetId ?? null
-  volume.value = '10'
-  model.value = 'cpl'
-  price.value = String(floor())
+  const initial = props.initialPresetId
+    ? market.presets.find((p) => p.id === props.initialPresetId)
+    : undefined
+  vertical.value = initial?.vertical ?? null
+  country.value = initial?.country ?? null
+  trafficSource.value = initial?.trafficSource ?? null
+  model.value = initial?.paymentModel ?? 'cpl'
+  volume.value = '1000'
+  price.value = initial ? String(Math.round(initial.floorPriceCents / 100)) : '50'
   serviceOn.value = utcDay(0)
   opensAt.value = '00:00'
   closesAt.value = '23:59'
 })
 
-watch([presetId, model], () => {
-  if (!open.value) return
-  price.value = String(floor())
+watch([vertical, country, trafficSource, model], () => {
+  if (!open.value) {
+    return
+  }
+  const preset = matchedPreset.value
+  if (preset) {
+    price.value = String(Math.round(preset.floorPriceCents / 100))
+  }
 })
-
-function selected() {
-  return market.presets.find((item) => item.id === presetId.value)
-}
-
-function countryOf(id: string | number): string {
-  return market.presets.find((item) => item.id === String(id))?.country ?? ''
-}
-
-function floor(): number {
-  const preset = selected()
-  if (!preset) return 50
-  return (model.value === 'cpa' ? preset.cpaPriceCents : preset.cplPriceCents) / 100
-}
 
 function utcDay(offset: number): string {
   const date = new Date()
@@ -146,9 +163,13 @@ function shown(iso: string): string {
 }
 
 async function create(): Promise<void> {
-  const preset = selected()
+  const preset = matchedPreset.value
   if (!preset) {
-    formError.value = 'Выберите пресет'
+    formError.value = 'No preset matches vertical, GEO, source and model'
+    return
+  }
+  if (!country.value) {
+    formError.value = 'Select GEO'
     return
   }
   busy.value = true
@@ -159,7 +180,7 @@ async function create(): Promise<void> {
       geo: preset.country,
       volume: Number(volume.value),
       price: Number(price.value),
-      payment_model: model.value,
+      payment_model: preset.paymentModel,
       kind: 'day',
       service_on: serviceOn.value,
       opens_at: opensAt.value,

@@ -15,6 +15,17 @@ export const paymentModels = [
   { title: 'CPA', value: 'cpa' },
 ]
 
+export const verticals = [
+  { title: 'Gambling', value: 'gambling' },
+  { title: 'Betting', value: 'betting' },
+  { title: 'Crypto', value: 'crypto' },
+  { title: 'Forex', value: 'forex' },
+  { title: 'Dating', value: 'dating' },
+  { title: 'Nutra', value: 'nutra' },
+  { title: 'Finance', value: 'finance' },
+  { title: 'Other', value: 'other' },
+]
+
 export function trafficLabel(value: string): string {
   return trafficSources.find((item) => item.value === value)?.title ?? value
 }
@@ -26,4 +37,8 @@ export function genderLabel(value: string): string {
 
 export function modelLabel(value: string): string {
   return paymentModels.find((item) => item.value === value)?.title ?? value
+}
+
+export function verticalLabel(value: string): string {
+  return verticals.find((item) => item.value === value)?.title ?? value
 }

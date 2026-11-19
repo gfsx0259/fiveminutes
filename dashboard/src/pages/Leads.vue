@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-4">
-      <h1>Leads</h1>
+      <h1>{{ pageTitle }}</h1>
       <p>{{ leadLine }}</p>
     </div>
 
@@ -52,7 +52,7 @@
       @converted="onLeadConverted"
     />
 
-    <UiTableCard v-if="showJournal" title="Leads">
+    <UiTableCard v-if="showJournal" :title="pageTitle">
       <template #actions>
         <UiButton variant="outline" icon="mdi-refresh" :loading="leadStore.loading" @click="leadStore.load()">
           Refresh
@@ -74,7 +74,7 @@
           <StatusChip :status="item.status" :label="statusLabel(item.status)" />
         </template>
         <template #item.country="{ item }">
-          {{ item.country ? `${flag(item.country)} ${item.country}` : '—' }}
+          <CountryPick :code="item.country" />
         </template>
         <template #item.gender="{ item }">
           {{ genderLabel(item.gender) }}
@@ -122,6 +122,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { api } from '@/api'
+import CountryPick from '@/components/CountryPick.vue'
 import LeadDetailDialog from '@/components/LeadDetailDialog.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -132,18 +133,19 @@ import UiTableCard from '@/components/ui/UiTableCard.vue'
 import { apiOrigin } from '@/host'
 import { sampleLead, sampleLeadJson } from '@/leadBody'
 import { genderLabel } from '@/marketOptions'
-import { flag } from '@/money'
 import { useLeadStore, type CabinetLead } from '@/stores/leads'
 import { useSessionStore } from '@/stores/session'
 
 const session = useSessionStore()
 const leadStore = useLeadStore()
 const isBuyer = computed(() => session.payload?.user?.role === 'buyer')
+const isPartner = computed(() => session.payload?.user?.role === 'partner')
 const tab = ref<'journal' | 'send'>('journal')
 const showJournal = computed(() => !isBuyer.value || tab.value === 'journal')
+const pageTitle = computed(() => (isPartner.value ? 'My leads' : 'Leads'))
 const leadLine = computed(() => {
   const role = session.payload?.user?.role
-  if (role === 'partner') return 'Leads in your cabinet'
+  if (role === 'partner') return 'Leads you purchased and their conversion status.'
   if (role === 'admin') return 'Leads of this organization'
   return 'Leads you mined'
 })
@@ -164,7 +166,7 @@ const detailError = ref('')
 const isAdmin = computed(() => session.payload?.user?.role === 'admin')
 
 const headers = computed(() => {
-  const rows = [
+  const rows: { title: string; key: string; sortable?: boolean; width?: number }[] = [
     { title: 'Status', key: 'status' },
     { title: 'Phone', key: 'phone' },
     { title: 'Email', key: 'email' },

@@ -22,8 +22,10 @@ defineProps<{
   border: 1px solid var(--lm-border);
   border-radius: var(--lm-radius);
   box-shadow: var(--lm-shadow);
+  box-sizing: border-box;
   min-width: 0;
   padding: 14px 16px;
+  width: 100%;
 }
 
 .ui-table-card__head {

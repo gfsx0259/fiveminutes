@@ -44,7 +44,7 @@
           {{ modelLabel(item.paymentModel) }}
         </template>
         <template #item.geo="{ item }">
-          {{ item.geo ? `${flag(item.geo)} ${item.geo}` : '—' }}
+          <CountryPick :code="item.geo" />
         </template>
         <template #item.when="{ item }">
           {{ item.stock ? 'Stock' : item.serviceOn }}
@@ -73,6 +73,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import CountryPick from '@/components/CountryPick.vue'
 import OfferFormDialog from '@/components/OfferFormDialog.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
@@ -81,7 +82,6 @@ import UiField from '@/components/ui/UiField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import { genderLabel, modelLabel, trafficLabel } from '@/marketOptions'
-import { flag } from '@/money'
 import { useMarketStore, type CapRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 

@@ -28,6 +28,12 @@ class Preset
     #[Column(type: 'string')]
     private readonly string $gender;
 
+    #[Column(type: 'string')]
+    private readonly string $vertical;
+
+    #[Column(type: 'string', name: 'payment_model')]
+    private readonly string $paymentModel;
+
     public function __construct(
         #[Column(type: 'uuid', primary: true)]
         private readonly string $id,
@@ -39,20 +45,22 @@ class Preset
         string $trafficSource,
         string $age,
         string $gender,
+        string $vertical,
+        string $paymentModel,
         #[Column(type: 'integer', typecast: 'int')]
         private readonly int $cr,
-        #[Column(type: 'integer', name: 'cpl_price_cents', typecast: 'int')]
-        private readonly int $cplPriceCents,
-        #[Column(type: 'integer', name: 'cpa_price_cents', typecast: 'int')]
-        private readonly int $cpaPriceCents,
+        #[Column(type: 'integer', name: 'floor_price_cents', typecast: 'int')]
+        private readonly int $floorPriceCents,
+        #[Column(type: 'integer', name: 'stock_price_cents', typecast: 'int')]
+        private readonly int $stockPriceCents,
         #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
         private readonly DateTimeInterface $createdAt,
     ) {
         if ($this->cr < 0 || $this->cr > 100) {
             throw new InvalidArgumentException('CR must be from 0 to 100');
         }
-        new Money($this->cplPriceCents);
-        new Money($this->cpaPriceCents);
+        new Money($this->floorPriceCents);
+        new Money($this->stockPriceCents);
         $this->country = (new Geo($country))->toString();
         if (preg_match('/^[A-Z]{2}$/', $this->country) !== 1) {
             throw new InvalidArgumentException('Country must be an ISO code, like DE');
@@ -74,6 +82,16 @@ class Preset
             $this->gender = Gender::from((new Criterion($gender, 'Gender'))->toString())->value;
         } catch (ValueError) {
             throw new InvalidArgumentException('Gender must be male, female or all');
+        }
+        try {
+            $this->vertical = Vertical::from((new Criterion($vertical, 'Vertical'))->toString())->value;
+        } catch (ValueError) {
+            throw new InvalidArgumentException('Vertical is not supported');
+        }
+        try {
+            $this->paymentModel = PaymentModel::from((new Criterion($paymentModel, 'Payment model'))->toString())->value;
+        } catch (ValueError) {
+            throw new InvalidArgumentException('Payment model must be cpl or cpa');
         }
     }
 
@@ -112,27 +130,29 @@ class Preset
         return $this->gender;
     }
 
+    public function getVertical(): string
+    {
+        return $this->vertical;
+    }
+
+    public function getPaymentModel(): string
+    {
+        return $this->paymentModel;
+    }
+
     public function getCr(): int
     {
         return $this->cr;
     }
 
-    public function getCplPriceCents(): int
+    public function getFloorPriceCents(): int
     {
-        return $this->cplPriceCents;
+        return $this->floorPriceCents;
     }
 
-    public function getCpaPriceCents(): int
+    public function getStockPriceCents(): int
     {
-        return $this->cpaPriceCents;
-    }
-
-    public function priceFor(PaymentModel $model): int
-    {
-        return match ($model) {
-            PaymentModel::Cpl => $this->cplPriceCents,
-            PaymentModel::Cpa => $this->cpaPriceCents,
-        };
+        return $this->stockPriceCents;
     }
 
     public function getCreatedAt(): DateTimeInterface

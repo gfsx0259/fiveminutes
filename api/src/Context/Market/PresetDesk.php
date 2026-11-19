@@ -7,12 +7,8 @@ namespace App\Context\Market;
 use App\Clock;
 use App\Context\User\User;
 use App\Context\User\UserRole;
-use App\Value\Money;
 use Cycle\ORM\EntityManagerInterface;
-use DateTimeImmutable;
-use DateTimeZone;
 use DomainException;
-use InvalidArgumentException;
 use Ramsey\Uuid\UuidFactoryInterface;
 
 final readonly class PresetDesk
@@ -32,9 +28,11 @@ final readonly class PresetDesk
         string $trafficSource,
         string $age,
         string $gender,
+        string $vertical,
+        string $paymentModel,
         int $cr,
-        int $cplPriceCents,
-        int $cpaPriceCents,
+        int $floorPriceCents,
+        int $stockPriceCents,
     ): Preset {
         if ($admin->getRole() !== UserRole::Admin) {
             throw new DomainException('Only an admin can open a preset');
@@ -48,9 +46,11 @@ final readonly class PresetDesk
             $trafficSource,
             $age,
             $gender,
+            $vertical,
+            $paymentModel,
             $cr,
-            $cplPriceCents,
-            $cpaPriceCents,
+            $floorPriceCents,
+            $stockPriceCents,
             $this->clock->now(),
         );
         $this->entityManager->persist($preset);

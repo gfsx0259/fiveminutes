@@ -55,9 +55,11 @@ final readonly class MarketController
                 $form->trafficSource(),
                 $form->age(),
                 $form->gender(),
+                $form->vertical(),
+                $form->paymentModel(),
                 $form->cr(),
-                $form->cplPriceCents(),
-                $form->cpaPriceCents(),
+                $form->floorPriceCents(),
+                $form->stockPriceCents(),
             );
         } catch (Throwable $exception) {
             return $this->failure($exception);

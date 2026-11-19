@@ -3,7 +3,7 @@
     <div class="page-head">
       <div>
         <h1>Presets</h1>
-        <p>Country, traffic criteria and the CPL and CPA prices. An order picks one model.</p>
+        <p>Matching criteria, vertical and model. Floor price is for future orders; stock price is fixed warehouse catalog.</p>
       </div>
       <UiButton v-if="isAdmin" variant="outline" icon="mdi-plus" @click="show">Create</UiButton>
     </div>
@@ -11,7 +11,7 @@
     <FormDialog
       v-model="open"
       title="Create preset"
-      hint="A lead matches country and source. Age is optional — leave empty for any age. All covers every gender. CPL and CPA each have their own price."
+      hint="One preset = one payment model (CPL or CPA). Create a pair for the same segment if you need both."
       submit-label="Save"
       :error="formError"
       :loading="busy"
@@ -32,8 +32,14 @@
           </template>
         </UiSelect>
       </UiField>
+      <UiField label="Vertical">
+        <UiSelect v-model="vertical" :items="verticals" placeholder="Vertical" />
+      </UiField>
       <UiField label="Traffic source">
         <UiSelect v-model="trafficSource" :items="trafficSources" placeholder="Traffic source" />
+      </UiField>
+      <UiField label="Payment model">
+        <UiSelect v-model="paymentModel" :items="paymentModels" placeholder="CPL" />
       </UiField>
       <div class="ui-form__row">
         <UiField label="Age (optional)">
@@ -47,11 +53,11 @@
         <UiInput v-model="cr" type="number" placeholder="20" />
       </UiField>
       <div class="ui-form__row">
-        <UiField label="CPL, USD">
-          <UiInput v-model="cplPrice" type="number" placeholder="40" />
+        <UiField label="Floor (min order), USD">
+          <UiInput v-model="floorPrice" type="number" placeholder="40" />
         </UiField>
-        <UiField label="CPA, USD">
-          <UiInput v-model="cpaPrice" type="number" placeholder="80" />
+        <UiField label="Stock price, USD">
+          <UiInput v-model="stockPrice" type="number" placeholder="40" />
         </UiField>
       </div>
     </FormDialog>
@@ -59,7 +65,7 @@
     <section v-if="isAdmin" class="ui-filter-panel presets__markup-panel">
       <h2 class="presets__markup-title">Platform fee</h2>
       <p class="presets__markup-hint">
-        Percent withheld from the buyer on each sold lead. Partners pay the preset catalog price.
+        Percent withheld from the buyer on each sold lead. Partners pay the order or stock catalog price.
       </p>
       <div class="presets__markup-row">
         <UiField label="Buyer fee, %" class="presets__markup-field">
@@ -80,10 +86,7 @@
       </template>
       <UiDataTable :headers="headers" :items="market.presets" :loading="market.loading" item-value="id" hover>
         <template #item.country="{ item }">
-          <span class="country-pick">
-            <CountryFlag :code="item.country" :size="16" />
-            {{ item.country }}
-          </span>
+          <CountryPick :code="item.country" />
         </template>
         <template #item.trafficSource="{ item }">
           {{ trafficLabel(item.trafficSource) }}
@@ -94,11 +97,17 @@
         <template #item.gender="{ item }">
           {{ genderLabel(item.gender) }}
         </template>
-        <template #item.cplPriceCents="{ item }">
-          {{ dollars(item.cplPriceCents / 100) }}
+        <template #item.vertical="{ item }">
+          {{ verticalLabel(item.vertical) }}
         </template>
-        <template #item.cpaPriceCents="{ item }">
-          {{ dollars(item.cpaPriceCents / 100) }}
+        <template #item.paymentModel="{ item }">
+          {{ modelLabel(item.paymentModel) }}
+        </template>
+        <template #item.floorPriceCents="{ item }">
+          {{ dollars(item.floorPriceCents / 100) }}
+        </template>
+        <template #item.stockPriceCents="{ item }">
+          {{ dollars(item.stockPriceCents / 100) }}
         </template>
         <template v-if="isAdmin" #item.actions="{ item }">
           <div class="preset-row-actions">
@@ -139,6 +148,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/api'
 import CountryFlag from '@/components/CountryFlag.vue'
+import CountryPick from '@/components/CountryPick.vue'
 import FormDialog from '@/components/FormDialog.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
@@ -147,7 +157,7 @@ import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import { COUNTRY_SELECT_ITEMS } from '@/countries'
-import { genders, genderLabel, trafficLabel, trafficSources } from '@/marketOptions'
+import { genders, genderLabel, modelLabel, paymentModels, trafficLabel, trafficSources, verticalLabel, verticals } from '@/marketOptions'
 import { dollars } from '@/money'
 import { useMarketStore, type PresetRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
@@ -166,19 +176,23 @@ const country = ref<string | null>(null)
 const trafficSource = ref<string | null>(null)
 const age = ref('')
 const gender = ref<string | null>('all')
+const vertical = ref<string | null>('gambling')
+const paymentModel = ref<string | null>('cpl')
 const cr = ref('20')
-const cplPrice = ref('40')
-const cpaPrice = ref('80')
+const floorPrice = ref('40')
+const stockPrice = ref('40')
 
 const headers = computed(() => {
-  const base = [
+  const base: { title: string; key: string; sortable?: boolean; align?: 'end'; width?: number }[] = [
     { title: 'Country', key: 'country' },
     { title: 'Traffic', key: 'trafficSource' },
     { title: 'Age', key: 'age' },
     { title: 'Gender', key: 'gender' },
+    { title: 'Vertical', key: 'vertical' },
+    { title: 'Model', key: 'paymentModel' },
     { title: 'CR', key: 'cr' },
-    { title: 'CPL', key: 'cplPriceCents' },
-    { title: 'CPA', key: 'cpaPriceCents' },
+    { title: 'Floor', key: 'floorPriceCents' },
+    { title: 'Stock', key: 'stockPriceCents' },
   ]
   if (isAdmin.value) {
     base.push({ title: '', key: 'actions', sortable: false, align: 'end' as const, width: 48 })
@@ -192,9 +206,11 @@ function show(): void {
   trafficSource.value = null
   age.value = ''
   gender.value = 'all'
+  vertical.value = 'gambling'
+  paymentModel.value = 'cpl'
   cr.value = '20'
-  cplPrice.value = '40'
-  cpaPrice.value = '80'
+  floorPrice.value = '40'
+  stockPrice.value = '40'
   open.value = true
 }
 
@@ -211,8 +227,8 @@ async function confirmDelete(item: PresetRow): Promise<void> {
 }
 
 async function create(): Promise<void> {
-  if (!country.value || !trafficSource.value || !gender.value) {
-    formError.value = 'Выберите страну, источник и пол'
+  if (!country.value || !trafficSource.value || !gender.value || !vertical.value || !paymentModel.value) {
+    formError.value = 'Заполните страну, vertical, источник, модель и пол'
     return
   }
   busy.value = true
@@ -223,9 +239,11 @@ async function create(): Promise<void> {
       traffic_source: trafficSource.value,
       age: age.value.trim(),
       gender: gender.value,
+      vertical: vertical.value,
+      payment_model: paymentModel.value,
       cr: Number(cr.value),
-      cpl_price: Number(cplPrice.value),
-      cpa_price: Number(cpaPrice.value),
+      floor_price: Number(floorPrice.value),
+      stock_price: Number(stockPrice.value),
     })
     open.value = false
   } catch (error) {

@@ -2,13 +2,15 @@
   <div>
     <div class="page-head">
       <div>
-        <h1>Orders</h1>
-        <p>Today or tomorrow. Partner pays the preset catalog price; the platform fee is charged to the buyer.</p>
+        <h1>{{ isPartner ? 'My orders' : 'Orders' }}</h1>
+        <p v-if="isPartner">Day and stock orders you opened. Create new day orders from Buy leads.</p>
+        <p v-else>Day orders for today or tomorrow. Partner payout is at or above the preset floor; the platform fee is charged to the buyer.</p>
       </div>
-      <UiButton v-if="isPartner" variant="outline" icon="mdi-plus" @click="show">Create</UiButton>
+      <UiButton v-if="isPartner" variant="outline" icon="mdi-warehouse" @click="goBuy">Buy leads</UiButton>
+      <UiButton v-else variant="outline" icon="mdi-plus" @click="show">Create</UiButton>
     </div>
 
-    <OrderFormDialog v-model="open" />
+    <OrderFormDialog v-if="!isPartner" v-model="open" />
 
     <v-alert v-if="actionError || market.error" type="error" variant="tonal" class="mb-4">
       {{ actionError || market.error }}
@@ -25,7 +27,7 @@
           <StatusChip :status="item.status" />
         </template>
         <template #item.geo="{ item }">
-          {{ item.geo ? `${flag(item.geo)} ${item.geo}` : '—' }}
+          <CountryPick :code="item.geo" />
         </template>
         <template #item.kind="{ item }">
           {{ item.stock ? 'Stock' : item.serviceOn }}
@@ -68,16 +70,19 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import { modelLabel } from '@/marketOptions'
-import { dollars, flag } from '@/money'
+import { dollars } from '@/money'
 import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 
+const router = useRouter()
 const session = useSessionStore()
 const market = useMarketStore()
 const isPartner = computed(() => session.payload?.user?.role === 'partner')
@@ -113,6 +118,10 @@ async function refresh(): Promise<void> {
 
 function show(): void {
   open.value = true
+}
+
+function goBuy(): void {
+  void router.push('/stock')
 }
 
 async function act(id: string, action: 'pause' | 'resume' | 'finish'): Promise<void> {

@@ -27,7 +27,7 @@ import FormDialog from '@/components/FormDialog.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
-import { genderLabel, trafficLabel } from '@/marketOptions'
+import { modelLabel, trafficLabel, verticalLabel } from '@/marketOptions'
 import { dollars, flag } from '@/money'
 import { useMarketStore } from '@/stores/market'
 
@@ -52,7 +52,7 @@ const dates = computed(() => [
 ])
 
 const presetItems = computed(() => market.presets.map((preset) => ({
-  title: `${flag(preset.country)} ${preset.country} · ${trafficLabel(preset.trafficSource)} · ${preset.age} · ${genderLabel(preset.gender)} · CPL ${dollars(preset.cplPriceCents / 100)} · CPA ${dollars(preset.cpaPriceCents / 100)}`,
+  title: `${flag(preset.country)} ${preset.country} · ${verticalLabel(preset.vertical)} · ${trafficLabel(preset.trafficSource)} · ${modelLabel(preset.paymentModel)} · floor ${dollars(preset.floorPriceCents / 100)}`,
   value: preset.id,
 })))
 

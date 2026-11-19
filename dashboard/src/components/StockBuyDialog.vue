@@ -1,54 +1,48 @@
 <template>
   <FormDialog
     :model-value="open"
-    title="Buy from stock"
-    :hint="hint"
-    submit-label="Buy"
+    title="Buy leads"
+    hint="Fixed catalog price for this warehouse offer."
+    submit-label="Confirm purchase"
     :error="formError"
     :loading="busy"
-    :max-width="600"
+    :max-width="560"
     @update:model-value="open = $event"
     @submit="buy"
   >
-    <p v-if="target" class="stock-buy__summary">
-      <CountryFlag :code="target.country" :size="16" />
-      {{ target.summary }}
-      <span class="stock-buy__available">{{ available }} in stock</span>
-    </p>
-    <div class="ui-form__row stock-buy__controls">
-      <UiField label="Volume">
-        <UiInput v-model="volume" type="number" :placeholder="String(available || 1)" />
-      </UiField>
-      <UiField label="Model">
-        <UiSelect v-model="model" :items="paymentModels" placeholder="CPL" />
-      </UiField>
-    </div>
+    <template v-if="target">
+      <div class="stock-buy__card">
+        <div class="stock-buy__card-row">
+          <CountryFlag :code="target.country" :size="18" />
+          <span class="stock-buy__card-title">{{ verticalLabel(target.vertical) }} · {{ target.country }}</span>
+          <span class="stock-buy__pill">{{ modelLabel(target.paymentModel) }}</span>
+        </div>
+        <p class="stock-buy__meta">
+          {{ trafficLabel(target.trafficSource) }}
+          <span v-if="target.conversion > 0"> · CR {{ target.conversion }}%</span>
+        </p>
+        <p class="stock-buy__payout">Payout per lead: <strong>{{ dollars(target.stockPriceCents / 100) }}</strong></p>
+      </div>
 
-    <div v-if="checkoutPlan.length" class="stock-buy__breakdown">
-      <div class="stock-buy__breakdown-head">
-        <span>Preset</span>
-        <span class="stock-buy__num">Qty</span>
-        <span class="stock-buy__num">{{ modelLabel }}</span>
-        <span class="stock-buy__num">Subtotal</span>
-      </div>
-      <div v-for="(line, index) in checkoutPlan" :key="lineKey(line, index)" class="stock-buy__breakdown-row">
-        <span class="stock-buy__line-label">{{ stockLeafDescription(line.leaf) }}</span>
-        <span class="stock-buy__num stock-buy__qty">{{ line.volume }}</span>
-        <span class="stock-buy__num">{{ dollars(unitPrice(line) / 100) }}</span>
-        <span class="stock-buy__num stock-buy__subtotal">{{ dollars(lineSubtotal(line) / 100) }}</span>
-      </div>
-      <div class="stock-buy__breakdown-total">
-        <span>{{ checkoutPlan.length > 1 ? 'Total' : 'Charge' }}</span>
-        <span />
-        <span />
-        <span class="stock-buy__num stock-buy__grand">{{ dollars(totalCents / 100) }}</span>
-      </div>
-    </div>
-    <p v-else-if="target" class="stock-buy__note">Set volume to see the purchase breakdown.</p>
+      <UiField label="Quantity">
+        <UiInput v-model="volume" type="number" :placeholder="String(target.available)" />
+      </UiField>
+      <p class="stock-buy__hint">Available: {{ target.available }}</p>
 
-    <p v-if="isBundle && checkoutPlan.length > 1" class="stock-buy__note">
-      Leads are taken preset by preset, newest first, until the volume is reached.
-    </p>
+      <div class="stock-buy__totals">
+        <div class="stock-buy__line">
+          <span>Total cost</span>
+          <strong>{{ dollars(totalCents / 100) }}</strong>
+        </div>
+        <div class="stock-buy__line">
+          <span>Wallet balance</span>
+          <span>{{ dollars(balanceCents / 100) }}</span>
+        </div>
+        <v-alert v-if="insufficient > 0" type="warning" variant="tonal" density="compact" class="mt-2">
+          Insufficient balance by {{ dollars(insufficient / 100) }}
+        </v-alert>
+      </div>
+    </template>
   </FormDialog>
   <v-snackbar v-model="notice" location="bottom center" color="success" :timeout="4000">
     {{ noticeText }}
@@ -61,21 +55,11 @@ import CountryFlag from '@/components/CountryFlag.vue'
 import FormDialog from '@/components/FormDialog.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
-import UiSelect from '@/components/ui/UiSelect.vue'
-import { paymentModels } from '@/marketOptions'
+import { modelLabel, trafficLabel, verticalLabel } from '@/marketOptions'
 import { dollars } from '@/money'
-import {
-  catalogPriceDollars,
-  fillPlan,
-  lineSubtotalCents,
-  planSubtotalCents,
-  priceCents,
-  stockAvailable,
-  stockLeafDescription,
-  type StockBuyTarget,
-  type StockPlanLine,
-} from '@/stockBuy'
+import type { StockBuyTarget } from '@/stockBuy'
 import { useMarketStore } from '@/stores/market'
+import { useSessionStore } from '@/stores/session'
 
 const props = defineProps<{
   target: StockBuyTarget | null
@@ -87,59 +71,40 @@ const emit = defineEmits<{
 }>()
 
 const market = useMarketStore()
+const session = useSessionStore()
 const busy = ref(false)
 const formError = ref('')
 const volume = ref('')
-const model = ref<'cpl' | 'cpa'>('cpl')
 const notice = ref(false)
 const noticeText = ref('')
 
-const available = computed(() => (props.target ? stockAvailable(props.target.leaves) : 0))
-const isBundle = computed(() => (props.target?.leaves.length ?? 0) > 1)
+const balanceCents = computed(() => session.payload?.user?.balanceCents ?? 0)
 
 const volumeQty = computed(() => {
+  const cap = props.target?.available ?? 0
   const qty = Number(volume.value)
   if (!Number.isFinite(qty) || qty < 1) {
     return 0
   }
-  return Math.min(Math.floor(qty), available.value)
+  return Math.min(Math.floor(qty), cap)
 })
 
-const checkoutPlan = computed(() => {
+const totalCents = computed(() => {
   if (!props.target || volumeQty.value < 1) {
-    return []
+    return 0
   }
-  return fillPlan(props.target.leaves, volumeQty.value)
+  return volumeQty.value * props.target.stockPriceCents
 })
 
-const modelLabel = computed(() => model.value.toUpperCase())
-
-const totalCents = computed(() => planSubtotalCents(checkoutPlan.value, model.value))
-
-const hint = computed(
-  () => 'Warehouse leads are billed at each preset catalog price for the payment model you choose.',
-)
+const insufficient = computed(() => Math.max(0, totalCents.value - balanceCents.value))
 
 watch(open, (value) => {
   if (!value || !props.target) {
     return
   }
   formError.value = ''
-  volume.value = String(available.value)
-  model.value = 'cpl'
+  volume.value = String(Math.min(props.target.available, 1000))
 })
-
-function lineKey(line: StockPlanLine, index: number): string {
-  return `${line.leaf.presetId}|${line.leaf.gender}|${index}`
-}
-
-function unitPrice(line: StockPlanLine): number {
-  return priceCents(line.leaf, model.value)
-}
-
-function lineSubtotal(line: StockPlanLine): number {
-  return lineSubtotalCents(line, model.value)
-}
 
 async function buy(): Promise<void> {
   const target = props.target
@@ -148,46 +113,33 @@ async function buy(): Promise<void> {
   }
   const qty = volumeQty.value
   if (qty < 1) {
-    formError.value = `Volume must be between 1 and ${available.value}`
+    formError.value = `Volume must be between 1 and ${target.available}`
     return
   }
-
-  const plan = fillPlan(target.leaves, qty)
-  if (plan.length === 0) {
-    formError.value = 'Nothing is available to buy'
+  if (totalCents.value > balanceCents.value) {
+    formError.value = 'Insufficient wallet balance'
     return
   }
 
   busy.value = true
   formError.value = ''
-  let orders = 0
-  let supplied = 0
   try {
-    for (const line of plan) {
-      const cents = priceCents(line.leaf, model.value)
-      const result = await market.createStockOrder({
-        preset_id: line.leaf.presetId,
-        geo: line.leaf.country,
-        volume: line.volume,
-        price: catalogPriceDollars(cents),
-        payment_model: model.value,
-        kind: 'stock',
-        stock_gender: line.leaf.gender,
-      })
-      orders += 1
-      supplied += result.supplied ?? line.volume
-    }
-    noticeText.value = orders > 1
-      ? `${orders} stock orders · ${supplied} leads · ${dollars(totalCents.value / 100)}`
-      : `Stock order · ${supplied} leads · ${dollars(totalCents.value / 100)}`
+    const result = await market.createStockOrder({
+      preset_id: target.presetId,
+      geo: target.country,
+      volume: qty,
+      price: Math.round(target.stockPriceCents / 100),
+      payment_model: target.paymentModel,
+      kind: 'stock',
+    })
+    const supplied = result.supplied ?? qty
+    noticeText.value = `Stock order · ${supplied} leads · ${dollars(totalCents.value / 100)}`
     notice.value = true
     open.value = false
     emit('bought')
+    await session.load()
   } catch (error) {
     formError.value = error instanceof Error ? error.message : 'The stock order was not created'
-    if (orders > 0) {
-      emit('bought')
-    }
   } finally {
     busy.value = false
   }
@@ -195,79 +147,57 @@ async function buy(): Promise<void> {
 </script>
 
 <style scoped>
-.stock-buy__summary {
+.stock-buy__card {
+  background: #faf9ff;
+  border: 1px solid #e8e4f8;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+}
+
+.stock-buy__card-row {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0 0 12px;
 }
 
-.stock-buy__available {
-  color: var(--lm-muted);
-  font-size: 13px;
-}
-
-.stock-buy__controls {
-  margin-bottom: 16px;
-}
-
-.stock-buy__breakdown {
-  background: #faf9ff;
-  border: 1px solid #e8e4f8;
-  border-radius: 10px;
-  font-size: 13px;
-  margin-bottom: 12px;
-  overflow: hidden;
-}
-
-.stock-buy__breakdown-head,
-.stock-buy__breakdown-row,
-.stock-buy__breakdown-total {
-  align-items: baseline;
-  column-gap: 12px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 48px 72px 88px;
-  padding: 10px 14px;
-}
-
-.stock-buy__breakdown-head {
-  background: rgb(91 69 232 / 6%);
-  color: var(--lm-muted);
-  font-size: 11px;
+.stock-buy__card-title {
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
 }
 
-.stock-buy__breakdown-row {
-  border-top: 1px solid #edeaf8;
+.stock-buy__pill {
+  background: rgb(91 69 232 / 12%);
+  border-radius: 999px;
+  color: #5b45e8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
 }
 
-.stock-buy__breakdown-total {
-  background: rgb(91 69 232 / 8%);
-  border-top: 1px solid #dcd6f5;
-  font-weight: 700;
-  grid-template-columns: minmax(0, 1fr) 48px 72px 88px;
-}
-
-.stock-buy__num {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.stock-buy__line-label {
-  line-height: 1.35;
-  min-width: 0;
-}
-
-.stock-buy__grand {
-  font-size: 15px;
-}
-
-.stock-buy__note {
+.stock-buy__meta,
+.stock-buy__payout,
+.stock-buy__hint {
   color: var(--lm-muted);
   font-size: 13px;
-  margin: 0 0 8px;
+  margin: 8px 0 0;
+}
+
+.stock-buy__payout strong {
+  color: var(--lm-text);
+}
+
+.stock-buy__totals {
+  background: #f6f4fc;
+  border-radius: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+}
+
+.stock-buy__line {
+  display: flex;
+  font-size: 14px;
+  justify-content: space-between;
+  padding: 4px 0;
 }
 </style>

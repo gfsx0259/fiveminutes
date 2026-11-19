@@ -43,15 +43,14 @@ final class CabinetFlowCest
         $I->seeResponseCodeIs(403);
 
         $traffic = 'fb' . bin2hex(random_bytes(3));
+        $geo = (new GeoPool())->take($this->usedGeos($I), 1)[0];
         $I->signIn('admin');
-        $I->sendPost('/presets', $this->preset(0, $traffic));
+        $I->sendPost('/presets', $this->preset(0, $traffic, $geo));
         $I->seeResponseCodeIs(400);
 
-        $I->sendPost('/presets', $this->preset(40, $traffic));
+        $I->sendPost('/presets', $this->preset(40, $traffic, $geo));
         $I->seeResponseCodeIs(200);
         $presetId = $this->body($I)['id'];
-
-        $geo = (new GeoPool())->take($this->usedGeos($I), 1)[0];
         $today = gmdate('Y-m-d');
 
         $I->signIn('buyer');
@@ -61,7 +60,7 @@ final class CabinetFlowCest
         $I->signIn('partner');
         $I->sendPost('/orders', $this->order($presetId, $geo, 30, $today));
         $I->seeResponseCodeIs(400);
-        $I->seeResponseContainsJson(['error' => 'Price cannot be below the preset']);
+        $I->seeResponseContainsJson(['error' => 'Price cannot be below the floor price']);
 
         $I->sendPost('/orders', $this->order($presetId, $geo, 80, $today));
         $I->seeResponseCodeIs(200);
@@ -134,14 +133,20 @@ final class CabinetFlowCest
     /**
      * @return array<string, mixed>
      */
-    private function preset(int $price = 40, string $traffic = 'facebook'): array
+    private function preset(int $floorPrice = 40, string $traffic = 'facebook', string $country = 'DE'): array
     {
+        $floor = $floorPrice === 0 ? 40 : $floorPrice;
+
         return [
+            'country' => $country,
             'traffic_source' => $traffic,
             'age' => '25-34',
             'gender' => 'm',
-            'cr' => $price === 0 ? 120 : 20,
-            'price' => $price === 0 ? 40 : $price,
+            'vertical' => 'gambling',
+            'payment_model' => 'cpl',
+            'cr' => $floorPrice === 0 ? 120 : 20,
+            'floor_price' => $floor,
+            'stock_price' => $floor,
         ];
     }
 
@@ -155,6 +160,7 @@ final class CabinetFlowCest
             'geo' => $geo,
             'volume' => 10,
             'price' => $price,
+            'payment_model' => 'cpl',
             'kind' => 'day',
             'service_on' => $day,
             'opens_at' => '00:00',

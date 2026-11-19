@@ -32,9 +32,11 @@ final readonly class Cabinet
                 'trafficSource' => $preset->getTrafficSource(),
                 'age' => $preset->getAge(),
                 'gender' => $preset->getGender(),
+                'vertical' => $preset->getVertical(),
+                'paymentModel' => $preset->getPaymentModel(),
                 'cr' => $preset->getCr(),
-                'cplPriceCents' => $preset->getCplPriceCents(),
-                'cpaPriceCents' => $preset->getCpaPriceCents(),
+                'floorPriceCents' => $preset->getFloorPriceCents(),
+                'stockPriceCents' => $preset->getStockPriceCents(),
                 'createdAt' => $preset->getCreatedAt()->format(DATE_ATOM),
             ];
         }

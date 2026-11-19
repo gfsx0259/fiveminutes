@@ -96,6 +96,23 @@ final readonly class LeadRepository
         );
     }
 
+    public function latestStockAtForPreset(string $organizationId, Preset $preset): ?DateTimeImmutable
+    {
+        $stock = $this->stockMatch($organizationId, $preset);
+        $rows = $this->clickhouse->query(
+            'SELECT max(created_at) AS latest
+             FROM leads FINAL
+             WHERE ' . $stock['sql'],
+            $stock['params'],
+        )->rows();
+        $latest = $rows[0]['latest'] ?? null;
+        if ($latest === null || trim((string) $latest) === '') {
+            return null;
+        }
+
+        return new DateTimeImmutable((string) $latest);
+    }
+
     public function countInStockForPreset(string $organizationId, Preset $preset, ?string $leadGender = null): int
     {
         $stock = $this->stockMatch($organizationId, $preset, $leadGender);
