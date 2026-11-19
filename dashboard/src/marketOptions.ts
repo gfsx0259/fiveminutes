@@ -26,6 +26,40 @@ export const verticals = [
   { title: 'Other', value: 'other' },
 ]
 
+const verticalIconMap: Record<string, string> = {
+  gambling: 'mdi-slot-machine',
+  betting: 'mdi-soccer',
+  crypto: 'mdi-bitcoin',
+  forex: 'mdi-chart-timeline-variant',
+  dating: 'mdi-heart',
+  nutra: 'mdi-pill',
+  finance: 'mdi-bank',
+  other: 'mdi-shape-outline',
+}
+
+const verticalColorMap: Record<string, string> = {
+  gambling: '#e53935',
+  betting: '#43a047',
+  crypto: '#fb8c00',
+  forex: '#1e88e5',
+  dating: '#ec407a',
+  nutra: '#8e24aa',
+  finance: '#00897b',
+  other: '#5c6078',
+}
+
+const trafficIconMap: Record<string, string> = {
+  facebook: 'mdi-facebook',
+  google: 'mdi-google',
+  tiktok: 'mdi-music-note',
+}
+
+const trafficColorMap: Record<string, string> = {
+  facebook: '#1877f2',
+  google: '#ea4335',
+  tiktok: '#111111',
+}
+
 export function trafficLabel(value: string): string {
   return trafficSources.find((item) => item.value === value)?.title ?? value
 }
@@ -41,4 +75,20 @@ export function modelLabel(value: string): string {
 
 export function verticalLabel(value: string): string {
   return verticals.find((item) => item.value === value)?.title ?? value
+}
+
+export function verticalIcon(value: string): string {
+  return verticalIconMap[value] ?? 'mdi-shape-outline'
+}
+
+export function verticalColor(value: string): string {
+  return verticalColorMap[value] ?? '#5b45e8'
+}
+
+export function trafficIcon(value: string): string {
+  return trafficIconMap[value] ?? 'mdi-bullhorn-outline'
+}
+
+export function trafficColor(value: string): string {
+  return trafficColorMap[value] ?? '#5b45e8'
 }
