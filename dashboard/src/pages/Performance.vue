@@ -3,15 +3,11 @@
     <div class="mb-4">
       <h1>Performance</h1>
       <p v-if="isBuyer">Leads you mined, grouped by country</p>
-      <p v-else-if="isPartner">Leads you purchased, grouped by country</p>
       <p v-else>Organization leads, grouped by country</p>
       <p class="performance__hint">
         <template v-if="isBuyer">
           Sold means matched to a partner order. Net earnings are catalog price minus the platform fee. CR is approved ÷
           sold leads with a conversion outcome.
-        </template>
-        <template v-else-if="isPartner">
-          Spent is the preset catalog price per lead. CR is approved ÷ purchased leads with a conversion outcome.
         </template>
         <template v-else>
           Partner sales are catalog prices on billable leads. Platform profit is the buyer-side fee. CR matches the buyer
@@ -27,17 +23,7 @@
         <span>Leads</span>
         <strong>{{ summary.leads.toLocaleString('en-US') }}</strong>
       </div>
-      <template v-if="isPartner">
-        <div>
-          <span>CR</span>
-          <strong>{{ cr }}</strong>
-        </div>
-        <div>
-          <span>Spent</span>
-          <strong>{{ dollars(summary.spent ?? 0) }}</strong>
-        </div>
-      </template>
-      <template v-else-if="isBuyer">
+      <template v-if="isBuyer">
         <div>
           <span>Sold</span>
           <strong>{{ summary.sold?.toLocaleString('en-US') ?? '0' }}</strong>
@@ -110,7 +96,7 @@
         </template>
         <template #no-data>
           <div class="py-8 text-medium-emphasis">
-            {{ isPartner ? 'Купленных лидов пока нет' : 'Лидов пока нет' }}
+            Лидов пока нет
           </div>
         </template>
       </UiDataTable>
@@ -120,6 +106,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import CountryPick from '@/components/CountryPick.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
@@ -131,8 +118,11 @@ const session = useSessionStore()
 const leadStore = useLeadStore()
 const role = computed(() => session.payload?.user?.role ?? '')
 const isBuyer = computed(() => role.value === 'buyer')
-const isPartner = computed(() => role.value === 'partner')
 const isAdmin = computed(() => role.value === 'admin')
+
+if (role.value === 'partner') {
+  void useRouter().replace('/reports')
+}
 
 const buyerHeaders = [
   { title: 'Type', key: 'country' },
@@ -143,16 +133,6 @@ const buyerHeaders = [
   { title: 'CR', key: 'crValue', align: 'end' as const },
   { title: 'Net earnings', key: 'earnings', align: 'end' as const },
   { title: 'EPL', key: 'epl', align: 'end' as const },
-]
-
-const partnerHeaders = [
-  { title: 'Type', key: 'country' },
-  { title: 'Leads', key: 'leads', align: 'end' as const },
-  { title: 'Approved', key: 'approved', align: 'end' as const },
-  { title: 'Rejected', key: 'rejected', align: 'end' as const },
-  { title: 'CR', key: 'crValue', align: 'end' as const },
-  { title: 'Spent', key: 'spent', align: 'end' as const },
-  { title: 'CPL', key: 'cpl', align: 'end' as const },
 ]
 
 const adminHeaders = [
@@ -168,7 +148,6 @@ const adminHeaders = [
 ]
 
 const headers = computed(() => {
-  if (isPartner.value) return partnerHeaders
   if (isAdmin.value) return adminHeaders
   return buyerHeaders
 })
@@ -209,10 +188,6 @@ function buyerNetCents(lead: CabinetLead): number {
     return lead.buyerNetCents
   }
   return lead.priceCents - platformFeeCents(lead.priceCents)
-}
-
-function partnerSpentCents(lead: CabinetLead): number {
-  return lead.partnerPriceCents ?? lead.priceCents
 }
 
 function aggregateBuyer() {
@@ -289,44 +264,7 @@ function aggregateAdmin() {
     .sort((left, right) => right.leads - left.leads)
 }
 
-function aggregatePartner() {
-  const grouped = new Map<string, { leads: number; awaiting: number; approved: number; rejected: number; spent: number }>()
-  for (const lead of leadStore.leads) {
-    const country = lead.country || '—'
-    const row = grouped.get(country) ?? { leads: 0, awaiting: 0, approved: 0, rejected: 0, spent: 0 }
-    row.leads += 1
-    row.spent += partnerSpentCents(lead) / 100
-    if (isSoldStatus(lead.status)) {
-      row.awaiting += 1
-    }
-    if (lead.status === 'approved') {
-      row.approved += 1
-    }
-    if (lead.status === 'rejected') {
-      row.rejected += 1
-    }
-    grouped.set(country, row)
-  }
-
-  return [...grouped.entries()]
-    .map(([country, row]) => {
-      const crBase = row.awaiting + row.approved + row.rejected
-      return {
-        country,
-        leads: row.leads,
-        approved: row.approved,
-        rejected: row.rejected,
-        spent: row.spent,
-        cr: formatCr(row.approved, row.awaiting, row.rejected),
-        crValue: crBase === 0 ? 0 : (row.approved / crBase) * 100,
-        cpl: row.leads === 0 ? 0 : row.spent / row.leads,
-      }
-    })
-    .sort((left, right) => right.leads - left.leads)
-}
-
 const rows = computed(() => {
-  if (isPartner.value) return aggregatePartner()
   if (isAdmin.value) return aggregateAdmin()
   return aggregateBuyer()
 })
@@ -336,17 +274,12 @@ type PerfSummary = {
   sold?: number
   approved?: number
   rejected?: number
-  spent?: number
   earnings?: number
   partnerSales?: number
   profit?: number
 }
 
 const summary = computed((): PerfSummary => {
-  if (isPartner.value) {
-    const spent = rows.value.reduce((sum, row) => sum + ((row as { spent?: number }).spent ?? 0), 0)
-    return { leads: rows.value.reduce((sum, row) => sum + row.leads, 0), spent }
-  }
   if (isAdmin.value) {
     return rows.value.reduce(
       (sum, row) => {
@@ -392,17 +325,6 @@ const summary = computed((): PerfSummary => {
 })
 
 const cr = computed(() => {
-  if (isPartner.value) {
-    let awaiting = 0
-    let approved = 0
-    let rejected = 0
-    for (const lead of leadStore.leads) {
-      if (isSoldStatus(lead.status)) awaiting += 1
-      if (lead.status === 'approved') approved += 1
-      if (lead.status === 'rejected') rejected += 1
-    }
-    return formatCr(approved, awaiting, rejected)
-  }
   const s = summary.value as { approved: number; sold: number; rejected: number }
   return formatCr(s.approved, s.sold, s.rejected)
 })

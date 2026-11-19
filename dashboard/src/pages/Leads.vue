@@ -130,6 +130,7 @@ import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
+import { downloadCsv } from '@/csv'
 import { apiOrigin } from '@/host'
 import { sampleLead, sampleLeadJson } from '@/leadBody'
 import { genderLabel } from '@/marketOptions'
@@ -358,14 +359,7 @@ function exportCsv(): void {
   const header = isAdmin.value
     ? ['Status', 'Phone', 'Email', 'Country', 'Gender', 'IP', 'Aff Sub', 'Buyer', 'Partner', 'Created At']
     : ['Status', 'Phone', 'Email', 'Country', 'Gender', 'IP', 'Aff Sub', 'Created At']
-  const lines = [header, ...filtered.value.map(csvRow)].map((row) => row.map(csvCell).join(',')).join('\n')
-  const blob = new Blob([lines], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = 'leads.csv'
-  link.click()
-  URL.revokeObjectURL(url)
+  downloadCsv('leads.csv', [header, ...filtered.value.map(csvRow)])
 }
 
 function csvRow(lead: CabinetLead): string[] {
@@ -375,10 +369,6 @@ function csvRow(lead: CabinetLead): string[] {
   }
   row.push(lead.createdAt)
   return row
-}
-
-function csvCell(value: string): string {
-  return `"${value.replaceAll('"', '""')}"`
 }
 
 onMounted(() => {
