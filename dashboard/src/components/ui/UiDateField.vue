@@ -226,6 +226,7 @@ onBeforeUnmount(() => {
 .ui-date--open,
 .ui-date:focus-within {
   border-color: #9685ff;
+  box-shadow: 0 0 0 3px rgb(148 134 255 / 38%);
 }
 
 .ui-date--invalid {

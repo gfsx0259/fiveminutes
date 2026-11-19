@@ -253,6 +253,7 @@ const clearAll = () => {
 .ui-select[aria-expanded='true'],
 .ui-select:focus-visible {
   border-color: #9486ff;
+  box-shadow: 0 0 0 3px rgb(148 134 255 / 38%);
   outline: none;
 }
 

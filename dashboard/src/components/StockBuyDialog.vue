@@ -2,46 +2,42 @@
   <FormDialog
     :model-value="open"
     title="Buy leads"
-    hint="Fixed catalog price for this warehouse offer."
+    hint="Purchase leads from the selected offer."
     submit-label="Confirm purchase"
+    submit-icon="mdi-cart-outline"
     :error="formError"
     :loading="busy"
-    :max-width="560"
+    :max-width="680"
     @update:model-value="open = $event"
     @submit="buy"
   >
     <template v-if="target">
-      <div class="stock-buy__card">
-        <div class="stock-buy__card-row">
-          <CountryFlag :code="target.country" :size="18" />
-          <span class="stock-buy__card-title">{{ verticalLabel(target.vertical) }} · {{ target.country }}</span>
-          <span class="stock-buy__pill">{{ modelLabel(target.paymentModel) }}</span>
-        </div>
-        <p class="stock-buy__meta">
-          {{ trafficLabel(target.trafficSource) }}
-          <span v-if="target.conversion > 0"> · CR {{ target.conversion }}%</span>
-        </p>
-        <p class="stock-buy__payout">Payout per lead: <strong>{{ dollars(target.stockPriceCents / 100) }}</strong></p>
-      </div>
+      <PresetOfferSummary
+        :heading="`Offer ${offerId(target)}`"
+        :badge="target.available > 0 ? 'Active' : undefined"
+        :vertical="target.vertical"
+        :country="target.country"
+        :traffic-source="target.trafficSource"
+        :payment-model="target.paymentModel"
+        :payout-cents="target.stockPriceCents"
+        :conversion="target.conversion"
+      />
 
-      <UiField label="Quantity">
+      <UiField label="Quantity *" icon="mdi-counter">
         <UiInput v-model="volume" type="number" :placeholder="String(target.available)" />
       </UiField>
-      <p class="stock-buy__hint">Available: {{ target.available }}</p>
+      <p class="stock-buy__caps">
+        Available: <strong>{{ target.available }}</strong>
+        <span v-if="target.dailyCapVolume > 0">
+          · Daily cap today: <strong>{{ target.dailyCapSupplied }}/{{ target.dailyCapVolume }}</strong>
+        </span>
+      </p>
 
-      <div class="stock-buy__totals">
-        <div class="stock-buy__line">
-          <span>Total cost</span>
-          <strong>{{ dollars(totalCents / 100) }}</strong>
-        </div>
-        <div class="stock-buy__line">
-          <span>Wallet balance</span>
-          <span>{{ dollars(balanceCents / 100) }}</span>
-        </div>
-        <v-alert v-if="insufficient > 0" type="warning" variant="tonal" density="compact" class="mt-2">
-          Insufficient balance by {{ dollars(insufficient / 100) }}
-        </v-alert>
-      </div>
+      <OrderCheckoutSummary
+        :price-per-lead-cents="target.stockPriceCents"
+        :quantity="volumeQty"
+        :balance-cents="balanceCents"
+      />
     </template>
   </FormDialog>
   <v-snackbar v-model="notice" location="bottom center" color="success" :timeout="4000">
@@ -51,13 +47,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import CountryFlag from '@/components/CountryFlag.vue'
 import FormDialog from '@/components/FormDialog.vue'
+import OrderCheckoutSummary from '@/components/OrderCheckoutSummary.vue'
+import PresetOfferSummary from '@/components/PresetOfferSummary.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
-import { modelLabel, trafficLabel, verticalLabel } from '@/marketOptions'
 import { dollars } from '@/money'
-import type { StockBuyTarget } from '@/stockBuy'
+import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 
@@ -96,14 +92,13 @@ const totalCents = computed(() => {
   return volumeQty.value * props.target.stockPriceCents
 })
 
-const insufficient = computed(() => Math.max(0, totalCents.value - balanceCents.value))
-
 watch(open, (value) => {
   if (!value || !props.target) {
     return
   }
   formError.value = ''
-  volume.value = String(Math.min(props.target.available, 1000))
+  const defaultQty = Math.min(props.target.available, 1000)
+  volume.value = String(defaultQty > 0 ? defaultQty : 1)
 })
 
 async function buy(): Promise<void> {
@@ -147,57 +142,14 @@ async function buy(): Promise<void> {
 </script>
 
 <style scoped>
-.stock-buy__card {
-  background: #faf9ff;
-  border: 1px solid #e8e4f8;
-  border-radius: 12px;
-  margin-bottom: 16px;
-  padding: 14px 16px;
-}
-
-.stock-buy__card-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.stock-buy__card-title {
-  font-weight: 600;
-}
-
-.stock-buy__pill {
-  background: rgb(91 69 232 / 12%);
-  border-radius: 999px;
-  color: #5b45e8;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 10px;
-}
-
-.stock-buy__meta,
-.stock-buy__payout,
-.stock-buy__hint {
-  color: var(--lm-muted);
+.stock-buy__caps {
+  color: #8b90a8;
   font-size: 13px;
-  margin: 8px 0 0;
+  margin: 6px 0 14px;
 }
 
-.stock-buy__payout strong {
-  color: var(--lm-text);
+.stock-buy__caps strong {
+  color: #303861;
 }
 
-.stock-buy__totals {
-  background: #f6f4fc;
-  border-radius: 10px;
-  margin-top: 16px;
-  padding: 12px 14px;
-}
-
-.stock-buy__line {
-  display: flex;
-  font-size: 14px;
-  justify-content: space-between;
-  padding: 4px 0;
-}
 </style>

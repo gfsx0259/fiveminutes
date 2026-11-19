@@ -53,9 +53,11 @@ const onInput = (event: Event) => {
   opacity: 0.8;
 }
 
+.ui-input:focus,
 .ui-input:focus-visible {
-  outline: 3px solid #9486ff;
-  outline-offset: 3px;
+  border-color: #9486ff;
+  box-shadow: 0 0 0 3px rgb(148 134 255 / 38%);
+  outline: none;
 }
 
 .ui-input:disabled {

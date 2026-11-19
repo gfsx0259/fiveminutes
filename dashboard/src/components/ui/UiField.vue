@@ -1,8 +1,10 @@
 <template>
   <div class="ui-field" :class="{ 'ui-field--icon': icon }">
-    <v-icon v-if="icon" class="ui-field__icon" :icon="icon" size="18" />
-    <slot />
     <span class="ui-field__label">{{ label }}</span>
+    <div class="ui-field__control">
+      <v-icon v-if="icon" class="ui-field__icon" :icon="icon" size="18" />
+      <slot />
+    </div>
   </div>
 </template>
 
@@ -15,28 +17,25 @@ defineProps<{
 
 <style scoped>
 .ui-field {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   min-width: 0;
   overflow: visible;
-  position: relative;
+  padding: 2px 1px;
 }
 
 .ui-field__label {
-  background: #fff;
-  color: var(--lm-foreground);
-  font-size: 11px;
+  color: #5c6078;
+  font-size: 12px;
   font-weight: 600;
-  left: 12px;
-  line-height: 16px;
-  padding: 0 5px;
-  pointer-events: none;
-  position: absolute;
-  top: -8px;
-  z-index: 4;
+  line-height: 1.2;
 }
 
-.ui-field--icon .ui-field__label {
-  left: 34px;
+.ui-field__control {
+  min-width: 0;
+  position: relative;
+  width: 100%;
 }
 
 .ui-field__icon {
@@ -44,7 +43,8 @@ defineProps<{
   left: 12px;
   pointer-events: none;
   position: absolute;
-  top: 11px;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 2;
 }
 
@@ -102,6 +102,10 @@ defineProps<{
   padding-inline-start: 38px;
 }
 
+.ui-field--icon :deep(.ui-input) {
+  padding-inline-start: 38px;
+}
+
 .ui-field :deep(.v-field__append-inner),
 .ui-field :deep(.v-field__clearable) {
   align-items: center;
@@ -115,15 +119,19 @@ defineProps<{
 </style>
 
 <style>
-.ui-field--icon:has(.ui-select--conceal-icon) > .ui-field__icon {
+.ui-field--icon:has(.ui-select--conceal-icon) .ui-field__icon {
   display: none;
 }
 
-.ui-field--icon:has(.ui-select--conceal-icon) > .ui-field__label {
-  left: 12px;
+.ui-field--icon:has(.ui-select--conceal-icon) > .ui-field__control > .ui-field__icon {
+  display: none;
 }
 
 .ui-field--icon:has(.ui-select--conceal-icon) .ui-select {
   padding-inline-start: 12px;
+}
+
+.ui-field--icon:has(.ui-date) .ui-field__icon {
+  display: none;
 }
 </style>

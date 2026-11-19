@@ -17,7 +17,7 @@
         <UiButton variant="outline" :disabled="loading" @click="emit('update:modelValue', false)">
           Cancel
         </UiButton>
-        <UiButton :loading="loading" @click="emit('submit')">{{ submitLabel }}</UiButton>
+        <UiButton :loading="loading" :icon="submitIcon" @click="emit('submit')">{{ submitLabel }}</UiButton>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -34,11 +34,13 @@ withDefaults(defineProps<{
   submitLabel: string
   loading?: boolean
   maxWidth?: number
+  submitIcon?: string
 }>(), {
   hint: '',
   error: '',
   loading: false,
   maxWidth: 520,
+  submitIcon: '',
 })
 
 const emit = defineEmits<{

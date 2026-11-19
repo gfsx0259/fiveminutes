@@ -3,6 +3,11 @@ export function orderDisplayId(id: string): string {
   return `OR-${tail}`
 }
 
+export function presetDisplayId(id: string): string {
+  const tail = id.replace(/-/g, '').slice(0, 5).toUpperCase()
+  return `PR-${tail}`
+}
+
 export function leadDisplayId(uuid: string): string {
   const tail = uuid.replace(/-/g, '').slice(0, 5).toUpperCase()
   return `LD-${tail}`

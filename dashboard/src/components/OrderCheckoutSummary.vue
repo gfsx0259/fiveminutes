@@ -1,0 +1,92 @@
+<template>
+  <div class="order-checkout__grid">
+    <div class="order-checkout__panel">
+      <div class="order-checkout__line">
+        <span>{{ priceLabel }}</span>
+        <span>{{ pricePerLeadCents > 0 ? dollars(pricePerLeadCents / 100) : '—' }}</span>
+      </div>
+      <div class="order-checkout__line">
+        <span>Quantity</span>
+        <span>{{ quantity > 0 ? quantity : '—' }}</span>
+      </div>
+      <div class="order-checkout__line order-checkout__line--total">
+        <span>{{ totalLabel }}</span>
+        <strong>{{ totalCents > 0 ? dollars(totalCents / 100) : '—' }}</strong>
+      </div>
+    </div>
+    <div class="order-checkout__panel">
+      <div class="order-checkout__line">
+        <span>Wallet balance</span>
+        <span>{{ dollars(balanceCents / 100) }}</span>
+      </div>
+      <v-alert v-if="insufficient > 0" type="warning" variant="tonal" density="compact" class="order-checkout__alert">
+        Insufficient balance by {{ dollars(insufficient / 100) }}
+      </v-alert>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { dollars } from '@/money'
+
+const props = withDefaults(
+  defineProps<{
+    pricePerLeadCents: number
+    quantity: number
+    balanceCents: number
+    priceLabel?: string
+    totalLabel?: string
+  }>(),
+  {
+    priceLabel: 'Price per lead',
+    totalLabel: 'Total cost',
+  },
+)
+
+const totalCents = computed(() => {
+  if (props.quantity < 1 || props.pricePerLeadCents < 1) {
+    return 0
+  }
+  return props.quantity * props.pricePerLeadCents
+})
+
+const insufficient = computed(() => Math.max(0, totalCents.value - props.balanceCents))
+</script>
+
+<style scoped>
+.order-checkout__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 4px;
+}
+
+.order-checkout__panel {
+  background: #f6f4fc;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.order-checkout__line {
+  display: flex;
+  font-size: 14px;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.order-checkout__line--total strong {
+  color: #5b45e8;
+  font-size: 18px;
+}
+
+.order-checkout__alert {
+  margin-top: 8px;
+}
+
+@media (max-width: 560px) {
+  .order-checkout__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+</style>
