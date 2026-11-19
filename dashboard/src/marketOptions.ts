@@ -34,7 +34,7 @@ const verticalIconMap: Record<string, string> = {
   dating: 'mdi-heart-outline',
   nutra: 'mdi-leaf',
   finance: 'mdi-database-outline',
-  other: 'mdi-dots-horizontal',
+  other: 'mdi-shape-outline',
 }
 
 const verticalColorMap: Record<string, string> = {
@@ -78,7 +78,7 @@ export function verticalLabel(value: string): string {
 }
 
 export function verticalIcon(value: string): string {
-  return verticalIconMap[value] ?? 'mdi-dots-horizontal'
+  return verticalIconMap[value] ?? 'mdi-shape-outline'
 }
 
 export function verticalColor(value: string): string {

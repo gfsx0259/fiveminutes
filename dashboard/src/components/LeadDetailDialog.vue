@@ -64,7 +64,7 @@ import { apiPost } from '@/api'
 import { dollars } from '@/money'
 import type { CabinetLead } from '@/stores/leads'
 import { useSessionStore } from '@/stores/session'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const session = useSessionStore()
 const role = computed(() => session.payload?.user?.role)
@@ -74,6 +74,7 @@ const props = defineProps<{
   lead: CabinetLead | null
   loading?: boolean
   error?: string
+  openReject?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -85,6 +86,24 @@ const convertBusy = ref(false)
 const convertError = ref('')
 const rejectOpen = ref(false)
 const rejectReason = ref('')
+
+watch(() => props.modelValue, (open) => {
+  if (!open) {
+    rejectOpen.value = false
+    rejectReason.value = ''
+    convertError.value = ''
+    return
+  }
+  if (props.openReject) {
+    rejectOpen.value = true
+  }
+})
+
+watch(() => props.openReject, (openReject) => {
+  if (props.modelValue && openReject) {
+    rejectOpen.value = true
+  }
+})
 
 const canConvert = computed(() => {
   if (!props.lead || props.lead.status !== 'sold') return false

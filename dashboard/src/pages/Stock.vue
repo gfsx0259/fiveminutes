@@ -260,7 +260,7 @@ const filterCr = ref<string | null>(null)
 const filterAvailability = ref<string | null>(null)
 
 const page = ref(1)
-const itemsPerPage = ref(10)
+const itemsPerPage = ref(25)
 
 const buyOpen = ref(false)
 const buyTarget = ref<StockBuyTarget | null>(null)
