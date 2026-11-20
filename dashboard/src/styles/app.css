@@ -45,6 +45,12 @@
   padding: 16px;
 }
 
+@media (max-width: 480px) {
+  .ui-filter-panel {
+    padding: 12px;
+  }
+}
+
 .lead-filters {
   display: grid;
   gap: 16px;
@@ -143,6 +149,28 @@
   width: 100%;
 }
 
+/* Wide tables: hide inline row action buttons, expose them in the ⋯ menu */
+.ui-table-cell-actions__menu-only {
+  display: none;
+}
+
+@media (max-width: 1280px) {
+  .ui-data-table .ui-table-cell-actions__btn {
+    display: none !important;
+  }
+
+  .ui-table-cell-actions__menu-only {
+    display: flex;
+  }
+}
+
+@media (min-width: 1281px) {
+  .ui-data-table tbody td .ui-table-cell-actions {
+    flex-flow: row nowrap;
+    white-space: nowrap;
+  }
+}
+
 .page-head {
   align-items: flex-start;
   display: flex;
@@ -158,6 +186,19 @@
 
 .page-head > :last-child {
   flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .page-head {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .page-head > :last-child {
+    align-self: stretch;
+    width: 100%;
+  }
 }
 
 .v-dialog > .v-overlay__scrim {

@@ -226,7 +226,7 @@
         <UiButton variant="outline" icon="mdi-refresh" :loading="leadStore.loading" @click="leadStore.load()">
           Refresh
         </UiButton>
-        <UiButton variant="outline" icon="mdi-download" @click="exportCsv">Export</UiButton>
+        <UiButton variant="outline" icon="mdi-download" :disabled="filtered.length === 0" @click="exportCsv">Export</UiButton>
       </template>
       <UiDataTable
         v-model:page="page"
@@ -305,7 +305,7 @@
         </template>
         <template #item.actions="{ item }">
           <div class="lead-actions ui-table-cell-actions" @click.stop>
-            <UiButton class="lead-actions__btn" variant="outline" @click="openLead(item)">
+            <UiButton class="lead-actions__btn ui-table-cell-actions__btn" variant="outline" @click="openLead(item)">
               View
             </UiButton>
             <span class="lead-actions__menu">
@@ -323,6 +323,10 @@
                   </button>
                 </template>
               <div class="lead-row-menu__list">
+                <button type="button" class="lead-row-menu__item ui-table-cell-actions__menu-only" @click="openLead(item)">
+                  <v-icon icon="mdi-eye-outline" size="18" class="lead-row-menu__icon" />
+                  View lead
+                </button>
                 <button type="button" class="lead-row-menu__item" @click="copyLeadUuid(item.uuid)">
                   <v-icon icon="mdi-identifier" size="18" class="lead-row-menu__icon" />
                   Copy lead UUID
@@ -423,6 +427,8 @@ import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
+import { prepareTableHeaders } from '@/tableHeaders'
+import { useCompactTableActions } from '@/viewport'
 import { showToast } from '@/composables/useToast'
 import { downloadCsv } from '@/csv'
 import { apiOrigin } from '@/host'
@@ -458,6 +464,7 @@ const leadStore = useLeadStore()
 const market = useMarketStore()
 const isBuyer = computed(() => session.payload?.user?.role === 'buyer')
 const isPartner = computed(() => session.payload?.user?.role === 'partner')
+const compactTableActions = useCompactTableActions()
 const tab = ref<'journal' | 'send'>('journal')
 const showJournal = computed(() => !isBuyer.value || tab.value === 'journal')
 const pageTitle = computed(() => (isPartner.value ? 'My leads' : 'Leads'))
@@ -585,9 +592,26 @@ const headers = computed(() => {
     )
   }
   rows.push(
-    { title: '', key: 'actions', sortable: false, align: 'end' as const, width: 148 },
+    { title: '', key: 'actions', sortable: false, align: 'end' as const },
   )
-  return rows
+  return prepareTableHeaders(rows, {
+    leadId: 108,
+    vertical: 100,
+    country: 112,
+    trafficSource: 124,
+    firstName: 100,
+    lastName: 100,
+    phone: 112,
+    email: 200,
+    ip: 120,
+    buyerEmail: 160,
+    sellerEmail: 160,
+    partnerDelivery: 108,
+    clientStatus: 116,
+    clientDeposit: 96,
+    status: 100,
+    actions: compactTableActions.value ? 56 : 148,
+  })
 })
 
 const statusLabels: Record<string, string> = {
@@ -1301,7 +1325,7 @@ onMounted(() => {
   }
 
   .leads-filters__main.leads-filters__main--partner {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .leads-filters__toolbar-end {
@@ -1313,7 +1337,7 @@ onMounted(() => {
   }
 
   .leads-filters__advanced.leads-filters__advanced--partner {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1327,16 +1351,37 @@ onMounted(() => {
     display: grid;
   }
 
+  .leads-filter-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .leads-filters__toolbar {
+    display: contents;
+  }
+
   .leads-filters__main,
-  .leads-filters__advanced {
+  .leads-filters__main.leads-filters__main--partner {
+    order: 1;
     grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .leads-filters__advanced,
+  .leads-filters__advanced.leads-filters__advanced--partner {
+    order: 2;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
   }
 
   .leads-filters__toolbar-end {
+    order: 3;
     display: grid;
     gap: 8px;
     grid-template-columns: 1fr;
     height: auto;
+    margin-left: 0;
     width: 100%;
   }
 

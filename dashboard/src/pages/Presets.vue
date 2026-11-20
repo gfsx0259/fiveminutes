@@ -78,6 +78,9 @@
         <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="market.loadPresets()">
           Refresh
         </UiButton>
+        <UiButton variant="outline" icon="mdi-download" :disabled="market.presets.length === 0" @click="exportCsv">
+          Export
+        </UiButton>
       </template>
       <UiDataTable :headers="headers" :items="market.presets" :loading="market.loading" item-value="id" hover>
         <template #item.country="{ item }">
@@ -148,11 +151,13 @@ import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
-import { COUNTRY_SELECT_ITEMS } from '@/countries'
+import { COUNTRY_SELECT_ITEMS, countryName } from '@/countries'
+import { exportTableCsv, cellToString } from '@/tableCsvExport'
 import { genders, genderLabel, modelLabel, paymentModels, trafficLabel, trafficSources, verticalLabel, verticals } from '@/marketOptions'
 import { dollars } from '@/money'
 import { useMarketStore, type PresetRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
+import { prepareTableHeaders } from '@/tableHeaders'
 
 const session = useSessionStore()
 const market = useMarketStore()
@@ -185,10 +190,47 @@ const headers = computed(() => {
     { title: 'Price', key: 'basePriceCents' },
   ]
   if (isAdmin.value) {
-    base.push({ title: '', key: 'actions', sortable: false, align: 'end' as const, width: 48 })
+    base.push({ title: '', key: 'actions', sortable: false, align: 'end' as const })
   }
-  return base
+  return prepareTableHeaders(base, {
+    country: 108,
+    trafficSource: 132,
+    age: 72,
+    gender: 88,
+    vertical: 108,
+    paymentModel: 100,
+    cr: 72,
+    basePriceCents: 88,
+    actions: 72,
+  })
 })
+
+function exportCsv(): void {
+  exportTableCsv('presets-catalog.csv', headers.value, market.presets, adminPresetExportCell)
+}
+
+function adminPresetExportCell(key: string, item: PresetRow): string {
+  switch (key) {
+    case 'country':
+      return countryName(item.country)
+    case 'trafficSource':
+      return trafficLabel(item.trafficSource)
+    case 'age':
+      return item.age ? item.age : 'Any age'
+    case 'gender':
+      return genderLabel(item.gender)
+    case 'vertical':
+      return verticalLabel(item.vertical)
+    case 'paymentModel':
+      return modelLabel(item.paymentModel)
+    case 'cr':
+      return `${item.cr}%`
+    case 'basePriceCents':
+      return dollars(item.basePriceCents / 100)
+    default:
+      return cellToString((item as Record<string, unknown>)[key])
+  }
+}
 
 function show(): void {
   formError.value = ''

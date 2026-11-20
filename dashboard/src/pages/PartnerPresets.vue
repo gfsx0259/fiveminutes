@@ -46,6 +46,9 @@
         <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="market.loadPresets()">
           Refresh
         </UiButton>
+        <UiButton variant="outline" icon="mdi-download" :disabled="rows.length === 0" @click="exportCsv">
+          Export
+        </UiButton>
       </template>
       <UiDataTable :headers="headers" :items="rows" :loading="market.loading" item-value="id" hover>
         <template #item.country="{ item }">
@@ -86,10 +89,12 @@ import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
-import { COUNTRY_SELECT_ITEMS } from '@/countries'
+import { COUNTRY_SELECT_ITEMS, countryName } from '@/countries'
+import { exportTableCsv, cellToString } from '@/tableCsvExport'
 import { modelLabel, trafficLabel, verticalLabel } from '@/marketOptions'
 import { dollars } from '@/money'
 import { useMarketStore, type PresetRow } from '@/stores/market'
+import { prepareTableHeaders } from '@/tableHeaders'
 
 const market = useMarketStore()
 const open = ref(false)
@@ -99,15 +104,26 @@ const platform = ref<string | null>(null)
 const verticalFilter = ref<string | null>(null)
 const modelFilter = ref<string | null>(null)
 
-const headers = [
-  { title: 'Country', key: 'country' },
-  { title: 'Vertical', key: 'vertical' },
-  { title: 'Traffic', key: 'trafficSource' },
-  { title: 'Model', key: 'paymentModel' },
-  { title: 'CR', key: 'cr' },
-  { title: 'Price', key: 'basePriceCents' },
-  { title: '', key: 'actions', sortable: false },
-]
+const headers = prepareTableHeaders(
+  [
+    { title: 'Country', key: 'country' },
+    { title: 'Vertical', key: 'vertical' },
+    { title: 'Traffic', key: 'trafficSource' },
+    { title: 'Model', key: 'paymentModel' },
+    { title: 'CR', key: 'cr', align: 'center' as const },
+    { title: 'Price', key: 'basePriceCents', align: 'end' as const },
+    { title: '', key: 'actions', sortable: false, align: 'end' as const },
+  ],
+  {
+    country: 108,
+    vertical: 108,
+    trafficSource: 132,
+    paymentModel: 100,
+    cr: 72,
+    basePriceCents: 88,
+    actions: 120,
+  },
+)
 
 const countryItems = computed(() => {
   const codes = new Set(market.presets.map((preset) => preset.country))
@@ -135,6 +151,29 @@ function distinct(pick: (preset: PresetRow) => string, label: (value: string) =>
   return [...new Set(market.presets.map(pick).filter(Boolean))]
     .sort()
     .map((value) => ({ title: label(value), value }))
+}
+
+function exportCsv(): void {
+  exportTableCsv('presets.csv', headers, rows.value, presetExportCell)
+}
+
+function presetExportCell(key: string, item: PresetRow): string {
+  switch (key) {
+    case 'country':
+      return countryName(item.country)
+    case 'trafficSource':
+      return trafficLabel(item.trafficSource)
+    case 'vertical':
+      return verticalLabel(item.vertical)
+    case 'paymentModel':
+      return modelLabel(item.paymentModel)
+    case 'cr':
+      return `${item.cr}%`
+    case 'basePriceCents':
+      return dollars(item.basePriceCents / 100)
+    default:
+      return cellToString((item as Record<string, unknown>)[key])
+  }
 }
 
 function clearFilters(): void {

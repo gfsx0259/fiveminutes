@@ -1,5 +1,5 @@
 <template>
-  <div class="lm-topbar-wallet">
+  <div class="lm-topbar-wallet" :class="{ 'lm-topbar-wallet--compact': compact }">
     <span class="lm-topbar-wallet__pill">
       <v-icon icon="mdi-wallet-outline" size="18" class="lm-topbar-wallet__icon" />
       <span class="lm-topbar-wallet__label">Wallet balance:</span>
@@ -26,6 +26,10 @@ import UiButton from '@/components/ui/UiButton.vue'
 import { dollars } from '@/money'
 import { useSessionStore } from '@/stores/session'
 import { useWalletStore } from '@/stores/wallet'
+
+defineProps<{
+  compact?: boolean
+}>()
 
 const router = useRouter()
 const session = useSessionStore()

@@ -121,11 +121,13 @@ function onPerPageSelect(value: unknown): void {
 <style scoped>
 .ui-table-pagination {
   align-items: center;
+  border-top: 1px solid #f2f0ff;
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
   justify-content: space-between;
-  padding: 14px 4px 4px;
+  margin-top: 4px;
+  padding: 16px 4px 4px;
   width: 100%;
 }
 
@@ -204,5 +206,29 @@ function onPerPageSelect(value: unknown): void {
   font-size: 13px;
   padding: 0 2px;
   user-select: none;
+}
+
+@media (max-width: 767px) {
+  .ui-table-pagination {
+    align-items: center;
+    flex-direction: column;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .ui-table-pagination__left {
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* Page size stays at the last desktop choice; switching 25→100 on phone is rare. */
+  .ui-table-pagination__per-page {
+    display: none;
+  }
+
+  .ui-table-pagination__nav {
+    justify-content: center;
+    width: 100%;
+  }
 }
 </style>

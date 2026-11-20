@@ -56,13 +56,15 @@
         @mousedown.self="drawer = false"
       >
         <div class="lm-nav-dialog__panel" role="dialog" aria-modal="true" aria-label="Navigation">
-          <h2>Navigation</h2>
-          <button type="button" class="lm-nav-dialog__close" aria-label="Close dialog" @click="drawer = false">
+          <button type="button" class="lm-nav-dialog__close" aria-label="Close menu" @click="drawer = false">
             <v-icon icon="mdi-close" size="20" />
           </button>
-          <div class="lm-sidebar lm-sidebar--sheet">
-            <ShellNav sheet @navigate="drawer = false" @logout="handleLogout" />
-          </div>
+          <ShellNav
+            light
+            :show-wallet="showWallet"
+            @navigate="drawer = false"
+            @logout="handleLogout"
+          />
         </div>
       </div>
     </Teleport>
@@ -83,11 +85,8 @@
           </svg>
         </button>
         <div class="lm-topbar__right">
-          <TopbarWallet v-if="showWallet" />
-          <span v-if="showWallet" class="lm-topbar__divider" aria-hidden="true" />
-          <span class="lm-clock">{{ clock }}</span>
-          <span class="lm-topbar__divider" aria-hidden="true" />
-          <span class="lm-topbar__avatar">{{ initials }}</span>
+          <TopbarWallet v-if="showWallet" :compact="overlayNav" />
+          <span class="lm-topbar__avatar" :title="email">{{ initials }}</span>
         </div>
       </header>
       <div class="lm-page">
@@ -99,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ShellNav from '@/components/ShellNav.vue'
 import UiToastHost from '@/components/UiToastHost.vue'
@@ -120,8 +119,6 @@ const impersonation = computed(() => session.payload?.impersonation ?? null)
 const { mobile: overlayNav, tablet: tabletRail } = useViewport()
 const drawer = ref(false)
 const collapsed = ref(false)
-const clock = ref('')
-let clockTimer: ReturnType<typeof setInterval> | undefined
 
 const rail = computed(() => !overlayNav.value && (tabletRail.value || collapsed.value))
 
@@ -171,14 +168,6 @@ function toggleCollapsed(): void {
   }
 }
 
-function tickClock(): void {
-  clock.value = new Date().toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-}
-
 function signIn(): void {
   window.location.href = loginUrl(window.location.hostname, `${window.location.origin}/`)
 }
@@ -199,12 +188,6 @@ watch(
 )
 
 onMounted(() => {
-  tickClock()
-  clockTimer = setInterval(tickClock, 1000)
   void session.load()
-})
-
-onUnmounted(() => {
-  if (clockTimer !== undefined) clearInterval(clockTimer)
 })
 </script>

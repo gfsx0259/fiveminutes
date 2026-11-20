@@ -20,8 +20,15 @@ function useMediaQuery(query: string) {
   return matches
 }
 
+export const TABLE_ACTIONS_COMPACT_MQ = '(max-width: 1280px)'
+
 export function useViewport() {
   const mobile = useMediaQuery('(max-width: 767px)')
   const tablet = useMediaQuery('(min-width: 768px) and (max-width: 1023px)')
   return { mobile, tablet }
+}
+
+/** Row action buttons collapse to ⋯ menu (tables with `ui-table-cell-actions`). */
+export function useCompactTableActions() {
+  return useMediaQuery(TABLE_ACTIONS_COMPACT_MQ)
 }

@@ -113,6 +113,9 @@
 
     <UiCard class="reports__breakdown" title="Breakdown" subtitle="Click a column to sort">
       <template #actions>
+        <UiButton variant="outline" icon="mdi-download" :disabled="rows.length === 0" @click="exportCsv">
+          Export
+        </UiButton>
         <UiSegmented v-model="group" :items="groupItems" />
       </template>
       <BreakdownTable :rows="rows" :totals="current" :group="group as BreakdownGroup" :unit="period.unit" />

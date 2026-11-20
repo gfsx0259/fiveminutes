@@ -86,6 +86,9 @@
         <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="refresh()">
           Refresh
         </UiButton>
+        <UiButton variant="outline" icon="mdi-download" :disabled="filtered.length === 0" @click="exportCsv">
+          Export
+        </UiButton>
       </template>
       <UiDataTable
       v-model:page="page"
@@ -168,7 +171,7 @@
       <template #item.actions="{ item }">
         <div class="stock-actions ui-table-cell-actions">
           <UiButton
-            class="stock-actions__btn"
+            class="stock-actions__btn ui-table-cell-actions__btn"
             variant="primary"
             icon="mdi-cart"
             :disabled="item.available < 1"
@@ -176,7 +179,7 @@
           >
             Buy stock
           </UiButton>
-          <UiButton class="stock-actions__btn" variant="outline" @click="openOrder(item)">
+          <UiButton class="stock-actions__btn ui-table-cell-actions__btn" variant="outline" @click="openOrder(item)">
             Make order
           </UiButton>
           <v-menu location="bottom end" content-class="stock-row-menu">
@@ -192,6 +195,19 @@
               </button>
             </template>
             <div class="stock-row-menu__list">
+              <button
+                type="button"
+                class="ui-table-cell-actions__menu-only"
+                :disabled="item.available < 1"
+                @click="openBuy(item)"
+              >
+                <v-icon icon="mdi-cart" size="16" />
+                Buy stock
+              </button>
+              <button type="button" class="ui-table-cell-actions__menu-only" @click="openOrder(item)">
+                <v-icon icon="mdi-file-document-outline" size="16" />
+                Make order
+              </button>
               <button type="button" @click="copyPresetId(item.presetId)">
                 <v-icon icon="mdi-content-copy" size="16" />
                 Copy preset ID
@@ -264,6 +280,10 @@ import {
 import { dollars, wholeDollars } from '@/money'
 import { parseStockModalIntent, STOCK_MODAL_QUERY_KEYS, STOCK_SHARE_ASSIST_KEYS } from '@/stockModalIntent'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
+import { countryName } from '@/countries'
+import { exportTableCsv, cellToString } from '@/tableCsvExport'
+import { prepareTableHeaders } from '@/tableHeaders'
+import { useCompactTableActions } from '@/viewport'
 import { useMarketStore, type StockOfferRow } from '@/stores/market'
 
 const route = useRoute()
@@ -290,7 +310,7 @@ const orderInitialVolume = ref<number | null>(null)
 const orderInitialPrice = ref<number | null>(null)
 const orderInitialDay = ref<string | null>(null)
 const applyingModalLink = ref(false)
-
+const compactTableActions = useCompactTableActions()
 
 const crItems = [
   { title: '8% and above', value: 'high' },
@@ -302,19 +322,34 @@ const availabilityItems = [
   { title: 'Out of stock', value: 'empty' },
 ]
 
-const headers = [
-  { title: 'Offer ID', key: 'offerId', sortable: false, align: 'start' as const, width: '8%' },
-  { title: 'Vertical', key: 'vertical', align: 'start' as const, width: '10%' },
-  { title: 'Country', key: 'country', align: 'start' as const, width: '11%' },
-  { title: 'Traffic Source', key: 'trafficSource', align: 'start' as const, width: '11%' },
-  { title: 'Payment model', key: 'paymentModel', align: 'center' as const, width: '6%' },
-  { title: 'Conversion', key: 'conversion', align: 'center' as const, width: '6%' },
-  { title: 'Price', key: 'basePriceCents', align: 'end' as const, width: '8%' },
-  { title: 'Quantity', key: 'available', align: 'end' as const, width: '9%' },
-  { title: 'Live today', key: 'dailyCap', align: 'center' as const, width: '10%' },
-  { title: 'Updated', key: 'updatedAt', align: 'center' as const, width: '9%' },
-  { title: '', key: 'actions', sortable: false, align: 'end' as const, width: '14%' },
-]
+const headers = computed(() => prepareTableHeaders(
+  [
+    { title: 'Offer ID', key: 'offerId', sortable: false, align: 'start' as const },
+    { title: 'Vertical', key: 'vertical', align: 'start' as const },
+    { title: 'Country', key: 'country', align: 'start' as const },
+    { title: 'Traffic Source', key: 'trafficSource', align: 'start' as const },
+    { title: 'Payment model', key: 'paymentModel', align: 'center' as const },
+    { title: 'Conversion', key: 'conversion', align: 'center' as const },
+    { title: 'Price', key: 'basePriceCents', align: 'end' as const },
+    { title: 'Quantity', key: 'available', align: 'end' as const },
+    { title: 'Live today', key: 'dailyCap', align: 'center' as const },
+    { title: 'Updated', key: 'updatedAt', align: 'center' as const },
+    { title: '', key: 'actions', sortable: false, align: 'end' as const },
+  ],
+  {
+    offerId: 96,
+    vertical: 108,
+    country: 124,
+    trafficSource: 132,
+    paymentModel: 116,
+    conversion: 100,
+    basePriceCents: 88,
+    available: 92,
+    dailyCap: 148,
+    updatedAt: 100,
+    actions: compactTableActions.value ? 56 : 272,
+  },
+))
 
 const filtered = computed(() => {
   return market.stock.filter((row) => {
@@ -353,6 +388,35 @@ watch(filtered, () => {
     page.value = pageCount.value
   }
 })
+
+function exportCsv(): void {
+  exportTableCsv('stock.csv', headers.value, filtered.value, stockExportCell)
+}
+
+function stockExportCell(key: string, item: StockOfferRow): string {
+  switch (key) {
+    case 'offerId':
+      return offerId(item)
+    case 'vertical':
+      return verticalLabel(item.vertical)
+    case 'country':
+      return countryName(item.country)
+    case 'trafficSource':
+      return trafficLabel(item.trafficSource)
+    case 'paymentModel':
+      return modelLabel(item.paymentModel)
+    case 'conversion':
+      return `${item.conversion}%`
+    case 'basePriceCents':
+      return payoutDollars(item.basePriceCents)
+    case 'dailyCap':
+      return item.dailyCapVolume > 0 ? `${item.dailyCapSupplied} / ${item.dailyCapVolume}` : '—'
+    case 'updatedAt':
+      return item.updatedAt ?? ''
+    default:
+      return cellToString((item as Record<string, unknown>)[key])
+  }
+}
 
 function payoutDollars(cents: number): string {
   return cents % 100 === 0 ? wholeDollars(cents / 100) : dollars(cents / 100)
@@ -525,6 +589,8 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .stock-chip {
@@ -790,6 +856,45 @@ onMounted(async () => {
     flex-wrap: wrap;
   }
 }
+
+@media (max-width: 480px) {
+  .stock-chips {
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .stock-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stock-chip {
+    flex-shrink: 0;
+    font-size: 13px;
+    gap: 6px;
+    height: 36px;
+    padding: 0 12px;
+  }
+
+  .stock-chip :deep(.v-icon) {
+    font-size: 16px !important;
+    height: 16px !important;
+    width: 16px !important;
+  }
+
+  .stock-filter-panel {
+    margin-bottom: 12px;
+  }
+
+  .stock-filters__row {
+    gap: 10px;
+  }
+}
 </style>
 
 <style>
@@ -805,7 +910,6 @@ onMounted(async () => {
   background: transparent;
   max-height: none;
   min-height: 0;
-  overflow: visible;
 }
 
 .stock-market-table .ui-data-table :deep(thead th) {
@@ -849,6 +953,22 @@ onMounted(async () => {
 
 .stock-market-table .ui-data-table :deep(tbody td:last-child) {
   padding-inline: 12px 10px;
+}
+
+.stock-market-table .ui-data-table :deep(thead .ui-col-sticky-end) {
+  background: #fff !important;
+}
+
+.stock-market-table .ui-data-table :deep(tbody .ui-col-sticky-end) {
+  background: #fff !important;
+}
+
+.stock-market-table .ui-data-table :deep(tbody tr:hover .ui-col-sticky-end) {
+  background: #fff !important;
+}
+
+.stock-market-table .ui-data-table :deep(tbody td.ui-col-sticky-end) {
+  white-space: normal;
 }
 
 .stock-market-table .ui-data-table :deep(tbody tr:hover td) {

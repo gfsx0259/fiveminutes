@@ -12,6 +12,11 @@
     </v-alert>
 
     <UiTableCard title="Users">
+      <template #actions>
+        <UiButton variant="outline" icon="mdi-download" :disabled="items.length === 0" @click="exportCsv">
+          Export
+        </UiButton>
+      </template>
       <UiDataTable
         :headers="headers"
         :items="items"
@@ -48,6 +53,8 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import { useSessionStore } from '@/stores/session'
+import { exportTableCsv } from '@/tableCsvExport'
+import { prepareTableHeaders } from '@/tableHeaders'
 
 interface OrgUser {
   id: string
@@ -61,11 +68,18 @@ const loading = ref(false)
 const error = ref('')
 const impersonatingId = ref<string | null>(null)
 
-const headers = [
-  { title: 'Email', key: 'email' },
-  { title: 'Role', key: 'role' },
-  { title: '', key: 'actions', sortable: false, width: 140 },
-]
+const headers = prepareTableHeaders(
+  [
+    { title: 'Email', key: 'email' },
+    { title: 'Role', key: 'role' },
+    { title: '', key: 'actions', sortable: false, align: 'end' as const },
+  ],
+  { email: 220, role: 120, actions: 160 },
+)
+
+function exportCsv(): void {
+  exportTableCsv('users.csv', headers, items.value)
+}
 
 async function load(): Promise<void> {
   loading.value = true

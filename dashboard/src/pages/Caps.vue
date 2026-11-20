@@ -32,6 +32,9 @@
         <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="market.loadCaps()">
           Refresh
         </UiButton>
+        <UiButton variant="outline" icon="mdi-download" :disabled="rows.length === 0" @click="exportCsv">
+          Export
+        </UiButton>
       </template>
       <UiDataTable :headers="headers" :items="rows" :loading="market.loading" item-value="key" hover>
         <template #item.trafficSource="{ item }">
@@ -81,9 +84,12 @@ import UiDateField from '@/components/ui/UiDateField.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
+import { countryName } from '@/countries'
+import { exportTableCsv, cellToString } from '@/tableCsvExport'
 import { genderLabel, modelLabel, trafficLabel } from '@/marketOptions'
 import { useMarketStore, type CapRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
+import { prepareTableHeaders } from '@/tableHeaders'
 
 const market = useMarketStore()
 const session = useSessionStore()
@@ -97,17 +103,30 @@ const onDate = ref('')
 const platform = ref<string | null>(null)
 const gender = ref<string | null>(null)
 
-const headers = computed(() => [
-  { title: 'Traffic', key: 'trafficSource' },
-  { title: 'Age', key: 'age' },
-  { title: 'Gender', key: 'gender' },
-  { title: 'Model', key: 'paymentModel' },
-  { title: 'CR', key: 'cr' },
-  { title: 'Geo', key: 'geo' },
-  { title: 'Date', key: 'when' },
-  { title: 'Supplied', key: 'supplied' },
-  ...(isBuyer.value ? [{ title: '', key: 'actions', sortable: false }] : []),
-])
+const headers = computed(() => prepareTableHeaders(
+  [
+    { title: 'Traffic', key: 'trafficSource' },
+    { title: 'Age', key: 'age', align: 'center' as const },
+    { title: 'Gender', key: 'gender' },
+    { title: 'Model', key: 'paymentModel' },
+    { title: 'CR', key: 'cr', align: 'center' as const },
+    { title: 'Geo', key: 'geo' },
+    { title: 'Date', key: 'when' },
+    { title: 'Supplied', key: 'supplied', align: 'end' as const },
+    ...(isBuyer.value ? [{ title: '', key: 'actions', sortable: false, align: 'end' as const }] : []),
+  ],
+  {
+    trafficSource: 132,
+    age: 72,
+    gender: 88,
+    paymentModel: 100,
+    cr: 72,
+    geo: 120,
+    when: 108,
+    supplied: 96,
+    actions: 120,
+  },
+))
 
 const whenItems = [
   { title: 'Today', value: 'today' },
@@ -140,6 +159,29 @@ const rows = computed(() => filtered.value.map((cap) => ({
 })))
 
 const empty = computed(() => filtering.value && listed.value.length > 0 ? 'Нет кап по этим фильтрам' : 'Открытых кап нет')
+
+function exportCsv(): void {
+  exportTableCsv('caps.csv', headers.value, rows.value, capExportCell)
+}
+
+function capExportCell(key: string, item: CapRow): string {
+  switch (key) {
+    case 'trafficSource':
+      return trafficLabel(item.trafficSource)
+    case 'gender':
+      return genderLabel(item.gender)
+    case 'paymentModel':
+      return modelLabel(item.paymentModel)
+    case 'geo':
+      return countryName(item.geo)
+    case 'when':
+      return item.stock ? 'Stock' : (item.serviceOn ?? '')
+    case 'supplied':
+      return `${item.supplied} / ${item.volume}`
+    default:
+      return cellToString((item as Record<string, unknown>)[key])
+  }
+}
 
 function matchesWhen(cap: CapRow): boolean {
   if (!when.value) return true

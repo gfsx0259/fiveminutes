@@ -65,20 +65,28 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 
 <style scoped>
 .ui-data-table-shell {
+  max-width: 100%;
   min-height: 350px;
+  min-width: 0;
   position: relative;
   width: 100%;
 }
 
 .ui-data-table :deep(.v-data-table),
-.ui-data-table :deep(.v-table),
-.ui-data-table :deep(.v-table__wrapper),
-.ui-data-table :deep(.v-table__wrapper > table) {
+.ui-data-table :deep(.v-table) {
   width: 100%;
 }
 
+.ui-data-table:not(.resizable-cols) :deep(.v-table__wrapper) {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
 .ui-data-table:not(.resizable-cols) :deep(.v-table__wrapper > table) {
-  table-layout: fixed;
+  min-width: 100%;
+  table-layout: auto;
+  width: max-content;
 }
 
 .ui-data-table-shell--loading .ui-data-table :deep(tbody) {
@@ -117,6 +125,14 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
   border-radius: 10px;
   max-height: min(550px, 70vh);
   min-height: 350px;
+}
+
+.ui-data-table:not(.resizable-cols) :deep(thead th .v-data-table-header__content) {
+  white-space: nowrap;
+}
+
+.ui-data-table:not(.resizable-cols) :deep(tbody td) {
+  white-space: nowrap;
 }
 
 .ui-data-table.resizable-cols :deep(.v-table__wrapper > table) {
@@ -225,10 +241,11 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 .ui-data-table :deep(tbody td .ui-table-cell-actions) {
   align-items: center;
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-flow: row nowrap;
   gap: 8px;
   justify-content: flex-end;
   max-width: 100%;
+  white-space: nowrap;
 }
 
 .ui-data-table :deep(tbody tr:hover td) {
@@ -252,5 +269,43 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 
 .ui-data-table :deep(.v-btn--icon) {
   color: var(--lm-primary-deep);
+}
+
+/* Actions stay visible while scrolling wide tables */
+.ui-data-table :deep(.ui-col-sticky-end) {
+  background: #fff;
+  box-shadow: none;
+  position: sticky;
+  right: 0;
+  z-index: 1;
+}
+
+.ui-data-table :deep(.ui-col-sticky-end)::before {
+  background: color-mix(in srgb, var(--lm-primary) 32%, var(--lm-lavender));
+  bottom: 8px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 8px;
+  width: 1px;
+}
+
+.ui-data-table :deep(thead .ui-col-sticky-end) {
+  background: var(--lm-lavender) !important;
+  z-index: 3;
+}
+
+.ui-data-table :deep(thead .ui-col-sticky-end)::before {
+  display: none;
+}
+
+.ui-data-table :deep(tbody tr:hover .ui-col-sticky-end) {
+  background: #faf8ff !important;
+}
+
+@media (max-width: 1280px) {
+  .ui-data-table :deep(.ui-col-sticky-end) {
+    padding-inline: 8px !important;
+  }
 }
 </style>

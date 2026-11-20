@@ -1,12 +1,22 @@
 <template>
-  <div class="lm-sidebar__content">
+  <div class="lm-sidebar__content" :class="{ 'lm-mobile-nav': light }">
+    <svg
+      v-if="light"
+      class="lm-mobile-nav__bg-wave"
+      viewBox="0 0 400 900"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <path d="M0 520C140 620 180 120 400 40L400 900L0 900Z" fill="#6847e8" fill-opacity=".14" />
+      <path d="M20 500C160 580 220 280 400 200" fill="none" stroke="#8f74ff" stroke-opacity=".28" />
+    </svg>
     <div class="lm-brand">
       <div class="lm-brand__lockup" aria-label="Rider">
         <span class="lm-brand__logo lm-brand__logo--short" aria-hidden="true">R</span>
         <span class="lm-brand__logo lm-brand__logo--full" aria-hidden="true">Rider</span>
       </div>
       <button
-        v-if="showToggle"
+        v-if="showToggle && !light"
         type="button"
         class="lm-sidebar__toggle"
         :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
@@ -17,7 +27,32 @@
       </button>
     </div>
 
-    <div v-if="email" class="lm-account">
+    <div v-if="light && (email || showWallet)" class="lm-mobile-nav__header">
+      <div v-if="email" class="lm-account lm-mobile-nav__panel">
+        <span class="lm-account__avatar">{{ initials }}</span>
+        <span class="lm-account__text">
+          <strong>{{ email }}</strong>
+          <small>{{ accountLine }}</small>
+        </span>
+      </div>
+      <div v-if="showWallet" class="lm-mobile-nav__wallet lm-mobile-nav__panel">
+        <div class="lm-mobile-nav__label">
+          <v-icon icon="mdi-wallet-outline" size="16" />
+          Wallet balance
+        </div>
+        <strong class="lm-mobile-nav__amount">{{ walletBalance }}</strong>
+        <div class="lm-mobile-nav__wallet-actions">
+          <UiButton variant="ghost" class="lm-mobile-nav__add" icon="mdi-plus" :loading="wallet.busy" @click="onDeposit">
+            Add funds
+          </UiButton>
+          <UiButton variant="ghost" class="lm-mobile-nav__buy" icon="mdi-cart-outline" @click="onBuyLeads">
+            Buy leads
+          </UiButton>
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="email" class="lm-account">
       <span class="lm-account__avatar">{{ initials }}</span>
       <span class="lm-account__text">
         <strong>{{ email }}</strong>
@@ -25,7 +60,7 @@
       </span>
     </div>
 
-    <nav class="lm-nav">
+    <nav class="lm-nav" :class="{ 'lm-mobile-nav__links': light }">
       <router-link
         v-for="item in menu"
         :key="item.to"
@@ -44,7 +79,7 @@
       </router-link>
     </nav>
 
-    <svg v-if="!sheet" class="lm-sidebar__wave" viewBox="0 0 280 400" preserveAspectRatio="none" aria-hidden="true">
+    <svg v-if="!sheet && !light" class="lm-sidebar__wave" viewBox="0 0 280 400" preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id="rider-wave" x1="0" y1="0" x2="1" y2="1">
           <stop stop-color="#201d52" stop-opacity="0" />
@@ -69,13 +104,18 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import UiButton from '@/components/ui/UiButton.vue'
+import { dollars } from '@/money'
 import { useSessionStore } from '@/stores/session'
+import { useWalletStore } from '@/stores/wallet'
 
 defineProps<{
   showToggle?: boolean
   collapsed?: boolean
   sheet?: boolean
+  light?: boolean
+  showWallet?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -85,7 +125,23 @@ const emit = defineEmits<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
 const session = useSessionStore()
+const wallet = useWalletStore()
+
+const walletBalance = computed(() => {
+  const cents = session.payload?.user?.balanceCents ?? 0
+  return dollars(cents / 100)
+})
+
+function onDeposit(): void {
+  void wallet.deposit()
+}
+
+function onBuyLeads(): void {
+  emit('navigate')
+  void router.push('/stock')
+}
 
 interface NavItem {
   title: string

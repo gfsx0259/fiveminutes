@@ -45,23 +45,46 @@ import TrafficSourceLabel from '@/components/TrafficSourceLabel.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import { dollars } from '@/money'
 import { momentOf, outcomeView, type Purchase } from '@/purchases'
+import { prepareTableHeaders } from '@/tableHeaders'
 
 const props = defineProps<{
   purchases: Purchase[]
   now: number
 }>()
 
-const headers = [
-  { title: 'Time', key: 'at', sortable: false, width: 130 },
-  { title: 'Lead', key: 'name', sortable: false },
-  { title: 'Country', key: 'country', sortable: false, width: 90 },
-  { title: 'Traffic', key: 'trafficSource', sortable: false, width: 130 },
-  { title: 'Model', key: 'model', sortable: false, width: 80 },
-  { title: 'Price', key: 'cost', sortable: false, align: 'end' as const, width: 100 },
-  { title: 'Status', key: 'outcome', sortable: false, width: 130 },
-]
+const headers = prepareTableHeaders(
+  [
+    { title: 'Time', key: 'at', sortable: false },
+    { title: 'Lead', key: 'name', sortable: false },
+    { title: 'Country', key: 'country', sortable: false },
+    { title: 'Traffic', key: 'trafficSource', sortable: false },
+    { title: 'Model', key: 'model', sortable: false },
+    { title: 'Price', key: 'cost', sortable: false, align: 'end' as const },
+    { title: 'Status', key: 'outcome', sortable: false },
+  ],
+  {
+    at: 130,
+    name: 160,
+    country: 96,
+    trafficSource: 132,
+    model: 88,
+    cost: 88,
+    outcome: 120,
+  },
+)
 
-const rows = computed(() => props.purchases.slice(-7).reverse().map((purchase) => ({
+type RecentLeadRow = {
+  uuid: string
+  at: number
+  name: string
+  country: string
+  trafficSource: string
+  model: string
+  cost: number
+  outcome: string
+}
+
+const rows = computed((): RecentLeadRow[] => props.purchases.slice(-7).reverse().map((purchase) => ({
   uuid: purchase.lead.uuid,
   at: purchase.at,
   name: `${purchase.lead.firstName} ${purchase.lead.lastName.charAt(0)}.`.trim(),

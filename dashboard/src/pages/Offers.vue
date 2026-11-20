@@ -19,6 +19,9 @@
         <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="refresh()">
           Refresh
         </UiButton>
+        <UiButton variant="outline" icon="mdi-download" :disabled="market.offers.length === 0" @click="exportCsv">
+          Export
+        </UiButton>
       </template>
       <UiDataTable :headers="headers" :items="market.offers" :loading="market.loading" item-value="id" hover>
         <template #item.status="{ item }">
@@ -55,8 +58,12 @@ import StatusChip from '@/components/StatusChip.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
-import { useMarketStore } from '@/stores/market'
+import { countryName } from '@/countries'
+import { exportTableCsv, cellToString } from '@/tableCsvExport'
+import { trafficLabel } from '@/marketOptions'
+import { useMarketStore, type OfferRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
+import { prepareTableHeaders } from '@/tableHeaders'
 
 const session = useSessionStore()
 const market = useMarketStore()
@@ -66,15 +73,47 @@ const open = ref(false)
 const acting = ref('')
 const actionError = ref('')
 
-const headers = computed(() => [
-  { title: 'Status', key: 'status' },
-  { title: 'Traffic', key: 'trafficSource' },
-  { title: 'Geo', key: 'geo' },
-  { title: 'Date', key: 'when' },
-  { title: 'Supplied', key: 'supplied' },
-  ...(isAdmin.value ? [{ title: 'Supplier', key: 'buyerEmail' }] : []),
-  { title: '', key: 'actions', sortable: false },
-])
+const headers = computed(() => prepareTableHeaders(
+  [
+    { title: 'Status', key: 'status' },
+    { title: 'Traffic', key: 'trafficSource' },
+    { title: 'Geo', key: 'geo' },
+    { title: 'Date', key: 'when' },
+    { title: 'Supplied', key: 'supplied', align: 'end' as const },
+    ...(isAdmin.value ? [{ title: 'Supplier', key: 'buyerEmail' }] : []),
+    { title: '', key: 'actions', sortable: false, align: 'end' as const },
+  ],
+  {
+    status: 108,
+    trafficSource: 132,
+    geo: 120,
+    when: 108,
+    supplied: 96,
+    buyerEmail: 180,
+    actions: 160,
+  },
+))
+
+function exportCsv(): void {
+  exportTableCsv('offers.csv', headers.value, market.offers, offerExportCell)
+}
+
+function offerExportCell(key: string, item: OfferRow): string {
+  switch (key) {
+    case 'status':
+      return item.status
+    case 'trafficSource':
+      return trafficLabel(item.trafficSource)
+    case 'geo':
+      return countryName(item.geo)
+    case 'when':
+      return item.stock ? 'Stock' : (item.serviceOn ?? '')
+    case 'supplied':
+      return `${item.supplied} / ${item.volume}`
+    default:
+      return cellToString((item as Record<string, unknown>)[key])
+  }
+}
 
 async function refresh(): Promise<void> {
   await market.loadPresets()

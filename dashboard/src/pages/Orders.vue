@@ -118,6 +118,9 @@
         <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="refresh()">
           Refresh
         </UiButton>
+        <UiButton variant="outline" icon="mdi-download" :disabled="filteredOrders.length === 0" @click="exportCsv">
+          Export
+        </UiButton>
       </template>
       <UiDataTable
         v-model:page="page"
@@ -183,7 +186,7 @@
           <div class="order-actions ui-table-cell-actions">
             <UiButton
               v-if="isPartner"
-              class="order-actions__btn"
+              class="order-actions__btn ui-table-cell-actions__btn"
               variant="outline"
               @click="goOrderLeads(item.id)"
             >
@@ -203,6 +206,15 @@
                 </button>
               </template>
               <div class="order-row-menu__list">
+                <button
+                  v-if="isPartner"
+                  type="button"
+                  class="order-row-menu__item ui-table-cell-actions__menu-only"
+                  @click="goOrderLeads(item.id)"
+                >
+                  <v-icon icon="mdi-account-group-outline" size="18" class="order-row-menu__icon" />
+                  My leads
+                </button>
                 <button type="button" class="order-row-menu__item" @click="copyOrderUuid(item.id)">
                   <v-icon icon="mdi-identifier" size="18" class="order-row-menu__icon" />
                   Copy order UUID
@@ -277,6 +289,10 @@ import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
+import { countryName } from '@/countries'
+import { exportTableCsv, cellToString } from '@/tableCsvExport'
+import { prepareTableHeaders } from '@/tableHeaders'
+import { useCompactTableActions } from '@/viewport'
 import {
   modelLabel,
   paymentModels,
@@ -299,6 +315,7 @@ const router = useRouter()
 const session = useSessionStore()
 const market = useMarketStore()
 const isPartner = computed(() => session.payload?.user?.role === 'partner')
+const compactTableActions = useCompactTableActions()
 const open = ref(false)
 const acting = ref('')
 const actionError = ref('')
@@ -413,6 +430,41 @@ function orderTypeLabel(item: OrderRow): string {
   return item.stock ? 'Stock' : 'Live'
 }
 
+function exportCsv(): void {
+  exportTableCsv('orders.csv', headers.value, filteredOrders.value, orderExportCell)
+}
+
+function orderExportCell(key: string, item: OrderRow): string {
+  switch (key) {
+    case 'id':
+      return orderDisplayId(item.id)
+    case 'vertical':
+      return verticalLabel(item.vertical)
+    case 'geo':
+      return countryName(item.geo)
+    case 'trafficSource':
+      return trafficLabel(item.trafficSource)
+    case 'paymentModel':
+      return modelLabel(item.paymentModel)
+    case 'orderType':
+      return orderTypeLabel(item)
+    case 'whenDay':
+      return item.whenDay || '—'
+    case 'supplied':
+      return `${item.supplied} / ${item.volume}`
+    case 'orderCostCents':
+      return orderCostLabel(item)
+    case 'priceCents':
+      return dollars(item.priceCents / 100)
+    case 'partnerPriceCents':
+      return dollars(item.partnerPriceCents / 100)
+    case 'status':
+      return item.status
+    default:
+      return cellToString((item as Record<string, unknown>)[key])
+  }
+}
+
 const partnerLeadColumns = [
   { title: 'Order ID', key: 'id', sortable: false, align: 'start' as const },
   { title: 'Vertical', key: 'vertical', align: 'start' as const },
@@ -425,21 +477,39 @@ const partnerLeadColumns = [
   { title: 'Order cost', key: 'orderCostCents', align: 'end' as const },
 ]
 
+const orderColumnMins: Record<string, number> = {
+  orderUuid: 108,
+  vertical: 100,
+  geo: 120,
+  trafficSource: 128,
+  paymentModel: 112,
+  orderType: 88,
+  whenDay: 108,
+  supplied: 112,
+  orderCostCents: 108,
+  priceCents: 108,
+  partnerPriceCents: 116,
+  status: 100,
+  orderActions: 120,
+}
+
 const headers = computed(() => {
+  const orderActionsMin = compactTableActions.value ? 56 : (isPartner.value ? 168 : 72)
+  const actionMins = { ...orderColumnMins, orderActions: orderActionsMin }
   if (isPartner.value) {
-    return [
+    return prepareTableHeaders([
       ...partnerLeadColumns,
       { title: 'Status', key: 'status', align: 'center' as const },
-      { title: '', key: 'orderActions', sortable: false, align: 'end' as const, width: '9.5rem' },
-    ]
+      { title: '', key: 'orderActions', sortable: false, align: 'end' as const },
+    ], actionMins)
   }
-  return [
+  return prepareTableHeaders([
     ...partnerLeadColumns,
     { title: 'Catalog price', key: 'priceCents', align: 'end' as const },
     { title: 'Partner pays', key: 'partnerPriceCents', align: 'end' as const },
     { title: 'Status', key: 'status', align: 'center' as const },
-    { title: '', key: 'orderActions', sortable: false, align: 'end' as const, width: '3.5rem' },
-  ]
+    { title: '', key: 'orderActions', sortable: false, align: 'end' as const },
+  ], actionMins)
 })
 
 function orderCostCents(item: OrderRow): number {
@@ -574,6 +644,12 @@ onMounted(() => {
   display: none;
 }
 
+.orders-table :deep(tbody td .order-actions) {
+  flex-flow: row nowrap !important;
+  white-space: nowrap;
+  width: max-content;
+}
+
 @media (max-width: 1280px) {
   .orders-filters__toolbar {
     flex-wrap: wrap;
@@ -594,16 +670,34 @@ onMounted(() => {
 }
 
 @media (max-width: 700px) {
-  .orders-filters__main,
+  .orders-filter-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .orders-filters__toolbar {
+    display: contents;
+  }
+
+  .orders-filters__main {
+    order: 1;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
   .orders-filters__advanced {
+    order: 2;
     grid-template-columns: minmax(0, 1fr);
   }
 
   .orders-filters__toolbar-end {
+    order: 3;
     display: grid;
     gap: 8px;
     grid-template-columns: 1fr;
     height: auto;
+    margin-left: 0;
     width: 100%;
   }
 

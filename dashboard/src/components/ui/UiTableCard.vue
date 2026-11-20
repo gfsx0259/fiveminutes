@@ -23,6 +23,7 @@ defineProps<{
   border-radius: var(--lm-radius);
   box-shadow: var(--lm-shadow);
   box-sizing: border-box;
+  max-width: 100%;
   min-width: 0;
   padding: 14px 16px;
   width: 100%;

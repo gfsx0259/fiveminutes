@@ -58,6 +58,11 @@
     </div>
 
     <UiTableCard title="Countries">
+      <template #actions>
+        <UiButton variant="outline" icon="mdi-download" :disabled="rows.length === 0" @click="exportCsv">
+          Export
+        </UiButton>
+      </template>
       <UiDataTable
         :headers="headers"
         :items="rows"
@@ -108,11 +113,15 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import CountryPick from '@/components/CountryPick.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
+import { countryName } from '@/countries'
+import { exportTableCsv, cellToString } from '@/tableCsvExport'
 import { dollars } from '@/money'
 import { useLeadStore, type CabinetLead } from '@/stores/leads'
 import { useSessionStore } from '@/stores/session'
+import { prepareTableHeaders } from '@/tableHeaders'
 
 const session = useSessionStore()
 const leadStore = useLeadStore()
@@ -124,28 +133,48 @@ if (role.value === 'partner') {
   void useRouter().replace('/reports')
 }
 
-const buyerHeaders = [
-  { title: 'Type', key: 'country' },
-  { title: 'Leads', key: 'leads', align: 'end' as const },
-  { title: 'Sold', key: 'sold', align: 'end' as const },
-  { title: 'Approved', key: 'approved', align: 'end' as const },
-  { title: 'Rejected', key: 'rejected', align: 'end' as const },
-  { title: 'CR', key: 'crValue', align: 'end' as const },
-  { title: 'Net earnings', key: 'earnings', align: 'end' as const },
-  { title: 'EPL', key: 'epl', align: 'end' as const },
-]
+const perfMin = {
+  country: 124,
+  leads: 88,
+  sold: 80,
+  approved: 96,
+  rejected: 96,
+  crValue: 72,
+  earnings: 120,
+  epl: 88,
+  partnerSales: 120,
+  profit: 120,
+  epp: 88,
+}
 
-const adminHeaders = [
-  { title: 'Type', key: 'country' },
-  { title: 'Leads', key: 'leads', align: 'end' as const },
-  { title: 'Sold', key: 'sold', align: 'end' as const },
-  { title: 'Approved', key: 'approved', align: 'end' as const },
-  { title: 'Rejected', key: 'rejected', align: 'end' as const },
-  { title: 'CR', key: 'crValue', align: 'end' as const },
-  { title: 'Partner sales', key: 'partnerSales', align: 'end' as const },
-  { title: 'Platform profit', key: 'profit', align: 'end' as const },
-  { title: 'EPP', key: 'epp', align: 'end' as const },
-]
+const buyerHeaders = prepareTableHeaders(
+  [
+    { title: 'Type', key: 'country' },
+    { title: 'Leads', key: 'leads', align: 'end' as const },
+    { title: 'Sold', key: 'sold', align: 'end' as const },
+    { title: 'Approved', key: 'approved', align: 'end' as const },
+    { title: 'Rejected', key: 'rejected', align: 'end' as const },
+    { title: 'CR', key: 'crValue', align: 'end' as const },
+    { title: 'Net earnings', key: 'earnings', align: 'end' as const },
+    { title: 'EPL', key: 'epl', align: 'end' as const },
+  ],
+  perfMin,
+)
+
+const adminHeaders = prepareTableHeaders(
+  [
+    { title: 'Type', key: 'country' },
+    { title: 'Leads', key: 'leads', align: 'end' as const },
+    { title: 'Sold', key: 'sold', align: 'end' as const },
+    { title: 'Approved', key: 'approved', align: 'end' as const },
+    { title: 'Rejected', key: 'rejected', align: 'end' as const },
+    { title: 'CR', key: 'crValue', align: 'end' as const },
+    { title: 'Partner sales', key: 'partnerSales', align: 'end' as const },
+    { title: 'Platform profit', key: 'profit', align: 'end' as const },
+    { title: 'EPP', key: 'epp', align: 'end' as const },
+  ],
+  perfMin,
+)
 
 const headers = computed(() => {
   if (isAdmin.value) return adminHeaders
@@ -268,6 +297,27 @@ const rows = computed(() => {
   if (isAdmin.value) return aggregateAdmin()
   return aggregateBuyer()
 })
+
+function exportCsv(): void {
+  exportTableCsv('performance.csv', headers.value, rows.value, performanceExportCell)
+}
+
+function performanceExportCell(key: string, item: (typeof rows.value)[number]): string {
+  switch (key) {
+    case 'country':
+      return countryName(item.country)
+    case 'crValue':
+      return item.cr
+    case 'earnings':
+    case 'epl':
+    case 'partnerSales':
+    case 'profit':
+    case 'epp':
+      return dollars((item as Record<string, number>)[key] ?? 0)
+    default:
+      return cellToString((item as Record<string, unknown>)[key])
+  }
+}
 
 type PerfSummary = {
   leads: number

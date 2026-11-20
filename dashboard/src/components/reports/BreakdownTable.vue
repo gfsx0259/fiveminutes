@@ -76,6 +76,7 @@ import UiDataTable from '@/components/ui/UiDataTable.vue'
 import { countryName } from '@/countries'
 import { verticalColor, verticalIcon, verticalLabel } from '@/marketOptions'
 import { dollars } from '@/money'
+import { prepareTableHeaders } from '@/tableHeaders'
 import { HOUR, percent, timeOf, type BreakdownGroup, type BreakdownRow, type Period, type PurchaseTotals } from '@/purchases'
 
 const props = defineProps<{
@@ -99,19 +100,34 @@ const dimension = computed(() => ({
   time: props.unit === 'hour' ? 'Hour' : 'Day',
 }[props.group]))
 
-const headers = computed(() => [
-  { title: dimension.value, key: 'key', width: 200, sortRaw: (left: BreakdownRow, right: BreakdownRow) => compare(left.order, right.order) },
-  { title: 'Leads', key: 'leads', align: 'end' as const },
-  { title: 'Delivered', key: 'delivered', align: 'end' as const },
-  { title: 'In work', key: 'pending', align: 'end' as const },
-  { title: 'Approved', key: 'approved', align: 'end' as const },
-  { title: 'Rejected', key: 'rejected', align: 'end' as const },
-  { title: 'Approval rate', key: 'approvalRate', align: 'end' as const, width: 130 },
-  { title: 'Spent', key: 'spent', align: 'end' as const, width: 120 },
-  { title: 'Avg cost / lead', key: 'averageCost', align: 'end' as const, width: 130 },
-  { title: 'Cost / approved', key: 'costPerApproved', align: 'end' as const, width: 130 },
-  { title: 'Share of spend', key: 'share', align: 'end' as const, width: 130 },
-])
+const headers = computed(() => prepareTableHeaders(
+  [
+    { title: dimension.value, key: 'key', sortRaw: (left: BreakdownRow, right: BreakdownRow) => compare(left.order, right.order) },
+    { title: 'Leads', key: 'leads', align: 'end' as const },
+    { title: 'Delivered', key: 'delivered', align: 'end' as const },
+    { title: 'In work', key: 'pending', align: 'end' as const },
+    { title: 'Approved', key: 'approved', align: 'end' as const },
+    { title: 'Rejected', key: 'rejected', align: 'end' as const },
+    { title: 'Approval rate', key: 'approvalRate', align: 'end' as const },
+    { title: 'Spent', key: 'spent', align: 'end' as const },
+    { title: 'Avg cost / lead', key: 'averageCost', align: 'end' as const },
+    { title: 'Cost / approved', key: 'costPerApproved', align: 'end' as const },
+    { title: 'Share of spend', key: 'share', align: 'end' as const },
+  ],
+  {
+    key: 200,
+    leads: 80,
+    delivered: 96,
+    pending: 88,
+    approved: 96,
+    rejected: 96,
+    approvalRate: 130,
+    spent: 108,
+    averageCost: 130,
+    costPerApproved: 130,
+    share: 120,
+  },
+))
 
 const maxRate = computed(() => Math.max(0.01, ...props.rows.map((row) => row.approvalRate)))
 
