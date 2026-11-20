@@ -283,3 +283,25 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.impersonation-banner {
+  background: #2b2348;
+  color: #f2eeff;
+  font-size: 13px;
+  padding-inline: 16px;
+  z-index: 2000;
+}
+
+.impersonation-banner__stop {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 4px 10px;
+}
+
+.impersonation-banner__stop:hover {
+  border-color: #fff;
+}

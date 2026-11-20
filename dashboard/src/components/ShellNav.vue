@@ -103,7 +103,8 @@ const menu = computed((): NavItem[] => {
     return [
       { title: 'Presets', to: '/presets', icon: 'mdi-shape-outline' },
       { title: 'Orders', to: '/orders', icon: 'mdi-clipboard-text-outline' },
-      { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline', sectionAfter: true },
+      { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline' },
+      { title: 'Users', to: '/users', icon: 'mdi-account-group-outline', sectionAfter: true },
       leads,
       performance,
     ]

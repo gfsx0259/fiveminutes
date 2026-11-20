@@ -280,7 +280,7 @@ import {
   verticals,
 } from '@/marketOptions'
 import { dollars, wholeDollars } from '@/money'
-import { parseStockModalIntent, STOCK_MODAL_QUERY_KEYS } from '@/stockModalIntent'
+import { parseStockModalIntent, STOCK_MODAL_QUERY_KEYS, STOCK_SHARE_ASSIST_KEYS } from '@/stockModalIntent'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore, type StockOfferRow } from '@/stores/market'
 
@@ -401,11 +401,12 @@ function resetFilters(): void {
 }
 
 function clearStockModalQuery(): void {
-  if (!STOCK_MODAL_QUERY_KEYS.some((key) => route.query[key] != null)) {
+  const keys = [...STOCK_MODAL_QUERY_KEYS, ...STOCK_SHARE_ASSIST_KEYS]
+  if (!keys.some((key) => route.query[key] != null)) {
     return
   }
   const query = { ...route.query }
-  for (const key of STOCK_MODAL_QUERY_KEYS) {
+  for (const key of keys) {
     delete query[key]
   }
   void router.replace({ path: route.path, query })

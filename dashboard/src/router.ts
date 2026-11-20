@@ -11,6 +11,7 @@ import Performance from '@/pages/Performance.vue'
 import PresetPage from '@/pages/PresetPage.vue'
 import Reports from '@/pages/Reports.vue'
 import Stock from '@/pages/Stock.vue'
+import Users from '@/pages/Users.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -26,6 +27,7 @@ export const router = createRouter({
     { path: '/caps', component: Caps },
     { path: '/offers', component: Offers },
     { path: '/performance', component: Performance },
+    { path: '/users', component: Users },
   ],
 })
 

@@ -369,13 +369,17 @@ async function copyShareLink(): Promise<void> {
     return
   }
   const priceNum = Number(price.value)
+  const sharer = session.payload?.user
+  const assist = sharer
+    ? { asUserId: sharer.id, forRole: 'partner' as const }
+    : undefined
   const url = stockModalShareUrl(window.location.origin, window.location.pathname, {
     action: 'order',
     presetId: preset.id,
     qty: volumeQty.value > 0 ? volumeQty.value : undefined,
     price: Number.isFinite(priceNum) && priceNum > 0 ? priceNum : undefined,
     day: serviceOn.value || undefined,
-  })
+  }, assist)
   try {
     await navigator.clipboard.writeText(url)
     showToast('Link copied')

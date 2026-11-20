@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Identity;
 
 use App\Context\Organization\OrganizationRepository;
+use App\Context\User\User;
 use App\Context\User\UserRole;
 use App\Context\User\UserRepository;
 use Ory\Client\Model\Session;
@@ -19,16 +20,24 @@ final readonly class SessionView
     /**
      * @return array<string, mixed>
      */
-    public function present(Session $session): array
+    public function present(Session $session, User $user, ?User $actor = null): array
     {
-        $identity = $session->getIdentity();
-        $identityId = $identity === null ? '' : (string) $identity->getId();
-        $user = $identityId !== '' ? $this->users->findByIdentityId($identityId) : null;
-        $organization = $user !== null ? $this->organizations->findById($user->getOrganizationId()) : null;
+        $organization = $this->organizations->findById($user->getOrganizationId());
+
+        $impersonation = null;
+        if ($actor !== null && $actor->getId() !== $user->getId()) {
+            $impersonation = [
+                'active' => true,
+                'actor' => [
+                    'id' => $actor->getId(),
+                    'email' => $actor->getEmail(),
+                ],
+            ];
+        }
 
         return [
             'session' => $session->jsonSerialize(),
-            'user' => $user === null ? null : [
+            'user' => [
                 'id' => $user->getId(),
                 'email' => $user->getEmail(),
                 'role' => $user->getRole()->value,
@@ -45,6 +54,7 @@ final readonly class SessionView
                         : null,
                 ],
             ],
+            'impersonation' => $impersonation,
         ];
     }
 }

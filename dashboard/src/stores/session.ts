@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { apiOrigin } from '@/host'
+import { apiDelete, apiPost } from '@/api'
+import { apiOrigin, cabinetOrigin } from '@/host'
 
 export interface Organization {
   id: string
@@ -18,9 +19,15 @@ export interface AppUser {
   organization: Organization | null
 }
 
+export interface ImpersonationState {
+  active: boolean
+  actor: { id: string; email: string }
+}
+
 export interface SessionPayload {
   session: Record<string, unknown>
   user: AppUser | null
+  impersonation?: ImpersonationState | null
 }
 
 export const useSessionStore = defineStore('session', () => {
@@ -54,5 +61,25 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
-  return { payload, missing, loading, error, load }
+  async function startImpersonation(
+    userId: string,
+    role?: string,
+    options?: { redirect?: boolean },
+  ): Promise<void> {
+    await apiPost('/impersonate', { userId })
+    await load()
+    if (options?.redirect === false) {
+      return
+    }
+    const nextRole = role ?? payload.value?.user?.role ?? 'partner'
+    window.location.href = cabinetOrigin(window.location.hostname, nextRole)
+  }
+
+  async function stopImpersonation(): Promise<void> {
+    await apiDelete('/impersonate')
+    await load()
+    window.location.href = `${cabinetOrigin(window.location.hostname, 'admin')}/users`
+  }
+
+  return { payload, missing, loading, error, load, startImpersonation, stopImpersonation }
 })

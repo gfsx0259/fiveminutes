@@ -16,6 +16,23 @@
   </v-app>
 
   <v-app v-else class="lm-app" :class="{ 'lm-app--collapsed': rail }">
+    <v-system-bar
+      v-if="impersonation"
+      window
+      :order="0"
+      height="40"
+      class="impersonation-banner"
+    >
+      <span>
+        Вход как <strong>{{ session.payload?.user?.email }}</strong>
+        ({{ session.payload?.user?.role }}) · админ {{ impersonation.actor.email }}
+      </span>
+      <v-spacer />
+      <button type="button" class="impersonation-banner__stop" @click="stopImpersonation">
+        Выйти
+      </button>
+    </v-system-bar>
+
     <v-navigation-drawer
       v-if="!overlayNav"
       :model-value="true"
@@ -92,6 +109,7 @@ import TopbarWallet from '@/components/TopbarWallet.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { loginUrl, logout } from '@/host'
 import { documentTitle } from '@/pageTitle'
+import { maybeResolveAdminStockShare } from '@/stockShareAssist'
 import { useSessionStore } from '@/stores/session'
 import { useViewport } from '@/viewport'
 
@@ -99,6 +117,8 @@ const COLLAPSE_KEY = 'rider.sidebar.collapsed'
 
 const session = useSessionStore()
 const route = useRoute()
+
+const impersonation = computed(() => session.payload?.impersonation ?? null)
 const { mobile: overlayNav, tablet: tabletRail } = useViewport()
 const drawer = ref(false)
 const collapsed = ref(false)
@@ -168,6 +188,17 @@ function signIn(): void {
 function handleLogout(): void {
   void logout(window.location.hostname)
 }
+
+async function stopImpersonation(): Promise<void> {
+  await session.stopImpersonation()
+}
+
+watch(
+  () => [session.loading, route.fullPath] as const,
+  () => {
+    void maybeResolveAdminStockShare(session, route)
+  },
+)
 
 onMounted(() => {
   tickClock()

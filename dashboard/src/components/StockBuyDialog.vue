@@ -120,11 +120,15 @@ async function copyShareLink(): Promise<void> {
   }
   const raw = Number(volume.value)
   const qty = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : undefined
+  const sharer = session.payload?.user
+  const assist = sharer
+    ? { asUserId: sharer.id, forRole: 'partner' as const }
+    : undefined
   const url = stockModalShareUrl(window.location.origin, window.location.pathname, {
     action: 'buy',
     presetId: target.presetId,
     qty,
-  })
+  }, assist)
   try {
     await navigator.clipboard.writeText(url)
     showToast('Link copied')

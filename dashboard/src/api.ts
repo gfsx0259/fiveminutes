@@ -23,3 +23,13 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 
   return data
 }
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  const response = await api(path, { method: 'DELETE' })
+  const data = await response.json() as T & { error?: string }
+  if (!response.ok) {
+    throw new Error(typeof data.error === 'string' ? data.error : `Request failed: ${response.status}`)
+  }
+
+  return data
+}

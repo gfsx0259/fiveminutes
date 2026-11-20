@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Context\Identity\CurrentUser;
 use App\Context\Identity\KratosSessions;
+use App\Context\Identity\NoAccountException;
 use App\Context\Identity\NoSessionException;
 use App\Context\Identity\SessionView;
 use Psr\Http\Message\ResponseInterface;
@@ -15,6 +17,7 @@ final readonly class SessionController
 {
     public function __construct(
         private KratosSessions $sessions,
+        private CurrentUser $currentUser,
         private SessionView $view,
         private DataResponseFactoryInterface $responses,
         private RequestProviderInterface $requests,
@@ -23,11 +26,18 @@ final readonly class SessionController
     public function show(): ResponseInterface
     {
         try {
-            $session = $this->sessions->read($this->requests->get()->getHeaderLine('Cookie'));
-        } catch (NoSessionException) {
+            $cookie = $this->requests->get()->getHeaderLine('Cookie');
+            $session = $this->sessions->read($cookie);
+            $actor = $this->currentUser->requireActor($cookie);
+            $effective = $this->currentUser->effective($actor, $cookie);
+        } catch (NoSessionException|NoAccountException) {
             return $this->responses->createResponse(['error' => 'No session'], 401);
         }
 
-        return $this->responses->createResponse($this->view->present($session));
+        $impersonating = $actor->getId() !== $effective->getId();
+
+        return $this->responses->createResponse(
+            $this->view->present($session, $effective, $impersonating ? $actor : null),
+        );
     }
 }

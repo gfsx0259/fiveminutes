@@ -13,6 +13,7 @@ export function routePageTitle(path: string, role?: string): string | null {
     '/presets': 'Presets',
     '/offers': 'Offers',
     '/caps': 'Caps',
+    '/users': 'Users',
   }
 
   return byPath[path] ?? null

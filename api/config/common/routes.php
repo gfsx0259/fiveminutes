@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 use App\Api\ApiKeyController;
 use App\Api\HealthController;
+use App\Api\ImpersonationController;
 use App\Api\LeadController;
 use App\Api\MarketController;
 use App\Api\OrganizationController;
 use App\Api\RegistrationController;
 use App\Api\SessionController;
+use App\Api\UserController;
 use App\Api\WalletController;
 use Yiisoft\Router\Group;
 use Yiisoft\Router\Route;
@@ -18,6 +20,9 @@ return [
         Route::get('/health')->action([HealthController::class, 'index'])->name('health'),
         Route::post('/user/registration')->action([RegistrationController::class, 'create'])->name('user-registration'),
         Route::get('/session')->action([SessionController::class, 'show'])->name('session'),
+        Route::get('/users')->action([UserController::class, 'index'])->name('users'),
+        Route::post('/impersonate')->action([ImpersonationController::class, 'start'])->name('impersonate-start'),
+        Route::delete('/impersonate')->action([ImpersonationController::class, 'stop'])->name('impersonate-stop'),
         Route::post('/organization/markup')->action([OrganizationController::class, 'setMarkup'])->name('organization-markup'),
         Route::get('/wallet/transactions')->action([WalletController::class, 'transactions'])->name('wallet-transactions'),
         Route::post('/wallet/deposit')->action([WalletController::class, 'deposit'])->name('wallet-deposit'),

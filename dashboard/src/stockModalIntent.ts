@@ -17,8 +17,17 @@ export type StockOrderIntent = {
 export type StockModalIntent = StockBuyIntent | StockOrderIntent
 
 export const STOCK_MODAL_QUERY_KEYS = ['action', 'preset', 'qty', 'price', 'day'] as const
+export const STOCK_SHARE_ASSIST_KEYS = ['as', 'for'] as const
 
-export function stockModalIntentToQuery(intent: StockModalIntent): Record<string, string> {
+export type StockShareAssist = {
+  asUserId: string
+  forRole: 'partner' | 'buyer'
+}
+
+export function stockModalIntentToQuery(
+  intent: StockModalIntent,
+  assist?: StockShareAssist,
+): Record<string, string> {
   const query: Record<string, string> = {
     action: intent.action,
     preset: intent.presetId,
@@ -33,6 +42,10 @@ export function stockModalIntentToQuery(intent: StockModalIntent): Record<string
     if (intent.day) {
       query.day = intent.day
     }
+  }
+  if (assist) {
+    query.as = assist.asUserId
+    query.for = assist.forRole
   }
   return query
 }
@@ -75,7 +88,35 @@ export function parseStockModalIntent(query: Record<string, unknown>): StockModa
   return { action: 'order', presetId: preset, qty, price, day }
 }
 
-export function stockModalShareUrl(origin: string, pathname: string, intent: StockModalIntent): string {
-  const params = new URLSearchParams(stockModalIntentToQuery(intent))
+export function parseStockShareAssist(query: Record<string, unknown>): StockShareAssist | null {
+  const asRaw = query.as
+  const asUserId = typeof asRaw === 'string' ? asRaw.trim().toLowerCase() : ''
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(asUserId)) {
+    return null
+  }
+  const forRaw = query.for
+  const forRole = forRaw === 'buyer' ? 'buyer' : 'partner'
+
+  return { asUserId, forRole }
+}
+
+export function stockModalShareUrl(
+  origin: string,
+  pathname: string,
+  intent: StockModalIntent,
+  assist?: StockShareAssist,
+): string {
+  const params = new URLSearchParams(stockModalIntentToQuery(intent, assist))
   return `${origin}${pathname}?${params.toString()}`
+}
+
+export function stockModalQueryWithoutAssist(query: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const key of STOCK_MODAL_QUERY_KEYS) {
+    const value = query[key]
+    if (typeof value === 'string' && value.trim() !== '') {
+      out[key] = value
+    }
+  }
+  return out
 }
