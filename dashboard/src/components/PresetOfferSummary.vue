@@ -12,16 +12,13 @@
       <span v-if="paymentModel" class="preset-offer-summary__model">{{ modelLabel(paymentModel) }}</span>
     </header>
     <div class="preset-offer-summary__body">
-      <div class="preset-offer-summary__row">
-        <div class="preset-offer-summary__cell">
+      <div class="preset-offer-summary__row preset-offer-summary__row--meta">
+        <div class="preset-offer-summary__cell preset-offer-summary__cell--country">
           <span class="preset-offer-summary__label">Country</span>
-          <span class="preset-offer-summary__value">
-            <CountryFlag :code="country" :size="16" />
-            <span>{{ countryName }}</span>
-          </span>
+          <CountryPick :code="country" label="name" :size="16" class="preset-offer-summary__country" />
         </div>
         <span class="preset-offer-summary__sep" aria-hidden="true" />
-        <div class="preset-offer-summary__cell">
+        <div class="preset-offer-summary__cell preset-offer-summary__cell--fixed">
           <span class="preset-offer-summary__label">Traffic</span>
           <span class="preset-offer-summary__value">
             <v-icon :icon="trafficIcon(trafficSource)" :color="trafficColor(trafficSource)" size="16" />
@@ -30,7 +27,7 @@
         </div>
         <template v-if="conversion != null && conversion > 0">
           <span class="preset-offer-summary__sep" aria-hidden="true" />
-          <div class="preset-offer-summary__cell">
+          <div class="preset-offer-summary__cell preset-offer-summary__cell--fixed">
             <span class="preset-offer-summary__label">CR</span>
             <span class="preset-offer-summary__cr">{{ conversion }}%</span>
           </div>
@@ -47,9 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import CountryFlag from '@/components/CountryFlag.vue'
-import { ISO2_COUNTRIES } from '@/countries'
+import CountryPick from '@/components/CountryPick.vue'
 import {
   modelLabel,
   trafficColor,
@@ -74,10 +69,6 @@ const props = withDefaults(
     amountLabel?: string
   }>(),
   { amountLabel: 'Payout' },
-)
-
-const countryName = computed(() =>
-  ISO2_COUNTRIES.find((c) => c.code === props.country)?.name ?? props.country,
 )
 </script>
 
@@ -153,6 +144,12 @@ const countryName = computed(() =>
   gap: 10px 18px;
 }
 
+.preset-offer-summary__row--meta {
+  flex-wrap: nowrap;
+  gap: 10px 14px;
+  min-width: 0;
+}
+
 .preset-offer-summary__row--price {
   padding-top: 2px;
 }
@@ -160,10 +157,27 @@ const countryName = computed(() =>
 .preset-offer-summary__cell {
   align-items: center;
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   min-width: 0;
   padding-inline: 2px;
+}
+
+.preset-offer-summary__cell--country {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.preset-offer-summary__cell--fixed {
+  flex-shrink: 0;
+}
+
+.preset-offer-summary__country {
+  flex: 1 1 auto;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
 }
 
 .preset-offer-summary__label {
@@ -220,6 +234,10 @@ const countryName = computed(() =>
 
   .preset-offer-summary__row {
     gap: 12px 16px;
+  }
+
+  .preset-offer-summary__row--meta {
+    flex-wrap: wrap;
   }
 }
 </style>
