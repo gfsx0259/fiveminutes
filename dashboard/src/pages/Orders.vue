@@ -19,57 +19,15 @@
     <section class="ui-filter-panel orders-filter-panel" aria-label="Order filters">
       <div class="orders-filters__toolbar">
         <div class="orders-filters__main">
-          <UiLabeledField label="Vertical">
-            <UiSelect
-              v-model="filterVerticals"
-              :items="verticalItems"
-              placeholder="All verticals"
-              empty-label="All verticals"
-              multiple
-              clearable
-            >
-              <template #value="{ items }">
-                <span v-if="items.length === 0" class="stock-select__placeholder">All verticals</span>
-                <span v-else class="stock-select-picks">
-                  <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
-                    <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="14" />
-                    {{ item.title }}
-                  </span>
-                </span>
-              </template>
-              <template #option="{ item }">
-                <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="16" />
-                <span>{{ item.title }}</span>
-              </template>
-            </UiSelect>
+          <UiLabeledField label="Order ID">
+            <UiInput v-model="filterOrderId" class="orders-filter-order-id" placeholder="OR-… or uuid" />
           </UiLabeledField>
-          <UiLabeledField label="Country">
-            <CountryMultiSelect v-model="filterCountries" />
+          <UiLabeledField label="Scope">
+            <UiSelect v-model="filterScope" :items="scopeItems" />
           </UiLabeledField>
-          <UiLabeledField label="Traffic source">
-            <UiSelect
-              v-model="filterTraffics"
-              :items="trafficSources"
-              placeholder="All sources"
-              empty-label="All sources"
-              multiple
-              clearable
-            >
-              <template #value="{ items }">
-                <span v-if="items.length === 0" class="stock-select__placeholder">All sources</span>
-                <span v-else class="stock-select-picks">
-                  <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
-                    <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="14" />
-                    {{ item.title }}
-                  </span>
-                </span>
-              </template>
-              <template #option="{ item }">
-                <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="16" />
-                <span>{{ item.title }}</span>
-              </template>
-            </UiSelect>
-          </UiLabeledField>
+          <UiField label="Date" icon="mdi-calendar-range">
+            <UiDateField v-model="filterServiceOn" label="Date" class="orders-filter-date" />
+          </UiField>
           <UiLabeledField label="Type">
             <UiSelect
               v-model="filterOrderType"
@@ -79,9 +37,6 @@
               clearable
             />
           </UiLabeledField>
-          <UiField label="Date" icon="mdi-calendar-range">
-            <UiDateField v-model="filterServiceOn" label="Date" class="orders-filter-date" />
-          </UiField>
         </div>
         <div class="orders-filters__toolbar-end">
           <UiButton
@@ -96,12 +51,63 @@
         </div>
       </div>
       <div v-show="advancedOpen" class="orders-filters__advanced">
-        <UiLabeledField label="Status">
+        <UiLabeledField label="Vertical">
           <UiSelect
-            v-model="filterStatus"
-            :items="statusItems"
-            placeholder="Any status"
-            empty-label="Any status"
+            v-model="filterVerticals"
+            :items="verticalItems"
+            placeholder="All verticals"
+            empty-label="All verticals"
+            multiple
+            clearable
+          >
+            <template #value="{ items }">
+              <span v-if="items.length === 0" class="stock-select__placeholder">All verticals</span>
+              <span v-else class="stock-select-picks">
+                <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
+                  <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="14" />
+                  {{ item.title }}
+                </span>
+              </span>
+            </template>
+            <template #option="{ item }">
+              <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="16" />
+              <span>{{ item.title }}</span>
+            </template>
+          </UiSelect>
+        </UiLabeledField>
+        <UiLabeledField label="Country">
+          <CountryMultiSelect v-model="filterCountries" />
+        </UiLabeledField>
+        <UiLabeledField label="Traffic source">
+          <UiSelect
+            v-model="filterTraffics"
+            :items="trafficSources"
+            placeholder="All sources"
+            empty-label="All sources"
+            multiple
+            clearable
+          >
+            <template #value="{ items }">
+              <span v-if="items.length === 0" class="stock-select__placeholder">All sources</span>
+              <span v-else class="stock-select-picks">
+                <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
+                  <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="14" />
+                  {{ item.title }}
+                </span>
+              </span>
+            </template>
+            <template #option="{ item }">
+              <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="16" />
+              <span>{{ item.title }}</span>
+            </template>
+          </UiSelect>
+        </UiLabeledField>
+        <UiLabeledField label="Payment model">
+          <UiSelect
+            v-model="filterPaymentModel"
+            :items="paymentModels"
+            placeholder="Any model"
+            empty-label="Any model"
             clearable
           />
         </UiLabeledField>
@@ -269,12 +275,14 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiDateField from '@/components/ui/UiDateField.vue'
 import UiField from '@/components/ui/UiField.vue'
+import UiInput from '@/components/ui/UiInput.vue'
 import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import {
   modelLabel,
+  paymentModels,
   trafficColor,
   trafficIcon,
   trafficLabel,
@@ -286,7 +294,7 @@ import {
 } from '@/marketOptions'
 import { dollars, wholeDollars } from '@/money'
 import { showToast } from '@/composables/useToast'
-import { orderDisplayId, orderWhenDay } from '@/orderDisplay'
+import { matchesOrderDisplayId, orderDisplayId, orderWhenDay } from '@/orderDisplay'
 import { useMarketStore, type OrderRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 
@@ -301,20 +309,35 @@ const actionError = ref('')
 const page = ref(1)
 const itemsPerPage = ref(25)
 
+type OrderListScope = 'active' | 'past' | 'all'
+
+const filterOrderId = ref('')
+const filterScope = ref<OrderListScope>('active')
 const filterVerticals = ref<string[]>([])
 const filterCountries = ref<string[]>([])
 const filterTraffics = ref<string[]>([])
+const filterPaymentModel = ref<string | null>(null)
 const filterOrderType = ref<'live' | 'stock' | null>(null)
 const filterServiceOn = ref('')
-const filterStatus = ref<string | null>(null)
 const advancedOpen = ref(false)
+
+const scopeItems = [
+  { title: 'Active', value: 'active' as const },
+  { title: 'Past', value: 'past' as const },
+  { title: 'All', value: 'all' as const },
+]
 
 const orderTypeItems = [
   { title: 'Live', value: 'live' as const },
   { title: 'Stock', value: 'stock' as const },
 ]
 
-const advancedFiltersCount = computed(() => (filterStatus.value ? 1 : 0))
+const advancedFiltersCount = computed(() => (
+  filterVerticals.value.length
+  + filterCountries.value.length
+  + filterTraffics.value.length
+  + (filterPaymentModel.value ? 1 : 0)
+))
 
 watch(advancedFiltersCount, (count) => {
   if (count > 0) {
@@ -323,12 +346,6 @@ watch(advancedFiltersCount, (count) => {
 }, { immediate: true })
 
 const verticalItems = computed(() => verticals.map((v) => ({ title: v.title, value: v.value })))
-
-const statusItems = [
-  { title: 'In progress', value: 'in_progress' },
-  { title: 'Paused', value: 'paused' },
-  { title: 'Finished', value: 'finished' },
-]
 
 const ordersForTable = computed(() => {
   const presetVertical = new Map(market.presets.map((preset) => [preset.id, preset.vertical]))
@@ -341,6 +358,15 @@ const ordersForTable = computed(() => {
 
 const filteredOrders = computed(() => {
   return ordersForTable.value.filter((row) => {
+    if (filterScope.value === 'active' && row.status === 'finished') {
+      return false
+    }
+    if (filterScope.value === 'past' && row.status !== 'finished') {
+      return false
+    }
+    if (!matchesOrderDisplayId(row.id, filterOrderId.value)) {
+      return false
+    }
     if (filterVerticals.value.length > 0 && !filterVerticals.value.includes(row.vertical)) {
       return false
     }
@@ -359,7 +385,7 @@ const filteredOrders = computed(() => {
     if (filterServiceOn.value && row.whenDay !== filterServiceOn.value) {
       return false
     }
-    if (filterStatus.value && row.status !== filterStatus.value) {
+    if (filterPaymentModel.value && row.paymentModel !== filterPaymentModel.value) {
       return false
     }
     return true
@@ -375,12 +401,14 @@ watch(filteredOrders, () => {
 })
 
 function resetFilters(): void {
+  filterOrderId.value = ''
+  filterScope.value = 'active'
   filterVerticals.value = []
   filterCountries.value = []
   filterTraffics.value = []
+  filterPaymentModel.value = null
   filterOrderType.value = null
   filterServiceOn.value = ''
-  filterStatus.value = null
   advancedOpen.value = false
 }
 
@@ -495,7 +523,7 @@ onMounted(() => {
   display: grid;
   flex: 1 1 auto;
   gap: 12px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   min-width: 0;
 }
 
@@ -535,9 +563,13 @@ onMounted(() => {
   align-items: flex-end;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 240px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   min-width: 0;
+  width: 100%;
+}
+
+.orders-filter-order-id {
+  width: 100%;
 }
 
 .orders-filter-date {
@@ -571,7 +603,6 @@ onMounted(() => {
   }
 
   .orders-filters__advanced {
-    max-width: none;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

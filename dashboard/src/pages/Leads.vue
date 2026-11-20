@@ -32,13 +32,43 @@
 
     <section v-if="showJournal" class="ui-filter-panel leads-filter-panel" aria-label="Lead filters">
       <div class="leads-filters__toolbar">
-        <div class="leads-filters__main">
-          <UiLabeledField label="Order ID">
+        <div v-if="isPartner" class="leads-filters__main leads-filters__main--partner">
+          <UiLabeledField label="Lead ID">
             <UiInput
-              v-model="filterOrderId"
+              v-model="filterLeadId"
               class="lead-order-filter-input"
-              placeholder="OR-… or uuid"
+              placeholder="LD-… or uuid"
             />
+          </UiLabeledField>
+          <UiLabeledField label="Country">
+            <CountryMultiSelect v-model="filterCountries" />
+          </UiLabeledField>
+          <UiLabeledField label="Email">
+            <UiInput v-model="filterEmail" placeholder="Contains…" />
+          </UiLabeledField>
+          <UiLabeledField label="Partner status">
+            <UiInput v-model="filterClientStatus" placeholder="Contains…" />
+          </UiLabeledField>
+          <UiLabeledField label="Deposit">
+            <UiSelect
+              v-model="filterDeposit"
+              :items="depositFilterItems"
+              placeholder="Any"
+              empty-label="Any"
+              clearable
+            />
+          </UiLabeledField>
+        </div>
+        <div v-else class="leads-filters__main">
+          <UiLabeledField label="Lead ID">
+            <UiInput
+              v-model="filterLeadId"
+              class="lead-order-filter-input"
+              placeholder="LD-… or uuid"
+            />
+          </UiLabeledField>
+          <UiLabeledField label="Country">
+            <CountryMultiSelect v-model="filterCountries" />
           </UiLabeledField>
           <UiLabeledField label="Vertical">
             <UiSelect
@@ -63,9 +93,6 @@
                 <span>{{ item.title }}</span>
               </template>
             </UiSelect>
-          </UiLabeledField>
-          <UiLabeledField label="Country">
-            <CountryMultiSelect v-model="filterCountries" />
           </UiLabeledField>
           <UiLabeledField label="Traffic source">
             <UiSelect
@@ -104,13 +131,81 @@
           <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
         </div>
       </div>
-      <div v-show="advancedOpen" class="leads-filters__advanced">
-        <UiLabeledField label="Phone">
-          <UiInput v-model="filterPhone" placeholder="Contains…" />
-        </UiLabeledField>
-        <UiLabeledField label="Email">
-          <UiInput v-model="filterEmail" placeholder="Contains…" />
-        </UiLabeledField>
+      <div
+        v-show="advancedOpen"
+        class="leads-filters__advanced"
+        :class="{ 'leads-filters__advanced--partner': isPartner }"
+      >
+        <template v-if="isPartner">
+          <UiLabeledField label="Vertical">
+            <UiSelect
+              v-model="filterVerticals"
+              :items="verticalItems"
+              placeholder="All verticals"
+              empty-label="All verticals"
+              multiple
+              clearable
+            >
+              <template #value="{ items }">
+                <span v-if="items.length === 0" class="stock-select__placeholder">All verticals</span>
+                <span v-else class="stock-select-picks">
+                  <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
+                    <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="14" />
+                    {{ item.title }}
+                  </span>
+                </span>
+              </template>
+              <template #option="{ item }">
+                <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="16" />
+                <span>{{ item.title }}</span>
+              </template>
+            </UiSelect>
+          </UiLabeledField>
+          <UiLabeledField label="Traffic source">
+            <UiSelect
+              v-model="filterTraffics"
+              :items="trafficSources"
+              placeholder="All sources"
+              empty-label="All sources"
+              multiple
+              clearable
+            >
+              <template #value="{ items }">
+                <span v-if="items.length === 0" class="stock-select__placeholder">All sources</span>
+                <span v-else class="stock-select-picks">
+                  <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
+                    <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="14" />
+                    {{ item.title }}
+                  </span>
+                </span>
+              </template>
+              <template #option="{ item }">
+                <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="16" />
+                <span>{{ item.title }}</span>
+              </template>
+            </UiSelect>
+          </UiLabeledField>
+          <UiLabeledField label="Gender">
+            <UiSelect
+              v-model="filterGender"
+              :items="genderFilterItems"
+              placeholder="Any gender"
+              empty-label="Any gender"
+              clearable
+            />
+          </UiLabeledField>
+          <UiLabeledField label="Age">
+            <UiInput v-model="filterAge" placeholder="Contains…" />
+          </UiLabeledField>
+        </template>
+        <template v-else>
+          <UiLabeledField label="Phone">
+            <UiInput v-model="filterPhone" placeholder="Contains…" />
+          </UiLabeledField>
+          <UiLabeledField label="Email">
+            <UiInput v-model="filterEmail" placeholder="Contains…" />
+          </UiLabeledField>
+        </template>
       </div>
     </section>
 
@@ -335,6 +430,7 @@ import { downloadCsv } from '@/csv'
 import { apiOrigin } from '@/host'
 import { sampleLead, sampleLeadJson } from '@/leadBody'
 import {
+  genders,
   trafficColor,
   trafficIcon,
   trafficLabel,
@@ -344,7 +440,13 @@ import {
   verticalLabel,
   verticals,
 } from '@/marketOptions'
-import { leadDisplayId, orderDisplayId, verticalFromAffSub } from '@/orderDisplay'
+import {
+  leadDisplayId,
+  matchesLeadDisplayId,
+  matchesOrderDisplayId,
+  orderDisplayId,
+  verticalFromAffSub,
+} from '@/orderDisplay'
 import { useLeadStore, type CabinetLead } from '@/stores/leads'
 import { useMarketStore, type OrderRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
@@ -361,7 +463,9 @@ const isPartner = computed(() => session.payload?.user?.role === 'partner')
 const tab = ref<'journal' | 'send'>('journal')
 const showJournal = computed(() => !isBuyer.value || tab.value === 'journal')
 const pageTitle = computed(() => (isPartner.value ? 'My leads' : 'Leads'))
-const filterOrderId = ref('')
+const filterLeadId = ref('')
+/** Set from /leads?order= when opened from My orders; not shown in Lead ID field. */
+const routeOrderFilter = ref('')
 
 const page = ref(1)
 const itemsPerPage = ref(25)
@@ -371,9 +475,28 @@ const filterCountries = ref<string[]>([])
 const filterTraffics = ref<string[]>([])
 const filterPhone = ref('')
 const filterEmail = ref('')
+const filterClientStatus = ref('')
+const filterDeposit = ref<'yes' | 'no' | null>(null)
+const filterGender = ref<string | null>(null)
+const filterAge = ref('')
 const advancedOpen = ref(false)
 
+const depositFilterItems = [
+  { title: 'Yes', value: 'yes' as const },
+  { title: 'No', value: 'no' as const },
+]
+
+const genderFilterItems = computed(() =>
+  genders.filter((item) => item.value !== 'all').map((item) => ({ title: item.title, value: item.value })),
+)
+
 const advancedFiltersCount = computed(() => {
+  if (isPartner.value) {
+    return filterVerticals.value.length
+      + filterTraffics.value.length
+      + (filterGender.value ? 1 : 0)
+      + (filterAge.value.trim() !== '' ? 1 : 0)
+  }
   let count = 0
   if (filterPhone.value.trim() !== '') {
     count += 1
@@ -395,8 +518,11 @@ const leadLine = computed(() => {
   let line = 'Leads you mined'
   if (role === 'partner') line = 'Leads you purchased, client delivery, and feedback from your buyer.'
   else if (role === 'admin') line = 'Leads of this organization'
-  if (filterOrderId.value.trim() !== '') {
-    return `${line} Filtered by order ${filterOrderId.value.trim()}.`
+  if (routeOrderFilter.value !== '') {
+    return `${line} Filtered by order ${orderDisplayId(routeOrderFilter.value)}.`
+  }
+  if (filterLeadId.value.trim() !== '') {
+    return `${line} Filtered by lead ${filterLeadId.value.trim()}.`
   }
   return line
 })
@@ -404,11 +530,11 @@ const leadLine = computed(() => {
 function syncOrderFromRoute(): void {
   const raw = route.query.order
   if (typeof raw === 'string' && raw !== '') {
-    filterOrderId.value = orderDisplayId(raw)
+    routeOrderFilter.value = raw
     return
   }
   if (route.query.order === undefined) {
-    filterOrderId.value = ''
+    routeOrderFilter.value = ''
   }
 }
 
@@ -514,28 +640,13 @@ function contains(value: string, query: string): boolean {
   return value.toLowerCase().includes(q)
 }
 
-function matchesOrderFilter(lead: LeadTableRow, query: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (q === '') {
-    return true
-  }
-  const orderId = lead.orderId
-  if (!orderId) {
-    return false
-  }
-  const display = orderDisplayId(orderId).toLowerCase()
-  if (display.includes(q) || orderId.toLowerCase().includes(q)) {
-    return true
-  }
-  const compact = q.replace(/^or-/, '')
-  if (compact !== q && display.replace(/^or-/, '').includes(compact)) {
-    return true
-  }
-  return false
-}
-
 const filtered = computed(() => leadsForTable.value.filter((lead) => {
-  if (!matchesOrderFilter(lead, filterOrderId.value)) {
+  if (routeOrderFilter.value !== '') {
+    if (!lead.orderId || !matchesOrderDisplayId(lead.orderId, routeOrderFilter.value)) {
+      return false
+    }
+  }
+  if (!matchesLeadDisplayId(lead.uuid, filterLeadId.value)) {
     return false
   }
   if (filterVerticals.value.length > 0 && !filterVerticals.value.includes(lead.vertical)) {
@@ -553,6 +664,21 @@ const filtered = computed(() => leadsForTable.value.filter((lead) => {
   if (!contains(lead.email, filterEmail.value)) {
     return false
   }
+  if (!contains(lead.clientStatus ?? '', filterClientStatus.value)) {
+    return false
+  }
+  if (filterDeposit.value === 'yes' && !lead.clientDeposit) {
+    return false
+  }
+  if (filterDeposit.value === 'no' && lead.clientDeposit) {
+    return false
+  }
+  if (filterGender.value && lead.gender !== filterGender.value) {
+    return false
+  }
+  if (!contains(lead.age, filterAge.value)) {
+    return false
+  }
   return true
 }))
 
@@ -565,12 +691,17 @@ watch(filtered, () => {
 })
 
 function resetFilters(): void {
-  filterOrderId.value = ''
+  filterLeadId.value = ''
+  routeOrderFilter.value = ''
   filterVerticals.value = []
   filterCountries.value = []
   filterTraffics.value = []
   filterPhone.value = ''
   filterEmail.value = ''
+  filterClientStatus.value = ''
+  filterDeposit.value = null
+  filterGender.value = null
+  filterAge.value = ''
   advancedOpen.value = false
   if (route.query.order) {
     const query = { ...route.query }
@@ -856,6 +987,10 @@ onMounted(() => {
   min-width: 0;
 }
 
+.leads-filters__main.leads-filters__main--partner {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .leads-filters__toolbar-end {
   align-items: center;
   display: flex;
@@ -894,6 +1029,11 @@ onMounted(() => {
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   min-width: 0;
+  width: 100%;
+}
+
+.leads-filters__advanced.leads-filters__advanced--partner {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .leads-count {
@@ -1169,12 +1309,20 @@ onMounted(() => {
     width: 100%;
   }
 
+  .leads-filters__main.leads-filters__main--partner {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
   .leads-filters__toolbar-end {
     margin-left: auto;
   }
 
   .leads-filters__advanced {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .leads-filters__advanced.leads-filters__advanced--partner {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

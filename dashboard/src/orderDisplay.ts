@@ -3,6 +3,40 @@ export function orderDisplayId(id: string): string {
   return `OR-${tail}`
 }
 
+function matchesShortId(display: string, prefix: string, rawId: string, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (q === '') {
+    return true
+  }
+  const needle = display.toLowerCase()
+  if (needle.includes(q) || rawId.toLowerCase().includes(q)) {
+    return true
+  }
+  const compact = q.replace(new RegExp(`^${prefix}-`), '')
+  if (compact !== q && needle.replace(new RegExp(`^${prefix}-`), '').includes(compact)) {
+    return true
+  }
+  return false
+}
+
+/** Client-side filter: short id (OR-…), prefix without OR-, or substring of full uuid. */
+export function matchesOrderDisplayId(orderId: string, query: string): boolean {
+  if (orderId === '') {
+    return query.trim() === ''
+  }
+  return matchesShortId(orderDisplayId(orderId), 'or', orderId, query)
+}
+
+export function leadDisplayId(uuid: string): string {
+  const tail = uuid.replace(/-/g, '').slice(0, 5).toUpperCase()
+  return `LD-${tail}`
+}
+
+/** Client-side filter: short id (LD-…), prefix without LD-, or substring of lead uuid. */
+export function matchesLeadDisplayId(leadUuid: string, query: string): boolean {
+  return matchesShortId(leadDisplayId(leadUuid), 'ld', leadUuid, query)
+}
+
 export function presetDisplayId(id: string): string {
   const tail = id.replace(/-/g, '').slice(0, 5).toUpperCase()
   return `PR-${tail}`
@@ -12,11 +46,6 @@ export function presetDisplayId(id: string): string {
 export function offerDisplayId(presetId: string): string {
   const tail = presetId.replace(/-/g, '').slice(0, 5).toUpperCase()
   return `OF-${tail}`
-}
-
-export function leadDisplayId(uuid: string): string {
-  const tail = uuid.replace(/-/g, '').slice(0, 5).toUpperCase()
-  return `LD-${tail}`
 }
 
 /** Demo and mined leads often encode vertical in aff sub, e.g. aff-gambling. */
