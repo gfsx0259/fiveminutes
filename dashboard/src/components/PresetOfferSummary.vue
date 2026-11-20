@@ -149,15 +149,12 @@ const props = withDefaults(
 
 .preset-offer-summary__row--meta {
   align-items: center;
-  column-gap: 12px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 1px max-content;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px 14px;
+  justify-content: flex-start;
   min-width: 0;
   width: 100%;
-}
-
-.preset-offer-summary__row--meta-cr {
-  grid-template-columns: minmax(0, 1fr) 1px max-content 1px max-content;
 }
 
 .preset-offer-summary__row--price {
@@ -174,25 +171,28 @@ const props = withDefaults(
 }
 
 .preset-offer-summary__cell--country {
+  flex: 0 1 auto;
+  max-width: min(13rem, 42%);
   min-width: 0;
   overflow: hidden;
 }
 
-.preset-offer-summary__cell--country .preset-offer-summary__country {
-  flex: 1 1 0;
-}
-
 .preset-offer-summary__cell--fixed {
+  flex: 0 0 auto;
   white-space: nowrap;
 }
 
 .preset-offer-summary__country {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   font-size: 13px;
   font-weight: 600;
   max-width: 100%;
   min-width: 0;
-  width: auto;
+  width: auto !important;
+}
+
+.preset-offer-summary__country :deep(.country-pick__label) {
+  font-weight: 600;
 }
 
 .preset-offer-summary__label {
@@ -220,7 +220,7 @@ const props = withDefaults(
 
 .preset-offer-summary__sep {
   background: #d8d5eb;
-  flex-shrink: 0;
+  flex: 0 0 1px;
   height: 22px;
   width: 1px;
 }
