@@ -12,7 +12,10 @@
       <span v-if="paymentModel" class="preset-offer-summary__model">{{ modelLabel(paymentModel) }}</span>
     </header>
     <div class="preset-offer-summary__body">
-      <div class="preset-offer-summary__row preset-offer-summary__row--meta">
+      <div
+        class="preset-offer-summary__row preset-offer-summary__row--meta"
+        :class="{ 'preset-offer-summary__row--meta-cr': conversion != null && conversion > 0 }"
+      >
         <div class="preset-offer-summary__cell preset-offer-summary__cell--country">
           <span class="preset-offer-summary__label">Country</span>
           <CountryPick :code="country" label="name" :size="16" class="preset-offer-summary__country" />
@@ -145,9 +148,16 @@ const props = withDefaults(
 }
 
 .preset-offer-summary__row--meta {
-  flex-wrap: nowrap;
-  gap: 10px 14px;
+  align-items: center;
+  column-gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px max-content;
   min-width: 0;
+  width: 100%;
+}
+
+.preset-offer-summary__row--meta-cr {
+  grid-template-columns: minmax(0, 1fr) 1px max-content 1px max-content;
 }
 
 .preset-offer-summary__row--price {
@@ -164,20 +174,25 @@ const props = withDefaults(
 }
 
 .preset-offer-summary__cell--country {
-  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
 }
 
+.preset-offer-summary__cell--country .preset-offer-summary__country {
+  flex: 1 1 0;
+}
+
 .preset-offer-summary__cell--fixed {
-  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .preset-offer-summary__country {
   flex: 1 1 auto;
   font-size: 13px;
   font-weight: 600;
+  max-width: 100%;
   min-width: 0;
+  width: auto;
 }
 
 .preset-offer-summary__label {
