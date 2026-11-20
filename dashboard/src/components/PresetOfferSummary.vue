@@ -12,10 +12,7 @@
       <span v-if="paymentModel" class="preset-offer-summary__model">{{ modelLabel(paymentModel) }}</span>
     </header>
     <div class="preset-offer-summary__body">
-      <div
-        class="preset-offer-summary__row preset-offer-summary__row--meta"
-        :class="{ 'preset-offer-summary__row--meta-cr': conversion != null && conversion > 0 }"
-      >
+      <div class="preset-offer-summary__row preset-offer-summary__row--meta">
         <div class="preset-offer-summary__cell preset-offer-summary__cell--country">
           <span class="preset-offer-summary__label">Country</span>
           <CountryPick :code="country" label="name" :size="16" class="preset-offer-summary__country" />
