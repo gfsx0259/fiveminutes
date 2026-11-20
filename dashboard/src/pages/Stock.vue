@@ -233,11 +233,20 @@
       </template>
     </UiDataTable>
 
-    <StockBuyDialog v-model="buyOpen" :target="buyTarget" @bought="refresh" />
+    <StockBuyDialog
+      v-model="buyOpen"
+      :target="buyTarget"
+      :initial-qty="buyInitialQty"
+      @bought="onBuyFinished"
+    />
     <OrderFormDialog
       v-model="orderOpen"
+      shareable
       :initial-preset-id="orderPresetId"
       :initial-base-price-cents="orderBasePriceCents"
+      :initial-volume="orderInitialVolume"
+      :initial-price-dollars="orderInitialPrice"
+      :initial-service-on="orderInitialDay"
       @created="onOrderCreated"
     />
 
@@ -246,6 +255,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { showToast } from '@/composables/useToast'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
@@ -270,8 +280,12 @@ import {
   verticals,
 } from '@/marketOptions'
 import { dollars, wholeDollars } from '@/money'
+import { parseStockModalIntent, STOCK_MODAL_QUERY_KEYS } from '@/stockModalIntent'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore, type StockOfferRow } from '@/stores/market'
+
+const route = useRoute()
+const router = useRouter()
 const market = useMarketStore()
 
 const filterVerticals = ref<string[]>([])
@@ -286,9 +300,14 @@ const itemsPerPage = ref(25)
 
 const buyOpen = ref(false)
 const buyTarget = ref<StockBuyTarget | null>(null)
+const buyInitialQty = ref<number | null>(null)
 const orderOpen = ref(false)
 const orderPresetId = ref<string | null>(null)
 const orderBasePriceCents = ref<number | null>(null)
+const orderInitialVolume = ref<number | null>(null)
+const orderInitialPrice = ref<number | null>(null)
+const orderInitialDay = ref<string | null>(null)
+const applyingModalLink = ref(false)
 
 const verticalItems = computed(() => verticals.map((v) => ({ title: v.title, value: v.value })))
 
@@ -381,16 +400,83 @@ function resetFilters(): void {
   page.value = 1
 }
 
+function clearStockModalQuery(): void {
+  if (!STOCK_MODAL_QUERY_KEYS.some((key) => route.query[key] != null)) {
+    return
+  }
+  const query = { ...route.query }
+  for (const key of STOCK_MODAL_QUERY_KEYS) {
+    delete query[key]
+  }
+  void router.replace({ path: route.path, query })
+}
+
+function resetModalLinkState(): void {
+  buyInitialQty.value = null
+  orderInitialVolume.value = null
+  orderInitialPrice.value = null
+  orderInitialDay.value = null
+}
+
 function openBuy(row: StockOfferRow): void {
+  resetModalLinkState()
   buyTarget.value = row
   buyOpen.value = true
 }
 
 function openOrder(row: StockOfferRow): void {
+  resetModalLinkState()
   orderPresetId.value = row.presetId
   orderBasePriceCents.value = row.basePriceCents
   orderOpen.value = true
 }
+
+async function applyStockModalLink(): Promise<void> {
+  const intent = parseStockModalIntent(route.query)
+  if (!intent || applyingModalLink.value || buyOpen.value || orderOpen.value) {
+    return
+  }
+  applyingModalLink.value = true
+  try {
+    if (market.stock.length === 0) {
+      await market.loadWarehouse()
+    }
+    const row = market.stock.find((offer) => offer.presetId === intent.presetId)
+    if (!row) {
+      showToast('Offer not found or no longer available')
+      clearStockModalQuery()
+      return
+    }
+    if (intent.action === 'buy') {
+      buyInitialQty.value = intent.qty ?? null
+      buyTarget.value = row
+      buyOpen.value = true
+      return
+    }
+    orderPresetId.value = row.presetId
+    orderBasePriceCents.value = row.basePriceCents
+    orderInitialVolume.value = intent.qty ?? null
+    orderInitialPrice.value = intent.price ?? null
+    orderInitialDay.value = intent.day ?? null
+    orderOpen.value = true
+  } finally {
+    applyingModalLink.value = false
+  }
+}
+
+watch(
+  () => route.query,
+  () => {
+    void applyStockModalLink()
+  },
+)
+
+watch([buyOpen, orderOpen], ([buy, order]) => {
+  if (!buy && !order) {
+    clearStockModalQuery()
+    resetModalLinkState()
+  }
+})
 
 async function copyPresetId(presetId: string): Promise<void> {
   try {
@@ -402,6 +488,10 @@ async function copyPresetId(presetId: string): Promise<void> {
 }
 
 function onOrderCreated(): void {
+  void refresh()
+}
+
+function onBuyFinished(): void {
   void refresh()
 }
 
@@ -432,9 +522,10 @@ async function refresh(): Promise<void> {
   await market.loadWarehouse()
 }
 
-onMounted(() => {
+onMounted(async () => {
   void market.loadPresets()
-  void refresh()
+  await refresh()
+  await applyStockModalLink()
 })
 </script>
 

@@ -5,7 +5,19 @@
     @update:model-value="emit('update:modelValue', $event)"
   >
     <v-card>
-      <v-card-title>{{ title }}</v-card-title>
+      <v-card-title class="form-dialog__title">
+        <span>{{ title }}</span>
+        <UiButton
+          v-if="shareable"
+          variant="ghost"
+          icon="mdi-share-variant"
+          class="form-dialog__share"
+          title="Copy link with current form"
+          @click="emit('share')"
+        >
+          Share
+        </UiButton>
+      </v-card-title>
       <v-card-text>
         <p v-if="hint">{{ hint }}</p>
         <p v-if="error" class="form-dialog__error">{{ error }}</p>
@@ -35,16 +47,33 @@ withDefaults(defineProps<{
   loading?: boolean
   maxWidth?: number
   submitIcon?: string
+  shareable?: boolean
 }>(), {
   hint: '',
   error: '',
   loading: false,
   maxWidth: 520,
   submitIcon: '',
+  shareable: false,
 })
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   submit: []
+  share: []
 }>()
 </script>
+
+<style scoped>
+.form-dialog__title {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.form-dialog__share {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+</style>

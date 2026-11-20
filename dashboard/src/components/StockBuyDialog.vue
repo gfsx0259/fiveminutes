@@ -8,8 +8,10 @@
     :error="formError"
     :loading="busy"
     :max-width="680"
+    shareable
     @update:model-value="open = $event"
     @submit="buy"
+    @share="copyShareLink"
   >
     <template v-if="target">
       <PresetOfferSummary
@@ -56,13 +58,16 @@ import OrderCheckoutSummary from '@/components/OrderCheckoutSummary.vue'
 import PresetOfferSummary from '@/components/PresetOfferSummary.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
+import { showToast } from '@/composables/useToast'
 import { dollars } from '@/money'
+import { stockModalShareUrl } from '@/stockModalIntent'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 
 const props = defineProps<{
   target: StockBuyTarget | null
+  initialQty?: number | null
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -103,8 +108,29 @@ function syncToTarget(): void {
   }
   formError.value = ''
   fieldErrors.value = {}
-  const defaultQty = Math.min(props.target.available, 1000)
-  volume.value = String(defaultQty > 0 ? defaultQty : 1)
+  const fromLink = props.initialQty != null && props.initialQty > 0 ? Math.floor(props.initialQty) : null
+  const defaultQty = fromLink ?? Math.min(props.target.available, 1000)
+  volume.value = String(Math.max(1, defaultQty))
+}
+
+async function copyShareLink(): Promise<void> {
+  const target = props.target
+  if (!target) {
+    return
+  }
+  const raw = Number(volume.value)
+  const qty = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : undefined
+  const url = stockModalShareUrl(window.location.origin, window.location.pathname, {
+    action: 'buy',
+    presetId: target.presetId,
+    qty,
+  })
+  try {
+    await navigator.clipboard.writeText(url)
+    showToast('Link copied')
+  } catch {
+    showToast('Copy unavailable')
+  }
 }
 
 watch(open, (value) => {
@@ -114,7 +140,7 @@ watch(open, (value) => {
   syncToTarget()
 })
 
-watch(() => props.target?.presetId, () => {
+watch(() => [props.target?.presetId, props.initialQty] as const, () => {
   syncToTarget()
 })
 

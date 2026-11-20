@@ -8,8 +8,10 @@
     :error="formError"
     :loading="busy"
     :max-width="680"
+    :shareable="shareable"
     @update:model-value="open = $event"
     @submit="create"
+    @share="copyShareLink"
   >
     <PresetOfferSummary
       v-if="matchedPreset"
@@ -159,14 +161,22 @@ import {
 } from '@/marketOptions'
 import { dollars } from '@/money'
 import { orderDisplayId, presetDisplayId } from '@/orderDisplay'
+import { stockModalShareUrl } from '@/stockModalIntent'
 import { useMarketStore, type PresetRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   initialPresetId?: string | null
   /** When opening from Buy Leads, use the row price (store presets can lag behind warehouse). */
   initialBasePriceCents?: number | null
-}>()
+  initialVolume?: number | null
+  initialPriceDollars?: number | null
+  initialServiceOn?: string | null
+  /** Enable Share link (stock page deep links). */
+  shareable?: boolean
+}>(), {
+  shareable: false,
+})
 
 const open = defineModel<boolean>({ default: false })
 const emit = defineEmits<{
@@ -297,6 +307,20 @@ function presetPriceInput(preset: PresetRow, centsOverride?: number): string {
   return Number.isInteger(amount) ? String(amount) : amount.toFixed(2)
 }
 
+function applyLinkedFields(): void {
+  if (props.initialVolume != null && props.initialVolume > 0) {
+    volume.value = String(Math.floor(props.initialVolume))
+  }
+  if (props.initialPriceDollars != null && props.initialPriceDollars > 0) {
+    price.value = String(props.initialPriceDollars)
+  }
+  if (props.initialServiceOn) {
+    serviceOn.value = props.initialServiceOn
+    syncServiceQuickFromDate()
+    opensAt.value = defaultOpensForServiceDate(props.initialServiceOn, utcDay(0))
+  }
+}
+
 async function syncFormToInitialPreset(): Promise<void> {
   if (!open.value) {
     return
@@ -322,6 +346,7 @@ async function syncFormToInitialPreset(): Promise<void> {
     serviceQuick.value = 'today'
     opensAt.value = defaultOpensForServiceDate(utcDay(0), utcDay(0))
     closesAt.value = '23:59'
+    applyLinkedFields()
     return
   }
   volume.value = '10'
@@ -334,6 +359,28 @@ async function syncFormToInitialPreset(): Promise<void> {
   const preset = matchedPreset.value
   if (preset) {
     price.value = presetPriceInput(preset)
+  }
+  applyLinkedFields()
+}
+
+async function copyShareLink(): Promise<void> {
+  const preset = matchedPreset.value
+  if (!preset || !props.shareable) {
+    return
+  }
+  const priceNum = Number(price.value)
+  const url = stockModalShareUrl(window.location.origin, window.location.pathname, {
+    action: 'order',
+    presetId: preset.id,
+    qty: volumeQty.value > 0 ? volumeQty.value : undefined,
+    price: Number.isFinite(priceNum) && priceNum > 0 ? priceNum : undefined,
+    day: serviceOn.value || undefined,
+  })
+  try {
+    await navigator.clipboard.writeText(url)
+    showToast('Link copied')
+  } catch {
+    showToast('Copy unavailable')
   }
 }
 
@@ -365,7 +412,13 @@ watch(open, (value) => {
 })
 
 watch(
-  () => [props.initialPresetId, props.initialBasePriceCents] as const,
+  () => [
+    props.initialPresetId,
+    props.initialBasePriceCents,
+    props.initialVolume,
+    props.initialPriceDollars,
+    props.initialServiceOn,
+  ] as const,
   () => {
     if (!open.value || !props.initialPresetId) {
       return
