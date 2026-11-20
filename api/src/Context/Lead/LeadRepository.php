@@ -15,6 +15,11 @@ use Doctrine\Common\Collections\Collection;
 
 final readonly class LeadRepository
 {
+    private const string SELECT_COLUMNS = 'uuid, organization_id, buyer_id, seller_id, ifNull(order_id, acceptance_id) AS order_id,
+                    email, phone, first_name, last_name, country, traffic_source, age, gender,
+                    ip, aff_sub, uniq_id, status, price_cents, created_at, updated_at, sold_at,
+                    is_delivered, delivery_error, client_status, client_deposit';
+
     public function __construct(private Client $clickhouse) {}
 
     public function add(Lead $lead): void
@@ -41,6 +46,10 @@ final readonly class LeadRepository
             'created_at' => $this->format($lead->getCreatedAt()),
             'updated_at' => $this->format($lead->getUpdatedAt()),
             'sold_at' => $lead->getSoldAt() === null ? null : $this->format($lead->getSoldAt()),
+            'is_delivered' => $lead->isDelivered() ? 1 : 0,
+            'delivery_error' => $lead->hasDeliveryError() ? 1 : 0,
+            'client_status' => $lead->getClientStatus(),
+            'client_deposit' => $lead->hasClientDeposit() ? 1 : 0,
         ]]);
     }
 
@@ -73,9 +82,7 @@ final readonly class LeadRepository
     private function select(string $where, array $parameters): Collection
     {
         $rows = $this->clickhouse->query(
-            'SELECT uuid, organization_id, buyer_id, seller_id, ifNull(order_id, acceptance_id) AS order_id,
-                    email, phone, first_name, last_name, country, traffic_source, age, gender,
-                    ip, aff_sub, uniq_id, status, price_cents, created_at, updated_at, sold_at
+            'SELECT ' . self::SELECT_COLUMNS . '
              FROM leads FINAL
              WHERE ' . $where . '
              ORDER BY created_at DESC',
@@ -169,9 +176,7 @@ final readonly class LeadRepository
 
         $stock = $this->stockMatch($organizationId, $preset, $leadGender);
         $rows = $this->clickhouse->query(
-            'SELECT uuid, organization_id, buyer_id, seller_id, ifNull(order_id, acceptance_id) AS order_id,
-                    email, phone, first_name, last_name, country, traffic_source, age, gender,
-                    ip, aff_sub, uniq_id, status, price_cents, created_at, updated_at, sold_at
+            'SELECT ' . self::SELECT_COLUMNS . '
              FROM leads FINAL
              WHERE ' . $stock['sql'] . '
              ORDER BY created_at DESC
@@ -185,9 +190,7 @@ final readonly class LeadRepository
     public function findByUuid(string $uuid): ?Lead
     {
         $rows = $this->clickhouse->query(
-            'SELECT uuid, organization_id, buyer_id, seller_id, ifNull(order_id, acceptance_id) AS order_id,
-                    email, phone, first_name, last_name, country, traffic_source, age, gender,
-                    ip, aff_sub, uniq_id, status, price_cents, created_at, updated_at, sold_at
+            'SELECT ' . self::SELECT_COLUMNS . '
              FROM leads FINAL
              WHERE uuid = :uuid',
             ['uuid' => $uuid],
@@ -225,7 +228,16 @@ final readonly class LeadRepository
             new DateTimeImmutable((string) $row['created_at']),
             new DateTimeImmutable((string) $row['updated_at']),
             $this->instant($row['sold_at'] ?? null),
+            $this->bool($row['is_delivered'] ?? 0),
+            $this->bool($row['delivery_error'] ?? 0),
+            (string) ($row['client_status'] ?? ''),
+            $this->bool($row['client_deposit'] ?? 0),
         );
+    }
+
+    private function bool(mixed $value): bool
+    {
+        return (int) $value === 1;
     }
 
     private function instant(mixed $value): ?DateTimeImmutable

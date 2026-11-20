@@ -27,6 +27,7 @@ return [
         Route::get('/leads/{uuid}')->action([LeadController::class, 'show'])->name('lead-show'),
         Route::post('/leads/{uuid}/approve')->action([LeadController::class, 'approve'])->name('lead-approve'),
         Route::post('/leads/{uuid}/reject')->action([LeadController::class, 'reject'])->name('lead-reject'),
+        Route::post('/leads/{uuid}/deliver')->action([LeadController::class, 'deliver'])->name('lead-deliver'),
         Route::get('/api-key')->action([ApiKeyController::class, 'show'])->name('api-key'),
         Route::post('/api-key')->action([ApiKeyController::class, 'create'])->name('api-key-create'),
         Route::get('/presets')->action([MarketController::class, 'presets'])->name('presets'),

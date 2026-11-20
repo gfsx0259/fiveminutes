@@ -28,6 +28,10 @@ final readonly class Lead
     private string $affSub;
     private string $uniqId;
     private string $status;
+    private bool $isDelivered;
+    private bool $deliveryError;
+    private string $clientStatus;
+    private bool $clientDeposit;
 
     public function __construct(
         string $uuid,
@@ -51,6 +55,10 @@ final readonly class Lead
         private DateTimeInterface $createdAt,
         private DateTimeInterface $updatedAt,
         private ?DateTimeInterface $soldAt = null,
+        bool $isDelivered = false,
+        bool $deliveryError = false,
+        string $clientStatus = '',
+        bool $clientDeposit = false,
     ) {
         $this->uuid = $this->requireId($uuid, 'Lead uuid is empty');
         $this->organizationId = $this->requireId($organizationId, 'Organization id is empty');
@@ -76,6 +84,10 @@ final readonly class Lead
         if ($this->priceCents < 0) {
             throw new InvalidArgumentException('Price must be zero or positive');
         }
+        $this->isDelivered = $isDelivered;
+        $this->deliveryError = $deliveryError;
+        $this->clientStatus = trim($clientStatus);
+        $this->clientDeposit = $clientDeposit;
     }
 
     public function sell(string $sellerId, string $orderId, int $priceCents, DateTimeImmutable $at): self
@@ -193,6 +205,26 @@ final readonly class Lead
         return $this->soldAt;
     }
 
+    public function isDelivered(): bool
+    {
+        return $this->isDelivered;
+    }
+
+    public function hasDeliveryError(): bool
+    {
+        return $this->deliveryError;
+    }
+
+    public function getClientStatus(): string
+    {
+        return $this->clientStatus;
+    }
+
+    public function hasClientDeposit(): bool
+    {
+        return $this->clientDeposit;
+    }
+
     public function withStatus(LeadStatus $status, Clock $clock): self
     {
         return new self(
@@ -217,6 +249,46 @@ final readonly class Lead
             $this->createdAt,
             $clock->now(),
             $this->soldAt,
+            $this->isDelivered,
+            $this->deliveryError,
+            $this->clientStatus,
+            $this->clientDeposit,
+        );
+    }
+
+    public function withPartnerDelivery(
+        bool $isDelivered,
+        bool $deliveryError,
+        string $clientStatus,
+        bool $clientDeposit,
+        Clock $clock,
+    ): self {
+        return new self(
+            $this->uuid,
+            $this->organizationId,
+            $this->buyerId,
+            $this->sellerId,
+            $this->orderId,
+            $this->email,
+            $this->phone,
+            $this->firstName,
+            $this->lastName,
+            $this->country,
+            $this->trafficSource,
+            $this->age,
+            $this->gender,
+            $this->ip,
+            $this->affSub,
+            $this->uniqId,
+            $this->getStatus(),
+            $this->priceCents,
+            $this->createdAt,
+            $clock->now(),
+            $this->soldAt,
+            $isDelivered,
+            $deliveryError,
+            $clientStatus,
+            $clientDeposit,
         );
     }
 
@@ -250,6 +322,10 @@ final readonly class Lead
             $this->createdAt,
             $updatedAt,
             $soldAt,
+            $this->isDelivered,
+            $this->deliveryError,
+            $this->clientStatus,
+            $this->clientDeposit,
         );
     }
 

@@ -11,6 +11,7 @@ use App\Api\Form\LeadRejectForm;
 use App\Context\Lead\Intake;
 use App\Context\Lead\LeadConversionDesk;
 use App\Context\Lead\LeadJournal;
+use App\Context\Lead\LeadPartnerDeliveryDesk;
 use App\Context\Lead\LeadRejectedException;
 use App\Context\Lead\UnknownApiKeyException;
 use App\Context\User\NotBuyerException;
@@ -28,6 +29,7 @@ final readonly class LeadController
         private Intake $intake,
         private LeadJournal $journal,
         private LeadConversionDesk $conversions,
+        private LeadPartnerDeliveryDesk $partnerDelivery,
         private CurrentUser $currentUser,
         private DataResponseFactoryInterface $responses,
         private RequestProviderInterface $requests,
@@ -97,6 +99,11 @@ final readonly class LeadController
     public function reject(LeadRejectForm $form): ResponseInterface
     {
         return $this->convert(fn ($user, $uuid) => $this->conversions->reject($user, $uuid, $form->reason()));
+    }
+
+    public function deliver(): ResponseInterface
+    {
+        return $this->convert(fn ($user, $uuid) => $this->partnerDelivery->mockDeliver($user, $uuid));
     }
 
     /**

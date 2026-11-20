@@ -8,6 +8,12 @@ export function presetDisplayId(id: string): string {
   return `PR-${tail}`
 }
 
+/** Partner-facing preset label in Buy leads (OF-…). */
+export function offerDisplayId(presetId: string): string {
+  const tail = presetId.replace(/-/g, '').slice(0, 5).toUpperCase()
+  return `OF-${tail}`
+}
+
 export function leadDisplayId(uuid: string): string {
   const tail = uuid.replace(/-/g, '').slice(0, 5).toUpperCase()
   return `LD-${tail}`

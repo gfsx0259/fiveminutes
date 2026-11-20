@@ -84,18 +84,21 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import PageBreadcrumbs from '@/components/PageBreadcrumbs.vue'
 import ShellNav from '@/components/ShellNav.vue'
 import UiToastHost from '@/components/UiToastHost.vue'
 import TopbarWallet from '@/components/TopbarWallet.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { loginUrl, logout } from '@/host'
+import { documentTitle } from '@/pageTitle'
 import { useSessionStore } from '@/stores/session'
 import { useViewport } from '@/viewport'
 
 const COLLAPSE_KEY = 'rider.sidebar.collapsed'
 
 const session = useSessionStore()
+const route = useRoute()
 const { mobile: overlayNav, tablet: tabletRail } = useViewport()
 const drawer = ref(false)
 const collapsed = ref(false)
@@ -132,6 +135,14 @@ try {
 watch(overlayNav, (overlay) => {
   drawer.value = !overlay
 }, { immediate: true })
+
+watch(
+  () => [route.path, session.payload?.user?.role] as const,
+  ([path, role]) => {
+    document.title = documentTitle(path, role)
+  },
+  { immediate: true },
+)
 
 function toggleCollapsed(): void {
   collapsed.value = !collapsed.value

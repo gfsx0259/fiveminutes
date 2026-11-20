@@ -95,6 +95,10 @@ final readonly class LeadJournal
             'createdAt' => $lead->getCreatedAt()->format(DATE_ATOM),
             'updatedAt' => $lead->getUpdatedAt()->format(DATE_ATOM),
             'soldAt' => $lead->getSoldAt()?->format(DATE_ATOM),
+            'isDelivered' => $lead->isDelivered(),
+            'deliveryError' => $lead->hasDeliveryError(),
+            'clientStatus' => $lead->getClientStatus(),
+            'clientDeposit' => $lead->hasClientDeposit(),
         ];
 
         $pricing = $this->markup->forOrganization($viewer->getOrganizationId());

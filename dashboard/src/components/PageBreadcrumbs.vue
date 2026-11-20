@@ -7,6 +7,7 @@
 </template>
 
 <script setup lang="ts">
+import { routePageTitle } from '@/pageTitle'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
@@ -24,19 +25,7 @@ const crumb = computed(() => {
       ? 'Admin'
       : 'Buyer cabinet'
 
-  const byPath: Record<string, string> = {
-    '/dashboard': 'Dashboard',
-    '/reports': 'Reports',
-    '/stock': 'Buy Leads',
-    '/orders': role === 'partner' ? 'My orders' : 'Orders',
-    '/leads': role === 'partner' ? 'My leads' : 'Leads',
-    '/performance': 'Performance',
-    '/presets': 'Presets',
-    '/offers': 'Offers',
-    '/caps': 'Caps',
-  }
-
-  const current = byPath[path]
+  const current = routePageTitle(path, role)
   if (!current) {
     return null
   }

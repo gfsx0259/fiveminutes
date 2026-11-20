@@ -19,21 +19,81 @@
         <v-alert v-else-if="error" type="error" variant="tonal" density="compact">
           {{ error }}
         </v-alert>
-        <v-table v-else-if="lead" density="compact" class="lead-detail__table">
-          <tbody>
-            <tr v-for="field in visibleFields" :key="field.key">
-              <th>{{ field.label }}</th>
-              <td>
-                <StatusChip v-if="field.key === 'status'" :status="lead.status" :label="statusLabel(lead.status)" />
-                <span v-else-if="field.key === 'country'" class="lead-detail__country">
-                  <CountryFlag :code="lead.country" />
-                  {{ lead.country || '—' }}
-                </span>
-                <span v-else>{{ format(field.key) }}</span>
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
+        <div v-else-if="lead" class="lead-detail__sections">
+          <section
+            v-for="section in detailSections"
+            :key="section.id"
+            class="lead-detail__section"
+          >
+            <h3 class="lead-detail__section-title">{{ section.title }}</h3>
+            <v-table density="compact" class="lead-detail__table">
+              <tbody>
+                <tr v-for="row in section.rows" :key="row.key">
+                  <th>{{ row.label }}</th>
+                  <td>
+                    <StatusChip
+                      v-if="row.kind === 'status'"
+                      :status="lead.status"
+                      :label="statusLabel(lead.status ?? '')"
+                    />
+                    <template v-else-if="row.kind === 'delivery'">
+                      <StatusChip
+                        v-if="lead.deliveryError"
+                        status="failed"
+                        tone="error"
+                        label="Error"
+                      />
+                      <StatusChip
+                        v-else-if="lead.isDelivered"
+                        status="delivered"
+                        tone="success"
+                        label="Delivered"
+                      />
+                      <span v-else class="text-medium-emphasis">—</span>
+                    </template>
+                    <template v-else-if="row.kind === 'clientDeposit'">
+                      <StatusChip
+                        v-if="lead.isDelivered"
+                        :status="lead.clientDeposit ? 'success' : 'default'"
+                        :tone="lead.clientDeposit ? 'success' : 'default'"
+                        :label="lead.clientDeposit ? 'Yes' : 'No'"
+                      />
+                      <span v-else class="text-medium-emphasis">—</span>
+                    </template>
+                    <span v-else-if="row.kind === 'country'" class="lead-detail__country">
+                      <CountryFlag :code="rowValue(row)" />
+                      <CopyableText
+                        v-if="rowCopyValue(row)"
+                        :text="rowCopyValue(row)"
+                      >{{ rowValue(row) }}</CopyableText>
+                      <span v-else class="text-medium-emphasis">—</span>
+                    </span>
+                    <span v-else-if="row.kind === 'vertical'" class="lead-detail__entity">
+                      <v-icon
+                        v-if="rowValue(row) !== '—'"
+                        :icon="verticalIcon(rowValue(row))"
+                        :color="verticalColor(rowValue(row))"
+                        size="18"
+                      />
+                      <CopyableText
+                        v-if="rowCopyValue(row)"
+                        :text="rowCopyValue(row)"
+                      >{{ verticalLabel(rowValue(row)) }}</CopyableText>
+                      <span v-else class="text-medium-emphasis">—</span>
+                    </span>
+                    <CopyableText
+                      v-else-if="rowCopyValue(row)"
+                      :text="rowCopyValue(row)"
+                      :truncate="row.field === 'email' || row.field === 'uuid'"
+                      :max-width="row.field === 'uuid' ? '100%' : '280px'"
+                    >{{ rowValue(row) }}</CopyableText>
+                    <span v-else class="text-medium-emphasis">{{ rowValue(row) }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </section>
+        </div>
       </v-card-text>
       <v-card-text v-if="rejectOpen" class="pt-0">
         <v-textarea v-model="rejectReason" label="Reject reason" rows="3" />
@@ -57,16 +117,37 @@
 </template>
 
 <script setup lang="ts">
+import CopyableText from '@/components/CopyableText.vue'
 import CountryFlag from '@/components/CountryFlag.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { apiPost } from '@/api'
+import { modelLabel, verticalColor, verticalIcon, verticalLabel, trafficLabel } from '@/marketOptions'
 import { dollars } from '@/money'
+import { leadDisplayId, offerDisplayId, orderDisplayId, verticalFromAffSub } from '@/orderDisplay'
 import type { CabinetLead } from '@/stores/leads'
+import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 import { computed, ref, watch } from 'vue'
 
+type RowKind = 'text' | 'status' | 'delivery' | 'clientDeposit' | 'country' | 'vertical'
+
+interface DetailRow {
+  key: string
+  label: string
+  kind: RowKind
+  source: 'preset' | 'lead' | 'ops'
+  field?: string
+}
+
+interface DetailSection {
+  id: string
+  title: string
+  rows: DetailRow[]
+}
+
 const session = useSessionStore()
+const market = useMarketStore()
 const role = computed(() => session.payload?.user?.role)
 
 const props = defineProps<{
@@ -111,41 +192,117 @@ const canConvert = computed(() => {
   return r === 'partner' || r === 'buyer' || r === 'admin'
 })
 
-const fields = [
-  { key: 'uuid', label: 'ID' },
-  { key: 'status', label: 'Status' },
-  { key: 'phone', label: 'Phone' },
-  { key: 'email', label: 'Email' },
-  { key: 'firstName', label: 'First name' },
-  { key: 'lastName', label: 'Last name' },
-  { key: 'country', label: 'Country' },
-  { key: 'trafficSource', label: 'Traffic source' },
-  { key: 'age', label: 'Age' },
-  { key: 'gender', label: 'Gender' },
-  { key: 'ip', label: 'IP' },
-  { key: 'affSub', label: 'Aff sub' },
-  { key: 'uniqId', label: 'Uniq id' },
-  { key: 'priceCents', label: 'Price' },
-  { key: 'buyerEmail', label: 'Buyer' },
-  { key: 'sellerEmail', label: 'Partner' },
-  { key: 'orderId', label: 'Order' },
-  { key: 'createdAt', label: 'Created' },
-  { key: 'updatedAt', label: 'Updated' },
-  { key: 'soldAt', label: 'Sold' },
-] as const
+const matchedOrder = computed(() => {
+  const orderId = props.lead?.orderId
+  if (!orderId) return null
+  return market.orders.find((order) => order.id === orderId) ?? null
+})
 
-const visibleFields = computed(() => fields.filter((field) => {
-  if (field.key === 'buyerEmail' && role.value !== 'admin') {
-    return false
+const matchedPreset = computed(() => {
+  const order = matchedOrder.value
+  if (!order) return null
+  return market.presets.find((preset) => preset.id === order.presetId) ?? null
+})
+
+const presetValues = computed(() => {
+  const lead = props.lead
+  const order = matchedOrder.value
+  const preset = matchedPreset.value
+  if (!lead) {
+    return null
   }
-  if (field.key === 'sellerEmail' && role.value !== 'admin') {
-    return false
+  const vertical = order?.vertical || preset?.vertical || verticalFromAffSub(lead.affSub)
+  return {
+    vertical: vertical || '—',
+    country: order?.geo || preset?.country || '—',
+    trafficSource: order?.trafficSource || preset?.trafficSource || '—',
+    age: order?.age || preset?.age || '—',
+    gender: order?.gender || preset?.gender || '—',
+    paymentModel: order?.paymentModel || preset?.paymentModel || '—',
+    priceCents: order?.priceCents ?? lead.priceCents,
+    orderDisplay: order ? orderDisplayId(order.id) : '—',
   }
-  if (field.key === 'orderId' && role.value === 'buyer') {
-    return false
+})
+
+const presetRows: DetailRow[] = [
+  { key: 'vertical', label: 'Vertical', kind: 'vertical', source: 'preset', field: 'vertical' },
+  { key: 'country', label: 'Country', kind: 'country', source: 'preset', field: 'country' },
+  { key: 'trafficSource', label: 'Traffic source', kind: 'text', source: 'preset', field: 'trafficSource' },
+  { key: 'age', label: 'Age', kind: 'text', source: 'preset', field: 'age' },
+  { key: 'gender', label: 'Gender', kind: 'text', source: 'preset', field: 'gender' },
+  { key: 'paymentModel', label: 'Payment model', kind: 'text', source: 'preset', field: 'paymentModel' },
+  { key: 'priceCents', label: 'Catalog price', kind: 'text', source: 'preset', field: 'priceCents' },
+]
+
+const leadRows: DetailRow[] = [
+  { key: 'shortId', label: 'Short ID', kind: 'text', source: 'lead', field: 'leadId' },
+  { key: 'longId', label: 'Long ID', kind: 'text', source: 'lead', field: 'uuid' },
+  { key: 'firstName', label: 'First name', kind: 'text', source: 'lead', field: 'firstName' },
+  { key: 'lastName', label: 'Last name', kind: 'text', source: 'lead', field: 'lastName' },
+  { key: 'phone', label: 'Phone', kind: 'text', source: 'lead', field: 'phone' },
+  { key: 'email', label: 'Email', kind: 'text', source: 'lead', field: 'email' },
+  { key: 'country', label: 'Country', kind: 'country', source: 'lead', field: 'country' },
+  { key: 'age', label: 'Age', kind: 'text', source: 'lead', field: 'age' },
+  { key: 'gender', label: 'Gender', kind: 'text', source: 'lead', field: 'gender' },
+  { key: 'ip', label: 'IP', kind: 'text', source: 'lead', field: 'ip' },
+  { key: 'affSub', label: 'Aff sub', kind: 'text', source: 'lead', field: 'affSub' },
+]
+
+const presetSectionRows = computed((): DetailRow[] => {
+  if (role.value === 'partner') {
+    return [
+      { key: 'offerId', label: 'Offer ID', kind: 'text', source: 'preset', field: 'offerId' },
+      ...presetRows,
+    ]
   }
-  return true
-}))
+  return presetRows
+})
+
+const detailSections = computed((): DetailSection[] => {
+  const r = role.value
+  const opsRows: DetailRow[] = []
+  const presetTitle = r === 'partner' ? 'Offer' : 'Preset'
+
+  if (r === 'partner') {
+    opsRows.push(
+      { key: 'delivery', label: 'Delivery', kind: 'delivery', source: 'ops' },
+      { key: 'clientStatus', label: 'Client status', kind: 'text', source: 'ops', field: 'clientStatus' },
+      { key: 'clientDeposit', label: 'Deposit', kind: 'clientDeposit', source: 'ops' },
+    )
+  } else {
+    opsRows.push({ key: 'status', label: 'Status', kind: 'status', source: 'ops' })
+    if (props.lead?.isDelivered || props.lead?.deliveryError) {
+      opsRows.push(
+        { key: 'delivery', label: 'Delivery', kind: 'delivery', source: 'ops' },
+        { key: 'clientStatus', label: 'Client status', kind: 'text', source: 'ops', field: 'clientStatus' },
+        { key: 'clientDeposit', label: 'Deposit', kind: 'clientDeposit', source: 'ops' },
+      )
+    }
+  }
+
+  if (r !== 'buyer') {
+    opsRows.push({ key: 'orderId', label: 'Order', kind: 'text', source: 'ops', field: 'orderId' })
+  }
+  if (r === 'admin') {
+    opsRows.push(
+      { key: 'buyerEmail', label: 'Buyer', kind: 'text', source: 'ops', field: 'buyerEmail' },
+      { key: 'sellerEmail', label: 'Partner', kind: 'text', source: 'ops', field: 'sellerEmail' },
+    )
+  }
+
+  opsRows.push(
+    { key: 'priceCents', label: 'Price', kind: 'text', source: 'ops', field: 'priceCents' },
+    { key: 'createdAt', label: 'Created', kind: 'text', source: 'ops', field: 'createdAt' },
+    { key: 'updatedAt', label: 'Updated', kind: 'text', source: 'ops', field: 'updatedAt' },
+    { key: 'soldAt', label: 'Sold', kind: 'text', source: 'ops', field: 'soldAt' },
+  )
+
+  return [
+    { id: 'preset', title: presetTitle, rows: presetSectionRows.value },
+    { id: 'lead', title: 'Lead', rows: leadRows },
+    { id: 'ops', title: 'Operational', rows: opsRows },
+  ]
+})
 
 const statusLabels: Record<string, string> = {
   new: 'New',
@@ -167,11 +324,6 @@ function genderLabel(value: string): string {
   return value || '—'
 }
 
-function trafficLabel(value: string): string {
-  if (!value) return '—'
-  return value.charAt(0).toUpperCase() + value.slice(1)
-}
-
 function when(value: string | null | undefined): string {
   if (!value) return '—'
   const date = new Date(value)
@@ -179,18 +331,86 @@ function when(value: string | null | undefined): string {
   return date.toLocaleString(undefined, { hour12: false })
 }
 
-function format(key: typeof fields[number]['key']): string {
+function rowValue(row: DetailRow): string {
   const lead = props.lead
   if (!lead) return '—'
-  if (key === 'priceCents') return dollars(lead.priceCents / 100)
-  if (key === 'gender') return genderLabel(lead.gender)
-  if (key === 'trafficSource') return trafficLabel(lead.trafficSource)
-  if (key === 'createdAt' || key === 'updatedAt' || key === 'soldAt') {
-    return when(lead[key])
+
+  if (row.source === 'preset') {
+    const preset = presetValues.value
+    if (!preset || !row.field) return '—'
+    if (row.field === 'offerId') {
+      const id = matchedPreset.value?.id
+      return id ? offerDisplayId(id) : '—'
+    }
+    if (row.field === 'trafficSource') return trafficLabel(preset.trafficSource)
+    if (row.field === 'gender') return genderLabel(preset.gender)
+    if (row.field === 'paymentModel') return modelLabel(preset.paymentModel)
+    if (row.field === 'priceCents') return dollars(preset.priceCents / 100)
+    const value = preset[row.field as keyof typeof preset]
+    return value === undefined || value === null || value === '' ? '—' : String(value)
   }
-  const value = lead[key as keyof CabinetLead]
-  if (value === null || value === undefined || value === '') return '—'
-  return String(value)
+
+  if (row.source === 'lead' && row.field) {
+    if (row.field === 'leadId') return leadDisplayId(lead.uuid)
+    if (row.field === 'uuid') return lead.uuid
+    if (row.field === 'gender') return genderLabel(lead.gender)
+    if (row.field === 'trafficSource') return trafficLabel(lead.trafficSource)
+    const value = lead[row.field as keyof CabinetLead]
+    if (value === null || value === undefined || value === '') return '—'
+    return String(value)
+  }
+
+  if (row.source === 'ops' && row.field) {
+    if (row.field === 'priceCents') return dollars(lead.priceCents / 100)
+    if (row.field === 'clientStatus') {
+      if (!lead.isDelivered) return '—'
+      return lead.clientStatus?.trim() || '—'
+    }
+    if (row.field === 'orderId') {
+      if (!lead.orderId) return '—'
+      return orderDisplayId(lead.orderId)
+    }
+    if (row.field === 'createdAt' || row.field === 'updatedAt' || row.field === 'soldAt') {
+      return when(lead[row.field])
+    }
+    const value = lead[row.field as keyof CabinetLead]
+    if (value === null || value === undefined || value === '') return '—'
+    return String(value)
+  }
+
+  return '—'
+}
+
+function rowCopyValue(row: DetailRow): string | null {
+  if (row.kind === 'status' || row.kind === 'delivery' || row.kind === 'clientDeposit') {
+    return null
+  }
+  const lead = props.lead
+  const displayed = rowValue(row)
+  if (displayed === '—' || displayed === '') {
+    return null
+  }
+
+  if (row.field === 'uuid' && lead) {
+    return lead.uuid
+  }
+  if (row.field === 'orderId' && lead?.orderId) {
+    return lead.orderId
+  }
+  if (row.field === 'offerId' && matchedPreset.value) {
+    return matchedPreset.value.id
+  }
+  if (row.field === 'priceCents') {
+    if (row.source === 'preset') {
+      const cents = presetValues.value?.priceCents
+      return cents === undefined ? null : String(cents / 100)
+    }
+    if (lead) {
+      return String(lead.priceCents / 100)
+    }
+  }
+
+  return displayed
 }
 
 async function copyJson(): Promise<void> {
@@ -248,6 +468,34 @@ async function rejectLead(): Promise<void> {
   padding: 32px;
 }
 
+.lead-detail__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lead-detail__section {
+  background: #f8f7fc;
+  border: 1px solid #e6e7f2;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lead-detail__section-title {
+  color: #51487b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  margin: 0;
+  padding: 10px 14px;
+  text-transform: uppercase;
+}
+
+.lead-detail__table {
+  background: #fff;
+}
+
 .lead-detail__table :deep(th),
 .lead-detail__table :deep(td) {
   padding-block: 10px;
@@ -259,6 +507,7 @@ async function rejectLead(): Promise<void> {
   font-size: 13px;
   font-weight: 600;
   line-height: 1.35;
+  padding-left: 14px;
   padding-right: 16px;
   white-space: nowrap;
   width: 140px;
@@ -267,10 +516,22 @@ async function rejectLead(): Promise<void> {
 .lead-detail__table :deep(td) {
   font-size: 13px;
   line-height: 1.35;
+  padding-right: 14px;
   word-break: break-word;
 }
 
-.lead-detail__country {
+.lead-detail__table :deep(td .copyable) {
+  border-radius: 4px;
+  padding: 1px 2px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.lead-detail__table :deep(td .copyable:hover) {
+  background: #efecff;
+}
+
+.lead-detail__country,
+.lead-detail__entity {
   align-items: center;
   display: inline-flex;
   gap: 8px;

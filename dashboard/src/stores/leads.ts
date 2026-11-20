@@ -9,7 +9,11 @@ export interface CabinetLead {
   sellerId?: string | null
   sellerEmail?: string
   orderId?: string | null
-  status: string
+  status?: string
+  isDelivered?: boolean
+  deliveryError?: boolean
+  clientStatus?: string
+  clientDeposit?: boolean
   phone: string
   email: string
   firstName: string

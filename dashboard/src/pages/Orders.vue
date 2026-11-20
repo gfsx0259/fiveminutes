@@ -186,11 +186,7 @@
             >
               My leads
             </UiButton>
-            <v-menu
-              v-if="orderHasLifecycleActions(item)"
-              location="bottom end"
-              content-class="order-row-menu"
-            >
+            <v-menu location="bottom end" content-class="order-row-menu">
               <template #activator="{ props: menuProps }">
                 <button
                   type="button"
@@ -204,42 +200,42 @@
                 </button>
               </template>
               <div class="order-row-menu__list">
+                <button type="button" class="order-row-menu__item" @click="copyOrderUuid(item.id)">
+                  <v-icon icon="mdi-identifier" size="18" class="order-row-menu__icon" />
+                  Copy order UUID
+                </button>
                 <button
                   v-if="item.status === 'in_progress'"
                   type="button"
+                  class="order-row-menu__item"
                   :disabled="acting === item.id"
                   @click="act(item.id, 'pause')"
                 >
+                  <v-icon icon="mdi-pause-circle-outline" size="18" class="order-row-menu__icon" />
                   Pause
                 </button>
                 <button
                   v-if="item.status === 'paused'"
                   type="button"
+                  class="order-row-menu__item"
                   :disabled="acting === item.id"
                   @click="act(item.id, 'resume')"
                 >
+                  <v-icon icon="mdi-play-circle-outline" size="18" class="order-row-menu__icon" />
                   Resume
                 </button>
                 <button
                   v-if="item.status !== 'finished'"
                   type="button"
+                  class="order-row-menu__item"
                   :disabled="acting === item.id"
                   @click="act(item.id, 'finish')"
                 >
+                  <v-icon icon="mdi-flag-checkered" size="18" class="order-row-menu__icon" />
                   Finish
                 </button>
               </div>
             </v-menu>
-            <button
-              v-else
-              type="button"
-              class="order-actions__more"
-              disabled
-              aria-disabled="true"
-              :title="isPartner ? 'No more actions' : 'No actions'"
-            >
-              <v-icon icon="mdi-dots-horizontal" size="20" />
-            </button>
           </div>
         </template>
         <template #no-data>
@@ -447,8 +443,13 @@ function goOrderLeads(orderId: string): void {
   void router.push({ path: '/leads', query: { order: orderId } })
 }
 
-function orderHasLifecycleActions(item: OrderRow): boolean {
-  return item.status !== 'finished'
+async function copyOrderUuid(orderId: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(orderId)
+    showToast('Order UUID copied')
+  } catch {
+    showToast('Copy unavailable')
+  }
 }
 
 const orderActionToasts: Record<'pause' | 'resume' | 'finish', string> = {
@@ -673,11 +674,27 @@ onMounted(() => {
   width: 100%;
 }
 
+.order-row-menu__item {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.order-row-menu__icon {
+  color: #6b628a;
+  flex-shrink: 0;
+}
+
 .order-row-menu__list > button:hover:not(:disabled),
 .order-row-menu__list > button:focus-visible:not(:disabled) {
   background: #efecff;
   color: #3512bc;
   outline: none;
+}
+
+.order-row-menu__list > button:hover:not(:disabled) .order-row-menu__icon,
+.order-row-menu__list > button:focus-visible:not(:disabled) .order-row-menu__icon {
+  color: #3512bc;
 }
 
 .order-row-menu__list > button:disabled {

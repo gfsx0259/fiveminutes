@@ -180,7 +180,35 @@
           <span class="lead-ip">{{ item.ip || '—' }}</span>
         </template>
         <template #item.status="{ item }">
-          <StatusChip :status="item.status" :label="statusLabel(item.status)" />
+          <StatusChip :status="item.status" :label="statusLabel(item.status ?? '')" />
+        </template>
+        <template #item.partnerDelivery="{ item }">
+          <StatusChip
+            v-if="item.deliveryError"
+            status="failed"
+            tone="error"
+            label="Error"
+          />
+          <StatusChip
+            v-else-if="item.isDelivered"
+            status="delivered"
+            tone="success"
+            label="Delivered"
+          />
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+        <template #item.clientStatus="{ item }">
+          <span v-if="item.isDelivered && item.clientStatus" class="lead-client-status">{{ item.clientStatus }}</span>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+        <template #item.clientDeposit="{ item }">
+          <StatusChip
+            v-if="item.isDelivered"
+            :status="item.clientDeposit ? 'success' : 'default'"
+            :tone="item.clientDeposit ? 'success' : 'default'"
+            :label="item.clientDeposit ? 'Yes' : 'No'"
+          />
+          <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item.actions="{ item }">
           <div class="lead-actions ui-table-cell-actions" @click.stop>
@@ -202,32 +230,46 @@
                   </button>
                 </template>
               <div class="lead-row-menu__list">
-                <button type="button" @click="copyLeadId(item.uuid)">
-                  Copy lead ID
+                <button type="button" class="lead-row-menu__item" @click="copyLeadUuid(item.uuid)">
+                  <v-icon icon="mdi-identifier" size="18" class="lead-row-menu__icon" />
+                  Copy lead UUID
                 </button>
-                <button type="button" @click="copyWithLabel(item.uuid, 'UUID')">
-                  Copy UUID
-                </button>
-                <button type="button" @click="copyWithLabel(item.phone, 'Phone')">
+                <button type="button" class="lead-row-menu__item" @click="copyWithLabel(item.phone, 'Phone')">
+                  <v-icon icon="mdi-phone" size="18" class="lead-row-menu__icon" />
                   Copy phone
                 </button>
-                <button type="button" @click="copyWithLabel(item.email, 'Email')">
+                <button type="button" class="lead-row-menu__item" @click="copyWithLabel(item.email, 'Email')">
+                  <v-icon icon="mdi-email-outline" size="18" class="lead-row-menu__icon" />
                   Copy email
                 </button>
                 <button
                   v-if="leadCanConvert(item)"
                   type="button"
+                  class="lead-row-menu__item"
                   :disabled="acting === item.uuid"
                   @click="approveLeadRow(item)"
                 >
+                  <v-icon icon="mdi-check-circle-outline" size="18" class="lead-row-menu__icon" />
                   Approve (deposit)
                 </button>
                 <button
                   v-if="leadCanConvert(item)"
                   type="button"
+                  class="lead-row-menu__item"
                   @click="openLeadReject(item)"
                 >
+                  <v-icon icon="mdi-close-circle-outline" size="18" class="lead-row-menu__icon" />
                   Reject…
+                </button>
+                <button
+                  v-if="leadCanMockDeliver(item)"
+                  type="button"
+                  class="lead-row-menu__item"
+                  :disabled="acting === item.uuid"
+                  @click="deliverLeadRow(item)"
+                >
+                  <v-icon icon="mdi-truck-delivery-outline" size="18" class="lead-row-menu__icon" />
+                  Deliver (mock)
                 </button>
               </div>
               </v-menu>
@@ -351,7 +393,7 @@ watch(advancedFiltersCount, (count) => {
 const leadLine = computed(() => {
   const role = session.payload?.user?.role
   let line = 'Leads you mined'
-  if (role === 'partner') line = 'Leads you purchased and their conversion status.'
+  if (role === 'partner') line = 'Leads you purchased, client delivery, and feedback from your buyer.'
   else if (role === 'admin') line = 'Leads of this organization'
   if (filterOrderId.value.trim() !== '') {
     return `${line} Filtered by order ${filterOrderId.value.trim()}.`
@@ -407,8 +449,18 @@ const headers = computed(() => {
       { title: 'Partner', key: 'sellerEmail' },
     )
   }
+  if (isPartner.value) {
+    rows.push(
+      { title: 'Delivery', key: 'partnerDelivery', align: 'center' },
+      { title: 'Client status', key: 'clientStatus' },
+      { title: 'Deposit', key: 'clientDeposit', align: 'center' },
+    )
+  } else {
+    rows.push(
+      { title: 'Status', key: 'status', align: 'center' },
+    )
+  }
   rows.push(
-    { title: 'Status', key: 'status', align: 'center' },
     { title: '', key: 'actions', sortable: false, align: 'end' as const, width: 148 },
   )
   return rows
@@ -555,6 +607,32 @@ function leadCanConvert(lead: CabinetLead): boolean {
   return role === 'partner' || role === 'buyer' || role === 'admin'
 }
 
+function leadCanMockDeliver(lead: CabinetLead): boolean {
+  if (lead.isDelivered || lead.deliveryError) {
+    return false
+  }
+  const role = session.payload?.user?.role
+  if (role === 'partner') {
+    return true
+  }
+  if (role === 'admin') {
+    return Boolean(lead.sellerId)
+  }
+  return false
+}
+
+async function deliverLeadRow(item: CabinetLead): Promise<void> {
+  acting.value = item.uuid
+  try {
+    await apiPost<{ lead: CabinetLead }>(`/leads/${item.uuid}/deliver`, {})
+    void leadStore.load()
+  } catch {
+    showToast('Delivery mock failed')
+  } finally {
+    acting.value = ''
+  }
+}
+
 async function copyWithLabel(value: string | null | undefined, label: string): Promise<void> {
   if (!value) {
     return
@@ -567,8 +645,8 @@ async function copyWithLabel(value: string | null | undefined, label: string): P
   }
 }
 
-async function copyLeadId(uuid: string): Promise<void> {
-  await copyWithLabel(leadDisplayId(uuid), 'Lead ID')
+async function copyLeadUuid(uuid: string): Promise<void> {
+  await copyWithLabel(uuid, 'Lead UUID')
 }
 
 async function approveLeadRow(item: CabinetLead): Promise<void> {
@@ -955,11 +1033,27 @@ onMounted(() => {
   width: 100%;
 }
 
+.lead-row-menu__item {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.lead-row-menu__icon {
+  color: #6b628a;
+  flex-shrink: 0;
+}
+
 .lead-row-menu__list > button:hover:not(:disabled),
 .lead-row-menu__list > button:focus-visible:not(:disabled) {
   background: #efecff;
   color: #3512bc;
   outline: none;
+}
+
+.lead-row-menu__list > button:hover:not(:disabled) .lead-row-menu__icon,
+.lead-row-menu__list > button:focus-visible:not(:disabled) .lead-row-menu__icon {
+  color: #3512bc;
 }
 
 .lead-row-menu__list > button:disabled {

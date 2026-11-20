@@ -1,3 +1,5 @@
+import { documentTitle } from '@/pageTitle'
+import { useSessionStore } from '@/stores/session'
 import { createRouter, createWebHistory } from 'vue-router'
 import Caps from '@/pages/Caps.vue'
 import Dashboard from '@/pages/Dashboard.vue'
@@ -25,4 +27,9 @@ export const router = createRouter({
     { path: '/offers', component: Offers },
     { path: '/performance', component: Performance },
   ],
+})
+
+router.afterEach((to) => {
+  const role = useSessionStore().payload?.user?.role
+  document.title = documentTitle(to.path, role)
 })

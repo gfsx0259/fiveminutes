@@ -41,3 +41,7 @@ ALTER TABLE leads ADD COLUMN IF NOT EXISTS order_id Nullable(UUID);
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS traffic_source LowCardinality(String) DEFAULT '';
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS age LowCardinality(String) DEFAULT '';
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS gender LowCardinality(String) DEFAULT '';
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_delivered UInt8 DEFAULT 0;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS delivery_error UInt8 DEFAULT 0;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS client_status String DEFAULT '';
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS client_deposit UInt8 DEFAULT 0;
