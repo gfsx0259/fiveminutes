@@ -174,7 +174,7 @@
           {{ item.lastName || '—' }}
         </template>
         <template #item.email="{ item }">
-          {{ item.email || '—' }}
+          <span class="lead-email" :title="item.email || undefined">{{ item.email || '—' }}</span>
         </template>
         <template #item.ip="{ item }">
           <span class="lead-ip">{{ item.ip || '—' }}</span>
@@ -398,7 +398,7 @@ const headers = computed(() => {
     { title: 'First name', key: 'firstName' },
     { title: 'Last name', key: 'lastName' },
     { title: 'Phone', key: 'phone' },
-    { title: 'Email', key: 'email' },
+    { title: 'Email', key: 'email', width: 232 },
     { title: 'IP', key: 'ip' },
   ]
   if (isAdmin.value) {
@@ -840,6 +840,15 @@ onMounted(() => {
 .lead-ip {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lead-email {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
