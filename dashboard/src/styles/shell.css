@@ -573,7 +573,8 @@ html:has(.lm-nav-dialog) {
   font-weight: 700;
 }
 
-.lm-topbar-wallet__add {
+.lm-topbar-wallet__add,
+.lm-topbar-wallet__buy {
   border-radius: 10px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
@@ -630,6 +631,7 @@ html:has(.lm-nav-dialog) {
 .lm-page h1 + p {
   color: #3d446e;
   font-size: var(--lm-font-body);
+  margin-bottom: 0;
   margin-top: 3px;
 }
 

@@ -7,8 +7,6 @@
       </div>
       <div class="dashboard__actions">
         <UiSegmented v-model="periodKey" :items="periodChoices" />
-        <UiButton variant="outline" icon="mdi-plus" @click="orderOpen = true">Create order</UiButton>
-        <UiButton icon="mdi-cart-outline" @click="router.push('/stock')">Buy leads</UiButton>
       </div>
     </div>
 
@@ -91,13 +89,11 @@
       </UiCard>
     </div>
 
-    <OrderFormDialog v-model="orderOpen" @created="refresh" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import ChartLegend from '@/components/charts/ChartLegend.vue'
 import ComboChart from '@/components/charts/ComboChart.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
@@ -108,8 +104,6 @@ import TopGeos from '@/components/dashboard/TopGeos.vue'
 import WalletActivity from '@/components/dashboard/WalletActivity.vue'
 import WalletHero from '@/components/dashboard/WalletHero.vue'
 import DeltaChip from '@/components/DeltaChip.vue'
-import OrderFormDialog from '@/components/OrderFormDialog.vue'
-import UiButton from '@/components/ui/UiButton.vue'
 import UiCard from '@/components/ui/UiCard.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import type { TooltipRow } from '@/charts'
@@ -120,7 +114,6 @@ import { useLeadStore } from '@/stores/leads'
 import { useMarketStore } from '@/stores/market'
 import { useWalletStore } from '@/stores/wallet'
 
-const router = useRouter()
 const leadStore = useLeadStore()
 const market = useMarketStore()
 const wallet = useWalletStore()
@@ -132,7 +125,6 @@ const periodChoices = [
 ]
 
 const periodKey = ref('7')
-const orderOpen = ref(false)
 const now = ref(Date.now())
 let clock: ReturnType<typeof setInterval> | undefined
 

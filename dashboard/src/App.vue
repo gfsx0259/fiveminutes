@@ -91,7 +91,6 @@
         </div>
       </header>
       <div class="lm-page">
-        <PageBreadcrumbs />
         <router-view />
       </div>
     </v-main>
@@ -102,7 +101,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import PageBreadcrumbs from '@/components/PageBreadcrumbs.vue'
 import ShellNav from '@/components/ShellNav.vue'
 import UiToastHost from '@/components/UiToastHost.vue'
 import TopbarWallet from '@/components/TopbarWallet.vue'

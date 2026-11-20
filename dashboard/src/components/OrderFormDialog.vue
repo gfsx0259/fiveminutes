@@ -113,7 +113,7 @@
     <UiField label="Date" :error="fieldErrors.serviceOn">
       <div class="order-form__date">
         <UiSegmented v-model="serviceQuick" :items="serviceQuickItems" class="order-form__segmented" />
-        <UiDateField v-model="serviceOn" label="Date" class="order-form__date-field" />
+        <UiDateField v-model="serviceOn" label="Date" class="order-form__date-field" :min="earliestServiceDay" />
       </div>
     </UiField>
     <div class="ui-form__row">
@@ -198,9 +198,12 @@ const serviceQuick = ref('today')
 const opensAt = ref(defaultOpensForServiceDate(utcDay(0), utcDay(0)))
 const closesAt = ref('23:59')
 
+const earliestServiceDay = computed(() => utcDay(0))
+
 const serviceQuickItems = [
   { title: 'Today', value: 'today' },
   { title: 'Tomorrow', value: 'tomorrow' },
+  { title: 'Custom', value: 'custom' },
 ]
 
 const fieldsLocked = computed(() => Boolean(props.initialPresetId))
@@ -315,7 +318,8 @@ function applyLinkedFields(): void {
     price.value = String(props.initialPriceDollars)
   }
   if (props.initialServiceOn) {
-    serviceOn.value = props.initialServiceOn
+    const floor = utcDay(0)
+    serviceOn.value = props.initialServiceOn < floor ? floor : props.initialServiceOn
     syncServiceQuickFromDate()
     opensAt.value = defaultOpensForServiceDate(props.initialServiceOn, utcDay(0))
   }
@@ -546,6 +550,8 @@ function validateForm(): PresetRow | null {
 
   if (!serviceOn.value) {
     errors.serviceOn = 'Choose service date'
+  } else if (serviceOn.value < utcDay(0)) {
+    errors.serviceOn = 'Date cannot be in the past'
   }
 
   fieldErrors.value = errors

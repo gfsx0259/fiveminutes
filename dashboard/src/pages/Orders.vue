@@ -6,8 +6,7 @@
         <p v-if="isPartner">Day and stock orders you opened. Create new day orders from Buy leads.</p>
         <p v-else>Day orders for today or tomorrow. Partner payout is at or above the preset floor; the platform fee is charged to the buyer.</p>
       </div>
-      <UiButton v-if="isPartner" variant="outline" icon="mdi-cart-outline" @click="goBuy">Buy leads</UiButton>
-      <UiButton v-else variant="outline" icon="mdi-plus" @click="show">Create</UiButton>
+      <UiButton v-if="!isPartner" variant="outline" icon="mdi-plus" @click="show">Create</UiButton>
     </div>
 
     <OrderFormDialog v-if="!isPartner" v-model="open" />
@@ -113,8 +112,6 @@
         </UiLabeledField>
       </div>
     </section>
-
-    <p v-if="!market.loading" class="orders-count">{{ filteredOrders.length }} orders</p>
 
     <UiTableCard title="Orders">
       <template #actions>
@@ -463,10 +460,6 @@ function show(): void {
   open.value = true
 }
 
-function goBuy(): void {
-  void router.push('/stock')
-}
-
 function goOrderLeads(orderId: string): void {
   void router.push({ path: '/leads', query: { order: orderId } })
 }
@@ -575,13 +568,6 @@ onMounted(() => {
 .orders-filter-date {
   display: block;
   width: 100%;
-}
-
-.orders-count {
-  color: #5c6078;
-  font-size: 13px;
-  font-weight: 600;
-  margin: 0 0 12px;
 }
 
 .orders-table :deep(.v-data-table-footer) {

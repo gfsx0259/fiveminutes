@@ -137,22 +137,6 @@
   opacity: 0.8;
 }
 
-.lm-breadcrumbs {
-  color: #8b90a8;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 6px;
-}
-
-.lm-breadcrumbs__sep {
-  margin: 0 6px;
-}
-
-.lm-breadcrumbs__current {
-  color: #5b45e8;
-  font-weight: 600;
-}
-
 .lm-page .ui-table-card,
 .lm-page .ui-data-table-shell,
 .lm-page .ui-filter-panel {
@@ -190,6 +174,8 @@
 }
 
 .v-dialog > .v-overlay__content > .v-card {
+  --lm-dialog-inset-x: 16px;
+
   background: #fff !important;
   border: 1px solid var(--lm-border) !important;
   border-radius: 18px !important;
@@ -211,7 +197,7 @@
   font-weight: 700;
   letter-spacing: -0.5px;
   line-height: 1.25;
-  padding: 0 !important;
+  padding: 0 var(--lm-dialog-inset-x) !important;
   white-space: normal;
 }
 
@@ -231,7 +217,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   /* Room for thick focus rings on inputs (avoid clipping at scroll edges). */
-  padding: 16px 10px 8px !important;
+  padding: 16px var(--lm-dialog-inset-x) 8px !important;
 }
 
 .v-dialog .v-card-actions {
@@ -241,7 +227,7 @@
   justify-content: flex-end;
   margin-top: 20px;
   min-height: 40px;
-  padding: 4px 0 0 !important;
+  padding: 4px var(--lm-dialog-inset-x) 0 !important;
 }
 
 .ui-form {
@@ -250,7 +236,7 @@
   gap: 16px;
   margin-top: 16px;
   min-width: 0;
-  padding: 4px 6px 2px;
+  padding: 4px 0 2px;
 }
 
 .ui-form__row {

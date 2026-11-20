@@ -209,8 +209,6 @@
       </div>
     </section>
 
-    <p v-if="showJournal && !leadStore.loading" class="leads-count">{{ filtered.length }} leads</p>
-
     <v-alert v-if="showJournal && leadStore.error" type="error" variant="tonal" class="mb-4">{{ leadStore.error }}</v-alert>
 
     <LeadDetailDialog
@@ -1034,13 +1032,6 @@ onMounted(() => {
 
 .leads-filters__advanced.leads-filters__advanced--partner {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.leads-count {
-  color: #5c6078;
-  font-size: 13px;
-  font-weight: 600;
-  margin: 0 0 12px;
 }
 
 .lead-order-filter-input {

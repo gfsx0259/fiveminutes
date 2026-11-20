@@ -1,5 +1,12 @@
 <template>
-  <div ref="rootEl" class="ui-date" :class="{ 'ui-date--invalid': text.length > 0 && !parsed, 'ui-date--open': open }">
+  <div
+    ref="rootEl"
+    class="ui-date"
+    :class="{
+      'ui-date--invalid': (text.length > 0 && !parsed) || isPastSelection,
+      'ui-date--open': open,
+    }"
+  >
     <button type="button" :aria-label="`Choose ${label} date`" @click.stop="toggle">
       <v-icon icon="mdi-calendar-month-outline" size="18" />
     </button>
@@ -49,7 +56,9 @@
             'ui-date__day--outside': day.outside,
             'ui-date__day--today': day.iso === today && !day.outside,
             'ui-date__day--selected': day.iso === parsed,
+            'ui-date__day--disabled': isBeforeMin(day.iso),
           }"
+          :disabled="isBeforeMin(day.iso)"
           @click="choose(day.iso)"
         >
           {{ day.number }}
@@ -62,10 +71,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   label?: string
+  /** Earliest selectable day (YYYY-MM-DD, UTC). */
+  min?: string
 }>(), {
   label: 'Date',
+  min: '',
 })
 
 const model = defineModel<string>({ default: '' })
@@ -98,6 +110,18 @@ function parse(value: string): string {
 
 const parsed = computed(() => parse(text.value))
 const today = new Date().toISOString().slice(0, 10)
+
+function isBeforeMin(iso: string): boolean {
+  if (!props.min || !isIso(iso)) {
+    return false
+  }
+  return iso < props.min
+}
+
+const isPastSelection = computed(() => {
+  const iso = parsed.value
+  return Boolean(iso) && isBeforeMin(iso)
+})
 
 function showMonth(iso: string): void {
   const source = isIso(iso) ? iso : today
@@ -155,6 +179,9 @@ function place(): void {
 }
 
 function choose(iso: string): void {
+  if (isBeforeMin(iso)) {
+    return
+  }
   text.value = display(iso)
   model.value = iso
   setTimeout(() => {
@@ -168,7 +195,9 @@ function onType(value: string): void {
   const iso = parse(value)
   if (iso) {
     showMonth(iso)
-    model.value = iso
+    if (!isBeforeMin(iso)) {
+      model.value = iso
+    }
   } else if (!value) {
     model.value = ''
   }
@@ -358,5 +387,16 @@ onBeforeUnmount(() => {
 .ui-date__day--selected {
   border-color: var(--lm-primary);
   opacity: 1;
+}
+
+.ui-date__day--disabled,
+.ui-date__day:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.ui-date__day--disabled:hover,
+.ui-date__day:disabled:hover {
+  background: transparent;
 }
 </style>

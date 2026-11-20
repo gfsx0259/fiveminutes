@@ -33,30 +33,6 @@
 
     <section class="ui-filter-panel stock-filter-panel">
       <div class="stock-filters__row">
-        <UiLabeledField label="Vertical">
-          <UiSelect
-            v-model="filterVerticals"
-            :items="verticalItems"
-            placeholder="All verticals"
-            empty-label="All verticals"
-            multiple
-            clearable
-          >
-            <template #value="{ items }">
-              <span v-if="items.length === 0" class="stock-select__placeholder">All verticals</span>
-              <span v-else class="stock-select-picks">
-                <span v-for="item in items" :key="String(item.value)" class="stock-select-pick">
-                  <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="14" />
-                  {{ item.title }}
-                </span>
-              </span>
-            </template>
-            <template #option="{ item }">
-              <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="16" />
-              <span>{{ item.title }}</span>
-            </template>
-          </UiSelect>
-        </UiLabeledField>
         <UiLabeledField label="Country">
           <CountryMultiSelect v-model="filterCountries" />
         </UiLabeledField>
@@ -105,9 +81,13 @@
       </div>
     </section>
 
-    <p v-if="!market.loading" class="stock-count">{{ filtered.length }} offers found</p>
-
-    <UiDataTable
+    <UiTableCard title="Offers">
+      <template #actions>
+        <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="refresh()">
+          Refresh
+        </UiButton>
+      </template>
+      <UiDataTable
       v-model:page="page"
       v-model:items-per-page="itemsPerPage"
       class="stock-market-table"
@@ -194,7 +174,7 @@
             :disabled="item.available < 1"
             @click="openBuy(item)"
           >
-            Buy
+            Buy stock
           </UiButton>
           <UiButton class="stock-actions__btn" variant="outline" @click="openOrder(item)">
             Make order
@@ -232,6 +212,7 @@
         />
       </template>
     </UiDataTable>
+    </UiTableCard>
 
     <StockBuyDialog
       v-model="buyOpen"
@@ -266,6 +247,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import {
   modelLabel,
@@ -309,7 +291,6 @@ const orderInitialPrice = ref<number | null>(null)
 const orderInitialDay = ref<string | null>(null)
 const applyingModalLink = ref(false)
 
-const verticalItems = computed(() => verticals.map((v) => ({ title: v.title, value: v.value })))
 
 const crItems = [
   { title: '8% and above', value: 'high' },
@@ -539,13 +520,6 @@ onMounted(async () => {
   width: 100%;
 }
 
-.stock-count {
-  color: #5c6078;
-  font-size: 13px;
-  font-weight: 600;
-  margin: 0 0 10px;
-}
-
 .stock-chips {
   display: flex;
   flex-wrap: wrap;
@@ -591,7 +565,7 @@ onMounted(async () => {
   align-items: end;
   display: grid;
   gap: 14px 12px;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
 }
 
 .stock-filter-panel__reset {
