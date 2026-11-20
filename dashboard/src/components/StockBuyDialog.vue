@@ -19,12 +19,12 @@
         :country="target.country"
         :traffic-source="target.trafficSource"
         :payment-model="target.paymentModel"
-        :payout-cents="target.stockPriceCents"
+        :payout-cents="target.basePriceCents"
         amount-label="Price"
         :conversion="target.conversion"
       />
 
-      <UiField label="Quantity *" icon="mdi-counter">
+      <UiField label="Quantity *" icon="mdi-counter" :error="fieldErrors.volume">
         <UiInput v-model="volume" type="number" :placeholder="String(target.available)" />
       </UiField>
       <p class="stock-buy__caps">
@@ -38,7 +38,7 @@
       </p>
 
       <OrderCheckoutSummary
-        :price-per-lead-cents="target.stockPriceCents"
+        :price-per-lead-cents="target.basePriceCents"
         :quantity="volumeQty"
         :balance-cents="balanceCents"
       />
@@ -74,6 +74,7 @@ const market = useMarketStore()
 const session = useSessionStore()
 const busy = ref(false)
 const formError = ref('')
+const fieldErrors = ref<Record<string, string>>({})
 const volume = ref('')
 const notice = ref(false)
 const noticeText = ref('')
@@ -93,41 +94,78 @@ const totalCents = computed(() => {
   if (!props.target || volumeQty.value < 1) {
     return 0
   }
-  return volumeQty.value * props.target.stockPriceCents
+  return volumeQty.value * props.target.basePriceCents
 })
 
-watch(open, (value) => {
-  if (!value || !props.target) {
+function syncToTarget(): void {
+  if (!open.value || !props.target) {
     return
   }
   formError.value = ''
+  fieldErrors.value = {}
   const defaultQty = Math.min(props.target.available, 1000)
   volume.value = String(defaultQty > 0 ? defaultQty : 1)
+}
+
+watch(open, (value) => {
+  if (!value) {
+    return
+  }
+  syncToTarget()
 })
+
+watch(() => props.target?.presetId, () => {
+  syncToTarget()
+})
+
+watch(volume, () => {
+  if ('volume' in fieldErrors.value) {
+    const next = { ...fieldErrors.value }
+    delete next.volume
+    fieldErrors.value = next
+  }
+})
+
+function validateBuy(target: StockBuyTarget): number | null {
+  formError.value = ''
+  const errors: Record<string, string> = {}
+  const raw = Number(volume.value)
+  if (!Number.isFinite(raw) || raw < 1) {
+    errors.volume = 'Enter a valid quantity'
+  } else if (raw > target.available) {
+    errors.volume = `Volume must be between 1 and ${target.available}`
+  }
+  fieldErrors.value = errors
+  if (Object.keys(errors).length > 0) {
+    return null
+  }
+  const qty = volumeQty.value
+  if (totalCents.value > balanceCents.value) {
+    formError.value = 'Insufficient wallet balance'
+    return null
+  }
+  return qty
+}
 
 async function buy(): Promise<void> {
   const target = props.target
   if (!target) {
     return
   }
-  const qty = volumeQty.value
-  if (qty < 1) {
-    formError.value = `Volume must be between 1 and ${target.available}`
-    return
-  }
-  if (totalCents.value > balanceCents.value) {
-    formError.value = 'Insufficient wallet balance'
+  const qty = validateBuy(target)
+  if (qty == null) {
     return
   }
 
   busy.value = true
   formError.value = ''
+  fieldErrors.value = {}
   try {
     const result = await market.createStockOrder({
       preset_id: target.presetId,
       geo: target.country,
       volume: qty,
-      price: Math.round(target.stockPriceCents / 100),
+      price: Math.round(target.basePriceCents / 100),
       payment_model: target.paymentModel,
       kind: 'stock',
     })

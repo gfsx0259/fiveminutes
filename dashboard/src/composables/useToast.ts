@@ -1,13 +1,25 @@
 import { ref } from 'vue'
 
-const open = ref(false)
-const message = ref('')
-
-export function useToastState() {
-  return { open, message }
+export type ToastContent = {
+  title: string
+  lines?: string[]
 }
 
-export function showToast(text: string): void {
-  message.value = text
+const open = ref(false)
+const content = ref<ToastContent>({ title: '', lines: [] })
+const timeoutMs = ref(2500)
+
+export function useToastState() {
+  return { open, content, timeoutMs }
+}
+
+export function showToast(text: string | ToastContent): void {
+  if (typeof text === 'string') {
+    content.value = { title: text, lines: [] }
+    timeoutMs.value = 2500
+  } else {
+    content.value = { title: text.title, lines: text.lines ?? [] }
+    timeoutMs.value = text.lines?.length ? 4500 : 2800
+  }
   open.value = true
 }

@@ -58,8 +58,7 @@ final readonly class MarketController
                 $form->vertical(),
                 $form->paymentModel(),
                 $form->cr(),
-                $form->floorPriceCents(),
-                $form->stockPriceCents(),
+                $form->basePriceCents(),
             );
         } catch (Throwable $exception) {
             return $this->failure($exception);

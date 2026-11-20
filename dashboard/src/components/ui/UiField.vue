@@ -1,10 +1,14 @@
 <template>
-  <div class="ui-field" :class="{ 'ui-field--icon': icon }">
+  <div
+    class="ui-field"
+    :class="{ 'ui-field--icon': icon, 'ui-field--error': Boolean(error) }"
+  >
     <span class="ui-field__label">{{ label }}</span>
     <div class="ui-field__control">
       <v-icon v-if="icon" class="ui-field__icon" :icon="icon" size="18" />
       <slot />
     </div>
+    <p v-if="error" class="ui-field__error" role="alert">{{ error }}</p>
   </div>
 </template>
 
@@ -12,6 +16,7 @@
 defineProps<{
   label: string
   icon?: string
+  error?: string
 }>()
 </script>
 
@@ -135,6 +140,34 @@ defineProps<{
 
 .ui-field--icon :deep(.ui-time__input) {
   padding-inline-start: 38px;
+}
+
+.ui-field--error .ui-field__label {
+  color: #a82a46;
+}
+
+.ui-field--error :deep(.ui-input),
+.ui-field--error :deep(.ui-select),
+.ui-field--error :deep(.v-field),
+.ui-field--error :deep(.ui-date),
+.ui-field--error :deep(.ui-time__input) {
+  border-color: #e04d6a;
+}
+
+.ui-field--error :deep(.ui-input:focus),
+.ui-field--error :deep(.ui-input:focus-visible),
+.ui-field--error :deep(.ui-select:focus-visible),
+.ui-field--error :deep(.v-field--focused) {
+  border-color: #c42f50;
+  box-shadow: 0 0 0 3px rgb(196 47 80 / 24%);
+}
+
+.ui-field__error {
+  color: #c42f50;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  margin: 0;
 }
 </style>
 

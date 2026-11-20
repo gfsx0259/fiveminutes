@@ -59,12 +59,13 @@ final readonly class OrderDesk
         if ($preset->getPaymentModel() !== $model->value) {
             throw new InvalidArgumentException('Payment model does not match the preset');
         }
+        $base = $preset->getBasePriceCents();
         if ($stock) {
-            $priceCents = $preset->getStockPriceCents();
+            $priceCents = $base;
         } else {
             $price = new Money($priceCents);
-            if ($price->isBelow(new Money($preset->getFloorPriceCents()))) {
-                throw new InvalidArgumentException('Price cannot be below the floor price');
+            if ($price->isBelow(new Money($base))) {
+                throw new InvalidArgumentException('Price cannot be below the preset base price');
             }
         }
         if ($stock) {
@@ -74,7 +75,7 @@ final readonly class OrderDesk
             }
         }
 
-        $unitCents = $stock ? $preset->getStockPriceCents() : $priceCents;
+        $unitCents = $stock ? $base : $priceCents;
         $freshPartner = $this->users->findByPK($partner->getId());
         if (!$freshPartner instanceof User) {
             throw new DomainException('Partner was not found');

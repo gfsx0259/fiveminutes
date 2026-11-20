@@ -11,8 +11,7 @@ export interface PresetRow {
   vertical: string
   paymentModel: string
   cr: number
-  floorPriceCents: number
-  stockPriceCents: number
+  basePriceCents: number
   createdAt: string
 }
 
@@ -60,8 +59,7 @@ export interface StockOfferRow {
   trafficSource: string
   paymentModel: string
   conversion: number
-  stockPriceCents: number
-  floorPriceCents: number
+  basePriceCents: number
   available: number
   dailyCapVolume: number
   dailyCapSupplied: number

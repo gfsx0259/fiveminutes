@@ -52,7 +52,7 @@ const dates = computed(() => [
 ])
 
 const presetItems = computed(() => market.presets.map((preset) => ({
-  title: `${flag(preset.country)} ${preset.country} · ${verticalLabel(preset.vertical)} · ${trafficLabel(preset.trafficSource)} · ${modelLabel(preset.paymentModel)} · floor ${dollars(preset.floorPriceCents / 100)}`,
+  title: `${flag(preset.country)} ${preset.country} · ${verticalLabel(preset.vertical)} · ${trafficLabel(preset.trafficSource)} · ${modelLabel(preset.paymentModel)} · base ${dollars(preset.basePriceCents / 100)}`,
   value: preset.id,
 })))
 

@@ -3,7 +3,7 @@
     <div class="page-head">
       <div>
         <h1>Presets</h1>
-        <p>Matching criteria, vertical and model. Floor price is for future orders; stock price is fixed warehouse catalog.</p>
+        <p>Matching criteria, vertical and model. Base price is the catalog minimum for day orders and the current stock buy price.</p>
       </div>
       <UiButton v-if="isAdmin" variant="outline" icon="mdi-plus" @click="show">Create</UiButton>
     </div>
@@ -52,14 +52,9 @@
       <UiField label="CR, %">
         <UiInput v-model="cr" type="number" placeholder="20" />
       </UiField>
-      <div class="ui-form__row">
-        <UiField label="Floor (min order), USD">
-          <UiInput v-model="floorPrice" type="number" placeholder="40" />
-        </UiField>
-        <UiField label="Stock price, USD">
-          <UiInput v-model="stockPrice" type="number" placeholder="40" />
-        </UiField>
-      </div>
+      <UiField label="Base price, USD">
+        <UiInput v-model="basePrice" type="number" placeholder="40" />
+      </UiField>
     </FormDialog>
 
     <section v-if="isAdmin" class="ui-filter-panel presets__markup-panel">
@@ -103,11 +98,8 @@
         <template #item.paymentModel="{ item }">
           {{ modelLabel(item.paymentModel) }}
         </template>
-        <template #item.floorPriceCents="{ item }">
-          {{ dollars(item.floorPriceCents / 100) }}
-        </template>
-        <template #item.stockPriceCents="{ item }">
-          {{ dollars(item.stockPriceCents / 100) }}
+        <template #item.basePriceCents="{ item }">
+          {{ dollars(item.basePriceCents / 100) }}
         </template>
         <template v-if="isAdmin" #item.actions="{ item }">
           <div class="preset-row-actions">
@@ -179,8 +171,7 @@ const gender = ref<string | null>('all')
 const vertical = ref<string | null>('gambling')
 const paymentModel = ref<string | null>('cpl')
 const cr = ref('20')
-const floorPrice = ref('40')
-const stockPrice = ref('40')
+const basePrice = ref('40')
 
 const headers = computed(() => {
   const base: { title: string; key: string; sortable?: boolean; align?: 'end'; width?: number }[] = [
@@ -191,8 +182,7 @@ const headers = computed(() => {
     { title: 'Vertical', key: 'vertical' },
     { title: 'Model', key: 'paymentModel' },
     { title: 'CR', key: 'cr' },
-    { title: 'Floor', key: 'floorPriceCents' },
-    { title: 'Stock', key: 'stockPriceCents' },
+    { title: 'Price', key: 'basePriceCents' },
   ]
   if (isAdmin.value) {
     base.push({ title: '', key: 'actions', sortable: false, align: 'end' as const, width: 48 })
@@ -209,8 +199,7 @@ function show(): void {
   vertical.value = 'gambling'
   paymentModel.value = 'cpl'
   cr.value = '20'
-  floorPrice.value = '40'
-  stockPrice.value = '40'
+  basePrice.value = '40'
   open.value = true
 }
 
@@ -242,8 +231,7 @@ async function create(): Promise<void> {
       vertical: vertical.value,
       payment_model: paymentModel.value,
       cr: Number(cr.value),
-      floor_price: Number(floorPrice.value),
-      stock_price: Number(stockPrice.value),
+      price: Number(basePrice.value),
     })
     open.value = false
   } catch (error) {

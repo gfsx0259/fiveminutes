@@ -167,8 +167,8 @@
           :class="item.conversion >= 8 ? 'stock-cr--high' : 'stock-cr--low'"
         >{{ item.conversion }}%</span>
       </template>
-      <template #item.stockPriceCents="{ item }">
-        <span class="stock-payout">{{ payoutDollars(item.stockPriceCents) }}</span>
+      <template #item.basePriceCents="{ item }">
+        <span class="stock-payout">{{ payoutDollars(item.basePriceCents) }}</span>
       </template>
       <template #item.available="{ item }">
         <span class="stock-qty">{{ item.available }}</span>
@@ -234,7 +234,12 @@
     </UiDataTable>
 
     <StockBuyDialog v-model="buyOpen" :target="buyTarget" @bought="refresh" />
-    <OrderFormDialog v-model="orderOpen" :initial-preset-id="orderPresetId" @created="onOrderCreated" />
+    <OrderFormDialog
+      v-model="orderOpen"
+      :initial-preset-id="orderPresetId"
+      :initial-base-price-cents="orderBasePriceCents"
+      @created="onOrderCreated"
+    />
 
   </div>
 </template>
@@ -283,6 +288,7 @@ const buyOpen = ref(false)
 const buyTarget = ref<StockBuyTarget | null>(null)
 const orderOpen = ref(false)
 const orderPresetId = ref<string | null>(null)
+const orderBasePriceCents = ref<number | null>(null)
 
 const verticalItems = computed(() => verticals.map((v) => ({ title: v.title, value: v.value })))
 
@@ -303,7 +309,7 @@ const headers = [
   { title: 'Traffic Source', key: 'trafficSource', align: 'start' as const, width: '11%' },
   { title: 'Payment model', key: 'paymentModel', align: 'center' as const, width: '6%' },
   { title: 'Conversion', key: 'conversion', align: 'center' as const, width: '6%' },
-  { title: 'Price', key: 'stockPriceCents', align: 'end' as const, width: '8%' },
+  { title: 'Price', key: 'basePriceCents', align: 'end' as const, width: '8%' },
   { title: 'Quantity', key: 'available', align: 'end' as const, width: '9%' },
   { title: 'Live today', key: 'dailyCap', align: 'center' as const, width: '10%' },
   { title: 'Updated', key: 'updatedAt', align: 'center' as const, width: '9%' },
@@ -382,6 +388,7 @@ function openBuy(row: StockOfferRow): void {
 
 function openOrder(row: StockOfferRow): void {
   orderPresetId.value = row.presetId
+  orderBasePriceCents.value = row.basePriceCents
   orderOpen.value = true
 }
 

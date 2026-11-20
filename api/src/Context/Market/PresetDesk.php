@@ -31,8 +31,7 @@ final readonly class PresetDesk
         string $vertical,
         string $paymentModel,
         int $cr,
-        int $floorPriceCents,
-        int $stockPriceCents,
+        int $basePriceCents,
     ): Preset {
         if ($admin->getRole() !== UserRole::Admin) {
             throw new DomainException('Only an admin can open a preset');
@@ -49,8 +48,7 @@ final readonly class PresetDesk
             $vertical,
             $paymentModel,
             $cr,
-            $floorPriceCents,
-            $stockPriceCents,
+            $basePriceCents,
             $this->clock->now(),
         );
         $this->entityManager->persist($preset);

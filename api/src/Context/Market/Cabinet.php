@@ -35,8 +35,7 @@ final readonly class Cabinet
                 'vertical' => $preset->getVertical(),
                 'paymentModel' => $preset->getPaymentModel(),
                 'cr' => $preset->getCr(),
-                'floorPriceCents' => $preset->getFloorPriceCents(),
-                'stockPriceCents' => $preset->getStockPriceCents(),
+                'basePriceCents' => $preset->getBasePriceCents(),
                 'createdAt' => $preset->getCreatedAt()->format(DATE_ATOM),
             ];
         }

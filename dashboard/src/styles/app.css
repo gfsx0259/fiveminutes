@@ -10,7 +10,7 @@
   box-shadow: var(--lm-shadow) !important;
   color: #fff !important;
   font-size: 13px;
-  max-width: calc(100vw - 32px);
+  max-width: min(420px, calc(100vw - 32px));
   min-height: 0 !important;
   min-width: 0 !important;
   padding: 13px 20px !important;

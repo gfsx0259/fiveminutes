@@ -145,8 +145,7 @@ final readonly class DevMarshallMarketFixture
                     $age = $ages[$n % count($ages)];
                     $model = $models[$n % count($models)];
                     $cr = 5 + ($n % 20);
-                    $floor = (40 + ($n % 12) * 5) * 100;
-                    $stock = (25 + ($n % 8) * 5) * 100;
+                    $base = (40 + ($n % 12) * 5) * 100;
                     try {
                         $preset = $this->presetDesk->open(
                             $admin,
@@ -157,8 +156,7 @@ final readonly class DevMarshallMarketFixture
                             $vertical,
                             $model,
                             $cr,
-                            $floor,
-                            $stock,
+                            $base,
                         );
                         $presets[] = $preset;
                         ++$n;
@@ -186,7 +184,7 @@ final readonly class DevMarshallMarketFixture
             }
             $serviceOn = ($index % 5 === 0) ? $tomorrow : $today;
             $volume = 30 + ($index % 7) * 20;
-            $price = $preset->getFloorPriceCents() + ($index % 3) * 100;
+            $price = $preset->getBasePriceCents() + ($index % 3) * 100;
             try {
                 $order = $this->orderDesk->open(
                     $partner,
@@ -254,7 +252,7 @@ final readonly class DevMarshallMarketFixture
                     $preset->getId(),
                     $preset->getCountry(),
                     $volume,
-                    $preset->getStockPriceCents(),
+                    $preset->getBasePriceCents(),
                     $preset->getPaymentModel(),
                     true,
                     null,
@@ -273,7 +271,7 @@ final readonly class DevMarshallMarketFixture
                     $preset->getId(),
                     $preset->getCountry(),
                     50,
-                    $preset->getFloorPriceCents(),
+                    $preset->getBasePriceCents(),
                     $preset->getPaymentModel(),
                     false,
                     $this->clock->now()->setTimezone(new DateTimeZone('UTC')),

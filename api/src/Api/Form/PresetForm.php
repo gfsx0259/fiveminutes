@@ -49,19 +49,11 @@ final class PresetForm extends AbstractInput
         #[Required]
         #[Integer(
             min: 1,
-            incorrectInputMessage: 'Floor price must be a positive whole number of dollars',
-            notNumberMessage: 'Floor price must be a positive whole number of dollars',
-            lessThanMinMessage: 'Floor price must be a positive whole number of dollars',
+            incorrectInputMessage: 'Price must be a positive whole number of dollars',
+            notNumberMessage: 'Price must be a positive whole number of dollars',
+            lessThanMinMessage: 'Price must be a positive whole number of dollars',
         )]
-        public readonly int $floor_price = 0,
-        #[Required]
-        #[Integer(
-            min: 1,
-            incorrectInputMessage: 'Stock price must be a positive whole number of dollars',
-            notNumberMessage: 'Stock price must be a positive whole number of dollars',
-            lessThanMinMessage: 'Stock price must be a positive whole number of dollars',
-        )]
-        public readonly int $stock_price = 0,
+        public readonly int $price = 0,
     ) {}
 
     public function country(): string
@@ -99,13 +91,8 @@ final class PresetForm extends AbstractInput
         return $this->cr;
     }
 
-    public function floorPriceCents(): int
+    public function basePriceCents(): int
     {
-        return $this->floor_price * 100;
-    }
-
-    public function stockPriceCents(): int
-    {
-        return $this->stock_price * 100;
+        return $this->price * 100;
     }
 }

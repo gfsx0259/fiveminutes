@@ -145,8 +145,7 @@ final class CabinetFlowCest
             'vertical' => 'gambling',
             'payment_model' => 'cpl',
             'cr' => $floorPrice === 0 ? 120 : 20,
-            'floor_price' => $floor,
-            'stock_price' => $floor,
+            'price' => $floor,
         ];
     }
 

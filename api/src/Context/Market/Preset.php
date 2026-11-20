@@ -49,18 +49,15 @@ class Preset
         string $paymentModel,
         #[Column(type: 'integer', typecast: 'int')]
         private readonly int $cr,
-        #[Column(type: 'integer', name: 'floor_price_cents', typecast: 'int')]
-        private readonly int $floorPriceCents,
-        #[Column(type: 'integer', name: 'stock_price_cents', typecast: 'int')]
-        private readonly int $stockPriceCents,
+        #[Column(type: 'integer', name: 'base_price_cents', typecast: 'int')]
+        private readonly int $basePriceCents,
         #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
         private readonly DateTimeInterface $createdAt,
     ) {
         if ($this->cr < 0 || $this->cr > 100) {
             throw new InvalidArgumentException('CR must be from 0 to 100');
         }
-        new Money($this->floorPriceCents);
-        new Money($this->stockPriceCents);
+        new Money($this->basePriceCents);
         $this->country = (new Geo($country))->toString();
         if (preg_match('/^[A-Z]{2}$/', $this->country) !== 1) {
             throw new InvalidArgumentException('Country must be an ISO code, like DE');
@@ -145,14 +142,9 @@ class Preset
         return $this->cr;
     }
 
-    public function getFloorPriceCents(): int
+    public function getBasePriceCents(): int
     {
-        return $this->floorPriceCents;
-    }
-
-    public function getStockPriceCents(): int
-    {
-        return $this->stockPriceCents;
+        return $this->basePriceCents;
     }
 
     public function getCreatedAt(): DateTimeInterface

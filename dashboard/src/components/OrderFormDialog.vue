@@ -18,13 +18,17 @@
       :country="matchedPreset.country"
       :traffic-source="matchedPreset.trafficSource"
       :payment-model="matchedPreset.paymentModel"
-      :payout-cents="matchedPreset.floorPriceCents"
+      :payout-cents="props.initialBasePriceCents ?? matchedPreset.basePriceCents"
       amount-label="Price"
       :conversion="matchedPreset.cr"
     />
 
     <template v-if="!fieldsLocked">
-      <UiField label="Vertical *" :icon="vertical ? verticalIcon(vertical) : 'mdi-shape-outline'">
+      <UiField
+        label="Vertical *"
+        :icon="vertical ? verticalIcon(vertical) : 'mdi-shape-outline'"
+        :error="fieldErrors.vertical"
+      >
         <UiSelect
           v-model="vertical"
           :items="verticalItems"
@@ -46,7 +50,7 @@
       </UiField>
 
       <div class="ui-form__row">
-        <UiField label="Country *" icon="mdi-earth">
+        <UiField label="Country *" icon="mdi-earth" :error="fieldErrors.country">
           <UiSelect
             v-model="country"
             :items="countryItems"
@@ -69,7 +73,7 @@
             </template>
           </UiSelect>
         </UiField>
-        <UiField label="Traffic source *" icon="mdi-traffic-light">
+        <UiField label="Traffic source *" icon="mdi-traffic-light" :error="fieldErrors.traffic">
           <UiSelect
             v-model="trafficSource"
             :items="trafficItems"
@@ -93,18 +97,18 @@
       </div>
     </template>
 
-    <UiField label="Quantity *" icon="mdi-counter">
-      <UiInput v-model="volume" type="number" placeholder="1000" />
+    <UiField label="Quantity *" icon="mdi-counter" :error="fieldErrors.volume">
+      <UiInput v-model="volume" type="number" placeholder="10" />
     </UiField>
 
-    <UiField :label="priceLabel" icon="mdi-currency-usd">
+    <UiField :label="priceLabel" icon="mdi-currency-usd" :error="fieldErrors.price">
       <UiInput v-model="price" type="number" :placeholder="pricePlaceholder" step="0.01" />
     </UiField>
     <p v-if="matchedPreset" class="order-form__floor-hint">
-      Catalog floor for this preset: {{ dollars(matchedPreset.floorPriceCents / 100) }}
+      Base price for this preset: {{ dollars(matchedPreset.basePriceCents / 100) }}
     </p>
 
-    <UiField label="Date">
+    <UiField label="Date" :error="fieldErrors.serviceOn">
       <div class="order-form__date">
         <UiSegmented v-model="serviceQuick" :items="serviceQuickItems" class="order-form__segmented" />
         <UiDateField v-model="serviceOn" label="Date" class="order-form__date-field" />
@@ -127,13 +131,10 @@
       total-label="Total cost"
     />
   </FormDialog>
-  <v-snackbar v-model="notice" location="bottom center" color="success" :timeout="4000">
-    Заказ {{ createdId }} создан
-  </v-snackbar>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import CountryFlag from '@/components/CountryFlag.vue'
 import FormDialog from '@/components/FormDialog.vue'
 import OrderCheckoutSummary from '@/components/OrderCheckoutSummary.vue'
@@ -144,6 +145,7 @@ import UiInput from '@/components/ui/UiInput.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTimeField from '@/components/ui/UiTimeField.vue'
+import { showToast } from '@/composables/useToast'
 import { defaultOpensForServiceDate } from '@/timeDefaults'
 import { ISO2_COUNTRIES } from '@/countries'
 import {
@@ -156,12 +158,14 @@ import {
   verticals,
 } from '@/marketOptions'
 import { dollars } from '@/money'
-import { presetDisplayId } from '@/orderDisplay'
+import { orderDisplayId, presetDisplayId } from '@/orderDisplay'
 import { useMarketStore, type PresetRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 
 const props = defineProps<{
   initialPresetId?: string | null
+  /** When opening from Buy Leads, use the row price (store presets can lag behind warehouse). */
+  initialBasePriceCents?: number | null
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -173,14 +177,12 @@ const market = useMarketStore()
 const session = useSessionStore()
 const busy = ref(false)
 const formError = ref('')
-const notice = ref(false)
-const createdId = ref('')
-
+const fieldErrors = ref<Record<string, string>>({})
 const vertical = ref<string | null>(null)
 const country = ref<string | null>(null)
 const trafficSource = ref<string | null>(null)
-const volume = ref('1000')
-const price = ref('50')
+const volume = ref('10')
+const price = ref('')
 const serviceOn = ref(utcDay(0))
 const serviceQuick = ref('today')
 const opensAt = ref(defaultOpensForServiceDate(utcDay(0), utcDay(0)))
@@ -263,6 +265,9 @@ const trafficItems = computed(() => {
 })
 
 const matchedPreset = computed(() => {
+  if (props.initialPresetId) {
+    return market.presets.find((p) => p.id === props.initialPresetId)
+  }
   if (!vertical.value || !country.value || !trafficSource.value) {
     return undefined
   }
@@ -276,12 +281,61 @@ const matchedPreset = computed(() => {
 const priceLabel = computed(() => 'Price (per lead) *')
 
 const pricePlaceholder = computed(() => {
-  const floor = matchedPreset.value?.floorPriceCents
-  if (floor == null) {
-    return '50'
+  const base = matchedPreset.value?.basePriceCents
+  if (base == null) {
+    return '0'
   }
-  return String(floor / 100)
+  return presetPriceInput(matchedPreset.value!)
 })
+
+function presetPriceInput(preset: PresetRow, centsOverride?: number): string {
+  const cents = centsOverride ?? preset.basePriceCents
+  if (!Number.isFinite(cents) || cents <= 0) {
+    return ''
+  }
+  const amount = cents / 100
+  return Number.isInteger(amount) ? String(amount) : amount.toFixed(2)
+}
+
+async function syncFormToInitialPreset(): Promise<void> {
+  if (!open.value) {
+    return
+  }
+  if (market.presets.length === 0) {
+    await market.loadPresets()
+  }
+  formError.value = ''
+  fieldErrors.value = {}
+  const initial = props.initialPresetId
+    ? market.presets.find((p) => p.id === props.initialPresetId)
+    : undefined
+  if (props.initialPresetId) {
+    if (!initial) {
+      return
+    }
+    vertical.value = initial.vertical
+    country.value = initial.country
+    trafficSource.value = initial.trafficSource
+    volume.value = '10'
+    price.value = presetPriceInput(initial, props.initialBasePriceCents ?? undefined)
+    serviceOn.value = utcDay(0)
+    serviceQuick.value = 'today'
+    opensAt.value = defaultOpensForServiceDate(utcDay(0), utcDay(0))
+    closesAt.value = '23:59'
+    return
+  }
+  volume.value = '10'
+  price.value = ''
+  serviceOn.value = utcDay(0)
+  serviceQuick.value = 'today'
+  opensAt.value = defaultOpensForServiceDate(utcDay(0), utcDay(0))
+  closesAt.value = '23:59'
+  await nextTick()
+  const preset = matchedPreset.value
+  if (preset) {
+    price.value = presetPriceInput(preset)
+  }
+}
 
 const balanceCents = computed(() => session.payload?.user?.balanceCents ?? 0)
 
@@ -307,23 +361,18 @@ watch(open, (value) => {
   if (!value) {
     return
   }
-  if (market.presets.length === 0) {
-    void market.loadPresets()
-  }
-  formError.value = ''
-  const initial = props.initialPresetId
-    ? market.presets.find((p) => p.id === props.initialPresetId)
-    : undefined
-  vertical.value = initial?.vertical ?? null
-  country.value = initial?.country ?? null
-  trafficSource.value = initial?.trafficSource ?? null
-  volume.value = '1000'
-  price.value = initial ? String(initial.floorPriceCents / 100) : '50'
-  serviceOn.value = utcDay(0)
-  serviceQuick.value = 'today'
-  opensAt.value = defaultOpensForServiceDate(utcDay(0), utcDay(0))
-  closesAt.value = '23:59'
+  void syncFormToInitialPreset()
 })
+
+watch(
+  () => [props.initialPresetId, props.initialBasePriceCents] as const,
+  () => {
+    if (!open.value || !props.initialPresetId) {
+      return
+    }
+    void syncFormToInitialPreset()
+  },
+)
 
 watch(serviceOn, (iso) => {
   if (!open.value || !iso) {
@@ -360,14 +409,18 @@ watch(country, (value, old) => {
   }
 })
 
-watch(matchedPreset, (preset) => {
+watch(matchedPreset, (preset, previous) => {
   if (!open.value || !preset) {
     return
   }
-  const floor = preset.floorPriceCents / 100
+  if (!previous || previous.id !== preset.id) {
+    price.value = presetPriceInput(preset)
+    return
+  }
+  const base = preset.basePriceCents / 100
   const current = Number(price.value)
-  if (!Number.isFinite(current) || current < floor) {
-    price.value = String(floor)
+  if (!Number.isFinite(current) || current < base) {
+    price.value = presetPriceInput(preset)
   }
 })
 
@@ -377,31 +430,86 @@ function utcDay(offset: number): string {
   return date.toISOString().slice(0, 10)
 }
 
-async function create(): Promise<void> {
+function clearFieldError(key: string): void {
+  if (!(key in fieldErrors.value)) {
+    return
+  }
+  const next = { ...fieldErrors.value }
+  delete next[key]
+  fieldErrors.value = next
+}
+
+watch(vertical, () => clearFieldError('vertical'))
+watch(country, () => clearFieldError('country'))
+watch(trafficSource, () => clearFieldError('traffic'))
+watch(volume, () => clearFieldError('volume'))
+watch(price, () => clearFieldError('price'))
+watch(serviceOn, () => clearFieldError('serviceOn'))
+
+function validateForm(): PresetRow | null {
+  formError.value = ''
+  const errors: Record<string, string> = {}
   const preset = matchedPreset.value
+
+  if (!preset && !fieldsLocked.value) {
+    const combo =
+      'Select vertical, country and traffic source that match a catalog preset'
+    if (!vertical.value) {
+      errors.vertical = 'Select vertical'
+    }
+    if (!country.value) {
+      errors.country = 'Select country'
+    }
+    if (!trafficSource.value) {
+      errors.traffic = 'Select traffic source'
+    }
+    if (vertical.value && country.value && trafficSource.value) {
+      errors.traffic = combo
+    }
+  } else if (!preset) {
+    formError.value =
+      'Select vertical, country and traffic source that match a catalog preset'
+    fieldErrors.value = {}
+    return null
+  }
+
+  const qty = Number(volume.value)
+  if (!Number.isFinite(qty) || qty < 1) {
+    errors.volume = 'Enter a valid quantity'
+  }
+
+  if (preset) {
+    const priceNum = Number(price.value)
+    const baseCents = props.initialBasePriceCents ?? preset.basePriceCents
+    const base = baseCents / 100
+    if (!Number.isFinite(priceNum) || priceNum < base) {
+      errors.price = `Price must be at least ${dollars(base)}`
+    }
+  }
+
+  if (!serviceOn.value) {
+    errors.serviceOn = 'Choose service date'
+  }
+
+  fieldErrors.value = errors
+  if (Object.keys(errors).length > 0 || !preset) {
+    return null
+  }
+  return preset
+}
+
+async function create(): Promise<void> {
+  const preset = validateForm()
   if (!preset) {
-    formError.value = 'Select vertical, country and traffic source that match a catalog preset'
     return
   }
   const qty = Number(volume.value)
-  if (!Number.isFinite(qty) || qty < 1) {
-    formError.value = 'Enter a valid quantity'
-    return
-  }
   const priceNum = Number(price.value)
-  const floor = preset.floorPriceCents / 100
-  if (!Number.isFinite(priceNum) || priceNum < floor) {
-    formError.value = `Price must be at least ${dollars(floor)}`
-    return
-  }
-  if (!serviceOn.value) {
-    formError.value = 'Choose service date'
-    return
-  }
   busy.value = true
   formError.value = ''
+  fieldErrors.value = {}
   try {
-    createdId.value = await market.createOrder({
+    const orderId = await market.createOrder({
       preset_id: preset.id,
       geo: preset.country,
       volume: qty,
@@ -412,11 +520,20 @@ async function create(): Promise<void> {
       opens_at: opensAt.value,
       closes_at: closesAt.value,
     })
-    notice.value = true
+    const countryName =
+      ISO2_COUNTRIES.find((c) => c.code === preset.country)?.name ?? preset.country
+    showToast({
+      title: 'Order created',
+      lines: [
+        orderDisplayId(orderId),
+        `Preset ${presetDisplayId(preset.id)} · ${verticalLabel(preset.vertical)} · ${countryName} · ${trafficLabel(preset.trafficSource)}`,
+        `${qty.toLocaleString('en-US')} leads at ${dollars(priceNum)} each`,
+      ],
+    })
     open.value = false
     emit('created')
   } catch (error) {
-    formError.value = error instanceof Error ? error.message : 'Заказ не создался'
+    formError.value = error instanceof Error ? error.message : 'Order could not be created'
   } finally {
     busy.value = false
   }

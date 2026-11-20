@@ -3,7 +3,7 @@
     <div class="page-head">
       <div>
         <h1>Presets</h1>
-        <p>Create a day order for a preset. Payout must be at least the floor price.</p>
+        <p>Create a day order for a preset. Your bid must be at least the preset base price.</p>
       </div>
     </div>
 
@@ -60,8 +60,8 @@
         <template #item.paymentModel="{ item }">
           {{ modelLabel(item.paymentModel) }}
         </template>
-        <template #item.floorPriceCents="{ item }">
-          {{ dollars(item.floorPriceCents / 100) }}
+        <template #item.basePriceCents="{ item }">
+          {{ dollars(item.basePriceCents / 100) }}
         </template>
         <template #item.actions="{ item }">
           <UiButton variant="outline" @click="order(item.id)">Create order</UiButton>
@@ -105,7 +105,7 @@ const headers = [
   { title: 'Traffic', key: 'trafficSource' },
   { title: 'Model', key: 'paymentModel' },
   { title: 'CR', key: 'cr' },
-  { title: 'Floor', key: 'floorPriceCents' },
+  { title: 'Price', key: 'basePriceCents' },
   { title: '', key: 'actions', sortable: false },
 ]
 
