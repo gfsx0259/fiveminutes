@@ -109,7 +109,14 @@
       </section>
 
       <footer class="stock-side__foot">
-        <UiButton variant="primary" icon="mdi-cart" class="stock-side__buy" @click="emit('buy')">
+        <UiButton
+          variant="primary"
+          icon="mdi-cart"
+          class="stock-side__buy"
+          :loading="buyLoading"
+          :disabled="buyDisabled"
+          @click="emit('buy')"
+        >
           Buy from stock
         </UiButton>
         <button type="button" class="stock-side__dismiss" @click="emit('dismiss')">
@@ -183,7 +190,13 @@
       </div>
     </div>
     <div class="stock-order-nudge__actions">
-      <UiButton variant="primary" icon="mdi-cart" @click="emit('buy')">
+      <UiButton
+        variant="primary"
+        icon="mdi-cart"
+        :loading="buyLoading"
+        :disabled="buyDisabled"
+        @click="emit('buy')"
+      >
         Buy from stock
       </UiButton>
       <button type="button" class="stock-order-nudge__dismiss" @click="emit('dismiss')">
@@ -230,9 +243,11 @@ const props = withDefaults(defineProps<{
   trafficSource: string
   comparePriceCents?: number
   panel?: 'inline' | 'side'
+  buyLoading?: boolean
 }>(), {
   comparePriceCents: 0,
   panel: 'inline',
+  buyLoading: false,
 })
 
 const emit = defineEmits<{
@@ -272,6 +287,8 @@ const instantQty = computed(() => {
 const quoteQty = computed(() => (props.requestedQty > 0 ? instantQty.value : 0))
 
 const quoteReady = computed(() => quoteTotalCents.value > 0 && quoteLines.value.length > 0)
+
+const buyDisabled = computed(() => props.buyLoading || quoteQty.value < 1 || quoteLoading.value || !quoteReady.value)
 
 const sortedLines = computed(() => {
   const rank = (id: string) => {
@@ -340,6 +357,16 @@ watchEffect((onCleanup) => {
       quoteLoading.value = false
     }
   })
+})
+
+defineExpose({
+  checkoutSnapshot(): { pickZone: StockPickZoneId; quoteTotalCents: number; quoteQty: number } {
+    return {
+      pickZone: pickZone.value,
+      quoteTotalCents: quoteTotalCents.value,
+      quoteQty: quoteQty.value,
+    }
+  },
 })
 </script>
 

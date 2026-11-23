@@ -17,6 +17,7 @@
   >
     <template v-if="showStockNudge && stockNudge" #aside>
       <StockOrderNudge
+        ref="stockNudgeRef"
         panel="side"
         :preset-id="stockNudge.presetId"
         :available="stockNudge.available"
@@ -25,7 +26,8 @@
         :country="stockNudge.country"
         :traffic-source="stockNudge.trafficSource"
         :compare-price-cents="stockComparePriceCents"
-        @buy="emit('buyStock', stockNudge.presetId)"
+        :buy-loading="stockBuyBusy"
+        @buy="purchaseStockFromNudge"
         @dismiss="stockNudgeDismissed = true"
       />
     </template>
@@ -153,6 +155,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
+import type StockOrderNudge from '@/components/StockOrderNudge.vue'
+import { stockPickApiFields, type StockPickZoneId } from '@/stockPick'
 import CountryFlag from '@/components/CountryFlag.vue'
 import FormDialog from '@/components/FormDialog.vue'
 import OrderCheckoutSummary from '@/components/OrderCheckoutSummary.vue'
@@ -198,12 +202,14 @@ const props = withDefaults(defineProps<{
 const open = defineModel<boolean>({ default: false })
 const emit = defineEmits<{
   created: []
-  buyStock: [presetId: string]
+  stockPurchased: []
 }>()
 
 const market = useMarketStore()
 const session = useSessionStore()
 const busy = ref(false)
+const stockBuyBusy = ref(false)
+const stockNudgeRef = ref<InstanceType<typeof StockOrderNudge> | null>(null)
 const stockNudgeDismissed = ref(false)
 const formError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
@@ -440,6 +446,62 @@ const stockNudge = computed(() => {
 })
 
 const showStockNudge = computed(() => Boolean(stockNudge.value) && !stockNudgeDismissed.value)
+
+async function purchaseStockFromNudge(): Promise<void> {
+  const preset = matchedPreset.value
+  const nudge = stockNudge.value
+  const panel = stockNudgeRef.value
+  if (!preset || !nudge || stockBuyBusy.value) {
+    return
+  }
+
+  const qty = volumeQty.value < 1 ? 0 : Math.min(volumeQty.value, nudge.available)
+  if (qty < 1) {
+    showToast('Enter quantity in the order form')
+    return
+  }
+
+  const snapshot = panel?.checkoutSnapshot()
+  const pickZone: StockPickZoneId = snapshot?.pickZone ?? ''
+  let totalCents = snapshot?.quoteTotalCents ?? 0
+  if (totalCents < 1) {
+    try {
+      const quote = await market.fetchStockQuote(preset.id, qty, '', { pickZone })
+      totalCents = quote.totalCents
+    } catch {
+      showToast('Shelf price unavailable')
+      return
+    }
+  }
+
+  if (totalCents > balanceCents.value) {
+    showToast('Insufficient wallet balance')
+    return
+  }
+
+  const baseCents = props.initialBasePriceCents ?? preset.basePriceCents
+  stockBuyBusy.value = true
+  try {
+    const result = await market.createStockOrder({
+      preset_id: preset.id,
+      geo: preset.country,
+      volume: qty,
+      price: Math.round(baseCents / 100),
+      payment_model: preset.paymentModel,
+      kind: 'stock',
+      ...stockPickApiFields(pickZone),
+    })
+    const supplied = result.supplied ?? qty
+    showToast(`Stock order created · ${supplied} leads · ${dollars(totalCents / 100)}`)
+    open.value = false
+    emit('stockPurchased')
+    await session.load()
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'The stock order was not created')
+  } finally {
+    stockBuyBusy.value = false
+  }
+}
 
 const priceCents = computed(() => {
   const p = Number(price.value)

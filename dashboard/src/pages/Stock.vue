@@ -308,7 +308,7 @@
       :initial-price-dollars="orderInitialPrice"
       :initial-service-on="orderInitialDay"
       @created="onOrderCreated"
-      @buy-stock="onBuyStockFromOrder"
+      @stock-purchased="onStockPurchasedFromOrder"
     />
 
   </div>
@@ -586,15 +586,9 @@ function openOrder(row: StockOfferRow): void {
   orderOpen.value = true
 }
 
-function onBuyStockFromOrder(presetId: string): void {
-  const row = market.stock.find((offer) => offer.presetId === presetId)
-  if (!row || row.available < 1) {
-    showToast('No stock available for this preset')
-    return
-  }
-  orderOpen.value = false
-  viewTab.value = 'stock'
-  openBuy(row)
+function onStockPurchasedFromOrder(): void {
+  void market.loadWarehouse()
+  void market.loadOrders()
 }
 
 async function applyStockModalLink(): Promise<void> {
