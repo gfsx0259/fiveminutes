@@ -155,7 +155,6 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import type StockOrderNudge from '@/components/StockOrderNudge.vue'
 import { stockPickApiFields, type StockPickZoneId } from '@/stockPick'
 import CountryFlag from '@/components/CountryFlag.vue'
 import FormDialog from '@/components/FormDialog.vue'
