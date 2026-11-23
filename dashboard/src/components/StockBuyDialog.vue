@@ -45,7 +45,7 @@
           <table class="stock-buy__pricing-table">
             <thead>
               <tr>
-                <th>Zone</th>
+                <th>Shelf zone</th>
                 <th>Qty</th>
                 <th class="stock-buy__col-hide-narrow">Catalog</th>
                 <th>Off</th>
