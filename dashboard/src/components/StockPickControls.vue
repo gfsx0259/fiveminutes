@@ -1,7 +1,7 @@
 <template>
   <div class="stock-pick" role="group" aria-label="Shelf zone for stock purchase">
     <div class="stock-pick__row">
-      <span class="stock-pick__label">Concrete zone</span>
+      <span class="stock-pick__label">Shelf zone</span>
       <UiSegmented v-model="pickZone" :items="zoneItems" class="stock-pick__segmented stock-pick__segmented--zones" />
     </div>
     <p class="stock-pick__hint">
