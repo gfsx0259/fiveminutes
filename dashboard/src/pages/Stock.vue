@@ -87,7 +87,7 @@
     </v-tabs>
 
     <UiTableCard
-      :title="viewTab === 'stock' ? 'In stock' : 'Presets'"
+      :title="viewTab === 'stock' ? 'In stock' : 'Offers'"
       :subtitle="viewTab === 'stock' ? 'Instant delivery from the warehouse shelf' : 'Schedule a day order from a preset'"
     >
       <template #actions>
