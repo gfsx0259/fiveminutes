@@ -16,7 +16,7 @@
     </header>
 
     <div class="stock-side__main">
-      <StockPickControls v-model:pick-priority="pickPriority" v-model:pick-zone="pickZone" />
+      <StockPickControls v-model:pick-zone="pickZone" />
 
       <section class="stock-side__zones" aria-labelledby="stock-zones-heading">
         <h3 id="stock-zones-heading" class="stock-side__zones-title">Shelf zones for your quantity</h3>
@@ -148,7 +148,6 @@
 
       <StockPickControls
         v-if="quoteQty > 0"
-        v-model:pick-priority="pickPriority"
         v-model:pick-zone="pickZone"
         class="stock-order-nudge__pick"
       />
@@ -200,7 +199,7 @@ import type { StockQuoteLine } from '@/stores/market'
 import CountryFlag from '@/components/CountryFlag.vue'
 import StockPickControls from '@/components/StockPickControls.vue'
 import UiButton from '@/components/ui/UiButton.vue'
-import { defaultStockPickPrefs, type StockPickPrefs } from '@/stockPick'
+import { defaultStockPickZone, type StockPickZoneId } from '@/stockPick'
 import { countryName } from '@/countries'
 import {
   trafficColor,
@@ -246,8 +245,7 @@ const quoteLines = ref<StockQuoteLine[]>([])
 const quoteTotalCents = ref(0)
 const quoteBaseCents = ref(0)
 const quoteLoading = ref(false)
-const pickPriority = ref<StockPickPrefs['pickPriority']>(defaultStockPickPrefs().pickPriority)
-const pickZone = ref<StockPickPrefs['pickZone']>(defaultStockPickPrefs().pickZone)
+const pickZone = ref<StockPickZoneId>(defaultStockPickZone())
 
 function zoneBlurb(zoneId: string): string {
   return ZONE_BLURB[zoneId] ?? 'Shelf age zone'
@@ -312,7 +310,7 @@ const savingsCents = computed(() => {
 watchEffect((onCleanup) => {
   const qty = quoteQty.value
   const presetId = props.presetId
-  const pick = { pickPriority: pickPriority.value, pickZone: pickZone.value }
+  const pick = { pickZone: pickZone.value }
   if (!presetId || qty < 1) {
     quoteLines.value = []
     quoteTotalCents.value = 0

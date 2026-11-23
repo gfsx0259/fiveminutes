@@ -29,10 +29,10 @@ final readonly class StockPickPreference
     {
         $zone = trim($zoneRaw);
         if ($zone === '') {
-            return new self(StockPickPriority::parse($priorityRaw), null);
+            return new self(StockPickPriority::OldestFirst, null);
         }
 
-        return new self(StockPickPriority::parse($priorityRaw), $zone);
+        return new self(StockPickPriority::OldestFirst, $zone);
     }
 
     public static function fromStored(?string $priority, ?string $zone): self

@@ -225,7 +225,7 @@ export const useMarketStore = defineStore('market', () => {
     presetId: string,
     quantity: number,
     stockGender = '',
-    pick?: { pickPriority?: string, pickZone?: string },
+    pick?: { pickZone?: string },
   ): Promise<StockQuote> {
     const params = new URLSearchParams({
       preset_id: presetId,
@@ -233,9 +233,6 @@ export const useMarketStore = defineStore('market', () => {
     })
     if (stockGender.trim() !== '') {
       params.set('stock_gender', stockGender.trim())
-    }
-    if (pick?.pickPriority) {
-      params.set('pick_priority', pick.pickPriority)
     }
     if (pick?.pickZone) {
       params.set('pick_zone', pick.pickZone)

@@ -1,19 +1,13 @@
 <template>
-  <div class="stock-pick" role="group" aria-label="How to pick leads from shelf">
-  <div v-if="pickZone === ''" class="stock-pick__row">
-    <span class="stock-pick__label">Order priority</span>
-    <UiSegmented v-model="pickPriority" :items="priorityItems" class="stock-pick__segmented" />
-  </div>
-  <div class="stock-pick__row">
-    <span class="stock-pick__label">Concrete zone</span>
-    <UiSegmented v-model="pickZone" :items="zoneItems" class="stock-pick__segmented stock-pick__segmented--zones" />
-  </div>
-  <p class="stock-pick__hint">
-    <template v-if="pickZone !== ''">Only <strong>{{ pickZone }}</strong> leads — quote shows what you get.</template>
-    <template v-else>
-      {{ pickPriority === 'oldest_first' ? 'Oldest shelf stock first (expired → fresh).' : 'Newest shelf stock first (fresh → expired).' }}
-    </template>
-  </p>
+  <div class="stock-pick" role="group" aria-label="Shelf zone for stock purchase">
+    <div class="stock-pick__row">
+      <span class="stock-pick__label">Concrete zone</span>
+      <UiSegmented v-model="pickZone" :items="zoneItems" class="stock-pick__segmented stock-pick__segmented--zones" />
+    </div>
+    <p class="stock-pick__hint">
+      <template v-if="pickZone !== ''">Only <strong>{{ pickZone }}</strong> leads — quote shows what you get.</template>
+      <template v-else>Any zone — we pick oldest shelf stock first (expired → fresh).</template>
+    </p>
   </div>
 </template>
 
@@ -23,17 +17,11 @@ import UiSegmented from '@/components/ui/UiSegmented.vue'
 import type { StockPickZoneId } from '@/stockPick'
 import { useMarketStore } from '@/stores/market'
 
-const pickPriority = defineModel<'oldest_first' | 'newest_first'>('pickPriority', { default: 'oldest_first' })
 const pickZone = defineModel<StockPickZoneId>('pickZone', { default: '' })
 
 const market = useMarketStore()
 
 const SELLABLE_ZONE_ORDER = ['fresh', 'good', 'expired'] as const
-
-const priorityItems = [
-  { title: 'Newer first', value: 'newest_first' },
-  { title: 'Older first', value: 'oldest_first' },
-]
 
 const zoneItems = computed(() => {
   const items: { title: string, value: string }[] = [{ title: 'Any zone', value: '' }]
