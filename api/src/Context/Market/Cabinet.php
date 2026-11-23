@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Market;
 
 use App\Context\User\User;
+use App\Context\Lead\LiveDayInjectStore;
 use App\Context\User\UserRepository;
 use App\Context\User\UserRole;
 use DomainException;
@@ -17,6 +18,8 @@ final readonly class Cabinet
         private OfferRepository $offers,
         private UserRepository $users,
         private OrganizationMarkup $markup,
+        private OrderCost $orderCost,
+        private LiveDayInjectStore $liveInject,
     ) {}
 
     /**
@@ -62,6 +65,10 @@ final readonly class Cabinet
             $preset = $presets[$order->getPresetId()] ?? null;
             $serviceOn = $order->getServiceOn();
             $catalogCents = $order->getPriceCents();
+            $soldTotal = $this->orderCost->soldTotalCents($order->getId());
+            $live = !$order->isStock()
+                ? $this->liveInject->countsForOrder($order->getId())
+                : ['scheduled' => 0, 'nextDueAt' => null];
             $rows[] = [
                 'id' => $order->getId(),
                 'presetId' => $order->getPresetId(),
@@ -73,6 +80,9 @@ final readonly class Cabinet
                 'volume' => $order->getVolume(),
                 'supplied' => $order->getSuppliedCount(),
                 'priceCents' => $catalogCents,
+                'orderCostCents' => $order->getSuppliedCount() > 0 && $soldTotal > 0 ? $soldTotal : null,
+                'liveInjectScheduled' => $live['scheduled'],
+                'liveInjectNextDueAt' => $live['nextDueAt'],
                 'paymentModel' => $order->getPaymentModel(),
                 'partnerPriceCents' => $pricing->partnerPriceCents($catalogCents),
                 'stock' => $order->isStock(),

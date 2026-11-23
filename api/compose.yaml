@@ -52,6 +52,22 @@ services:
       test: ["NONE"]
     tty: true
 
+  live-inject:
+    image: rider-api-api
+    pull_policy: never
+    hostname: rider-live-inject
+    entrypoint: ["php", "yii", "live-day:inject"]
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - dev-leadmarket-network
+    volumes:
+      - ./:/app
+    healthcheck:
+      test: ["NONE"]
+    tty: true
+
   balance:
     image: rider-api-api
     pull_policy: never

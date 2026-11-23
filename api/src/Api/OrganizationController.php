@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Api\Form\OrganizationMarkupForm;
+use App\Api\Form\ShelfAgePolicyForm;
 use App\Context\Identity\CurrentUser;
 use App\Context\Identity\NoAccountException;
 use App\Context\Identity\NoSessionException;
@@ -38,6 +39,37 @@ final readonly class OrganizationController
 
         return $this->responses->createResponse([
             'markupPercent' => $organization->getMarkupPercent(),
+        ]);
+    }
+
+    public function shelfAgePolicy(): ResponseInterface
+    {
+        try {
+            $policy = $this->desk->shelfAgePolicy(
+                $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie')),
+            );
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
+        }
+
+        return $this->responses->createResponse([
+            'shelfAgePolicy' => $policy->toArray(),
+        ]);
+    }
+
+    public function setShelfAgePolicy(ShelfAgePolicyForm $form): ResponseInterface
+    {
+        try {
+            $policy = $this->desk->setShelfAgePolicy(
+                $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie')),
+                $form->payload(),
+            );
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
+        }
+
+        return $this->responses->createResponse([
+            'shelfAgePolicy' => $policy->toArray(),
         ]);
     }
 

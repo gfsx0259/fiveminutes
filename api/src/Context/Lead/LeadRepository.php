@@ -6,6 +6,9 @@ namespace App\Context\Lead;
 
 use App\Context\Market\Gender;
 use App\Context\Market\Preset;
+use App\Context\Market\ShelfAgePolicy;
+use App\Context\Market\ShelfAgePolicyQuery;
+use App\Context\Market\ShelfAgeZone;
 use App\Value\AgeBracket;
 use Beeterty\ClickHouse\Client;
 use DateTimeImmutable;
@@ -103,6 +106,38 @@ final readonly class LeadRepository
         );
     }
 
+    /**
+     * Latest in-stock leads (for dev shelf-age backdating).
+     *
+     * @return list<Lead>
+     */
+    public function findLatestInStock(int $limit, ?string $organizationId = null, ?string $country = null): array
+    {
+        if ($limit < 1) {
+            return [];
+        }
+        $sql = 'status = :status';
+        $params = ['status' => LeadStatus::InStock->value];
+        if ($organizationId !== null && $organizationId !== '') {
+            $sql .= ' AND organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+        if ($country !== null && $country !== '') {
+            $sql .= ' AND country = :country';
+            $params['country'] = $country;
+        }
+        $rows = $this->clickhouse->query(
+            'SELECT ' . self::SELECT_COLUMNS . '
+             FROM leads FINAL
+             WHERE ' . $sql . '
+             ORDER BY created_at DESC
+             LIMIT ' . $limit,
+            $params,
+        )->rows();
+
+        return array_map($this->lead(...), $rows);
+    }
+
     public function latestStockAtForPreset(string $organizationId, Preset $preset): ?DateTimeImmutable
     {
         $stock = $this->stockMatch($organizationId, $preset);
@@ -125,9 +160,13 @@ final readonly class LeadRepository
         return $at;
     }
 
-    public function countInStockForPreset(string $organizationId, Preset $preset, ?string $leadGender = null): int
-    {
-        $stock = $this->stockMatch($organizationId, $preset, $leadGender);
+    public function countSellableInStockForPreset(
+        string $organizationId,
+        Preset $preset,
+        ShelfAgePolicy $policy,
+        ?string $leadGender = null,
+    ): int {
+        $stock = $this->sellableStockMatch($organizationId, $preset, $policy, $leadGender);
         $rows = $this->clickhouse->query(
             'SELECT count() AS available
              FROM leads FINAL
@@ -136,6 +175,81 @@ final readonly class LeadRepository
         )->rows();
 
         return (int) ($rows[0]['available'] ?? 0);
+    }
+
+    public function countLiveInStockForPreset(
+        string $organizationId,
+        Preset $preset,
+        ShelfAgePolicy $policy,
+        ?string $leadGender = null,
+        array $excludeLeadUuids = [],
+    ): int {
+        $match = $this->liveStockMatch($organizationId, $preset, $policy, $leadGender, $excludeLeadUuids);
+        $rows = $this->clickhouse->query(
+            'SELECT count() AS live_count
+             FROM leads FINAL
+             WHERE ' . $match['sql'],
+            $match['params'],
+        )->rows();
+
+        return (int) ($rows[0]['live_count'] ?? 0);
+    }
+
+    /**
+     * @param list<string> $excludeLeadUuids
+     * @return list<Lead>
+     */
+    public function findLiveInStockForPreset(
+        string $organizationId,
+        Preset $preset,
+        ShelfAgePolicy $policy,
+        int $limit,
+        array $excludeLeadUuids = [],
+        ?string $leadGender = null,
+    ): array {
+        if ($limit < 1) {
+            return [];
+        }
+        $match = $this->liveStockMatch($organizationId, $preset, $policy, $leadGender, $excludeLeadUuids);
+        $rows = $this->clickhouse->query(
+            'SELECT ' . self::SELECT_COLUMNS . '
+             FROM leads FINAL
+             WHERE ' . $match['sql'] . '
+             ORDER BY created_at ASC
+             LIMIT ' . $limit,
+            $match['params'],
+        )->rows();
+
+        return array_map($this->lead(...), $rows);
+    }
+
+    /**
+     * Sellable shelf mix (live zone excluded).
+     *
+     * @return array{fresh: int, good: int, expired: int}
+     */
+    public function stockShelfMixForPreset(string $organizationId, Preset $preset, ShelfAgePolicy $policy): array
+    {
+        $stock = $this->sellableStockMatch($organizationId, $preset, $policy);
+        $query = new ShelfAgePolicyQuery($policy);
+        $parts = [];
+        foreach ($policy->sellableZones() as $zone) {
+            $alias = $zone->id;
+            $parts[] = $query->countIfForZone($zone) . ' AS ' . $alias;
+        }
+        $rows = $this->clickhouse->query(
+            'SELECT ' . implode(', ', $parts) . '
+             FROM leads FINAL
+             WHERE ' . $stock['sql'],
+            $stock['params'],
+        )->rows();
+        $row = $rows[0] ?? [];
+
+        return [
+            ShelfAgeZone::FRESH => (int) ($row[ShelfAgeZone::FRESH] ?? 0),
+            ShelfAgeZone::GOOD => (int) ($row[ShelfAgeZone::GOOD] ?? 0),
+            ShelfAgeZone::EXPIRED => (int) ($row[ShelfAgeZone::EXPIRED] ?? 0),
+        ];
     }
 
     /**
@@ -162,29 +276,31 @@ final readonly class LeadRepository
     }
 
     /**
-     * @return Collection<int, Lead>
+     * @return list<Lead>
      */
-    public function findInStockForPreset(
+    public function findSellableStockForPreset(
         string $organizationId,
         Preset $preset,
         int $limit,
+        ShelfAgePolicy $policy,
         ?string $leadGender = null,
-    ): Collection {
+    ): array {
         if ($limit < 1) {
-            return new ArrayCollection();
+            return [];
         }
 
-        $stock = $this->stockMatch($organizationId, $preset, $leadGender);
+        $stock = $this->sellableStockMatch($organizationId, $preset, $policy, $leadGender);
+        $order = (new ShelfAgePolicyQuery($policy))->pickOrderSql();
         $rows = $this->clickhouse->query(
             'SELECT ' . self::SELECT_COLUMNS . '
              FROM leads FINAL
              WHERE ' . $stock['sql'] . '
-             ORDER BY created_at DESC
+             ORDER BY ' . $order . '
              LIMIT ' . $limit,
             $stock['params'],
         )->rows();
 
-        return new ArrayCollection(array_map($this->lead(...), $rows));
+        return array_map($this->lead(...), $rows);
     }
 
     public function findByUuid(string $uuid): ?Lead
@@ -299,6 +415,54 @@ final readonly class LeadRepository
         }
 
         return ['sql' => $sql, 'params' => $params];
+    }
+
+    /**
+     * @return array{sql: string, params: array<string, int|string>}
+     */
+    private function sellableStockMatch(
+        string $organizationId,
+        Preset $preset,
+        ShelfAgePolicy $policy,
+        ?string $leadGender = null,
+    ): array {
+        $stock = $this->stockMatch($organizationId, $preset, $leadGender);
+        $predicate = (new ShelfAgePolicyQuery($policy))->sellableAgePredicate();
+        $stock['sql'] .= ' AND ' . $predicate;
+
+        return $stock;
+    }
+
+    /**
+     * @param list<string> $excludeLeadUuids
+     * @return array{sql: string, params: array<string, int|string>}
+     */
+    private function liveStockMatch(
+        string $organizationId,
+        Preset $preset,
+        ShelfAgePolicy $policy,
+        ?string $leadGender,
+        array $excludeLeadUuids,
+    ): array {
+        $live = $policy->liveZone();
+        $age = (new ShelfAgePolicyQuery($policy))->ageMinutesExpression();
+        $stock = $this->stockMatch($organizationId, $preset, $leadGender);
+        $liveSql = $age . ' >= ' . $live->startMinutes;
+        if ($live->endMinutes !== null) {
+            $liveSql .= ' AND ' . $age . ' < ' . $live->endMinutes;
+        }
+        $stock['sql'] .= ' AND ' . $liveSql;
+        if ($excludeLeadUuids !== []) {
+            $parts = [];
+            foreach (array_values($excludeLeadUuids) as $index => $uuid) {
+                $key = 'exclude_uuid_' . $index;
+                $stock['params'][$key] = $uuid;
+                $parts[] = 'uuid != :' . $key;
+            }
+            $stock['sql'] .= ' AND ' . implode(' AND ', $parts);
+        }
+
+        return $stock;
     }
 
     /**

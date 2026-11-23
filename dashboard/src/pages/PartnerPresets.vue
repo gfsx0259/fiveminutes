@@ -75,12 +75,17 @@
       </UiDataTable>
     </UiTableCard>
 
-    <OrderFormDialog v-model="open" :initial-preset-id="presetId" />
+    <OrderFormDialog
+      v-model="open"
+      :initial-preset-id="presetId"
+      @buy-stock="goBuyStock"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import CountryFlag from '@/components/CountryFlag.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
@@ -96,6 +101,7 @@ import { dollars } from '@/money'
 import { useMarketStore, type PresetRow } from '@/stores/market'
 import { prepareTableHeaders } from '@/tableHeaders'
 
+const router = useRouter()
 const market = useMarketStore()
 const open = ref(false)
 const presetId = ref<string | null>(null)
@@ -186,6 +192,11 @@ function clearFilters(): void {
 function order(id: string): void {
   presetId.value = id
   open.value = true
+}
+
+function goBuyStock(id: string): void {
+  open.value = false
+  void router.push({ path: '/stock', query: { action: 'buy', preset: id } })
 }
 
 onMounted(() => {

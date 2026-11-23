@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Organization;
 
 use App\Clock;
+use App\Context\Market\ShelfAgePolicy;
 use Ramsey\Uuid\UuidFactoryInterface;
 
 final readonly class OrganizationFactory
@@ -18,6 +19,13 @@ final readonly class OrganizationFactory
     {
         $now = $this->clock->now();
 
-        return new Organization($this->uuids->uuid4()->toString(), $name, $apex, $now, $now);
+        return new Organization(
+            $this->uuids->uuid4()->toString(),
+            $name,
+            $apex,
+            $now,
+            $now,
+            shelfAgePolicy: ShelfAgePolicy::default()->toArray(),
+        );
     }
 }

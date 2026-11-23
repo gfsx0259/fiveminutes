@@ -7,6 +7,7 @@ namespace App\Api;
 use App\Api\Form\OfferForm;
 use App\Api\Form\OrderForm;
 use App\Api\Form\PresetForm;
+use App\Api\Form\StockQuoteForm;
 use App\Context\Identity\CurrentUser;
 use App\Context\Identity\NoAccountException;
 use App\Context\Identity\NoSessionException;
@@ -112,7 +113,30 @@ final readonly class MarketController
 
     public function warehouse(): ResponseInterface
     {
-        return $this->list(fn (User $user): array => ['stock' => $this->warehouse->inventory($user)]);
+        return $this->list(function (User $user): array {
+            $bundle = $this->warehouse->inventory($user);
+
+            return [
+                'shelfAgePolicy' => $bundle['shelfAgePolicy'],
+                'stock' => $bundle['stock'],
+            ];
+        });
+    }
+
+    public function stockQuote(StockQuoteForm $form): ResponseInterface
+    {
+        try {
+            $quote = $this->warehouse->quote(
+                $this->user(),
+                $form->presetId(),
+                $form->quantity(),
+                $form->stockLeadGender(),
+            );
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
+        }
+
+        return $this->responses->createResponse($quote);
     }
 
     public function pauseOrder(): ResponseInterface

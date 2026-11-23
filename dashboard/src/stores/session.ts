@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { apiDelete, apiPost } from '@/api'
 import { apiOrigin, cabinetOrigin } from '@/host'
+import type { ShelfAgePolicy } from '@/stores/market'
 
 export interface Organization {
   id: string
@@ -9,6 +10,7 @@ export interface Organization {
   apex: string
   markupPercent?: number
   balanceCents?: number | null
+  shelfAgePolicy?: ShelfAgePolicy
 }
 
 export interface AppUser {

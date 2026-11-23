@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Api\Form;
+
+use Yiisoft\Input\Http\AbstractInput;
+use Yiisoft\Input\Http\Attribute\Data\FromQuery;
+use Yiisoft\Validator\Rule\Integer;
+use Yiisoft\Validator\Rule\Regex;
+use Yiisoft\Validator\Rule\Required;
+use Yiisoft\Validator\Rule\StringValue;
+
+#[FromQuery]
+final class StockQuoteForm extends AbstractInput
+{
+    public function __construct(
+        #[Required(message: 'Preset is required', notPassedMessage: 'Preset is required')]
+        #[Regex(pattern: '/^[0-9a-fA-F-]{36}$/', message: 'Preset is required')]
+        public readonly string $preset_id = '',
+        #[Required]
+        #[Integer(
+            min: 1,
+            incorrectInputMessage: 'Quantity must be a positive whole number',
+            notNumberMessage: 'Quantity must be a positive whole number',
+            lessThanMinMessage: 'Quantity must be a positive whole number',
+        )]
+        public readonly int $quantity = 0,
+        #[StringValue]
+        public readonly string $stock_gender = '',
+    ) {}
+
+    public function presetId(): string
+    {
+        return $this->preset_id;
+    }
+
+    public function quantity(): int
+    {
+        return $this->quantity;
+    }
+
+    public function stockLeadGender(): ?string
+    {
+        $gender = trim($this->stock_gender);
+
+        return $gender === '' ? null : $gender;
+    }
+}

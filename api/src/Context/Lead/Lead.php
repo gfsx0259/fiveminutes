@@ -256,6 +256,37 @@ final readonly class Lead
         );
     }
 
+    public function withCreatedAt(DateTimeInterface $createdAt, DateTimeInterface $updatedAt): self
+    {
+        return new self(
+            $this->uuid,
+            $this->organizationId,
+            $this->buyerId,
+            $this->sellerId,
+            $this->orderId,
+            $this->email,
+            $this->phone,
+            $this->firstName,
+            $this->lastName,
+            $this->country,
+            $this->trafficSource,
+            $this->age,
+            $this->gender,
+            $this->ip,
+            $this->affSub,
+            $this->uniqId,
+            $this->getStatus(),
+            $this->priceCents,
+            $createdAt,
+            $updatedAt,
+            $this->soldAt,
+            $this->isDelivered,
+            $this->deliveryError,
+            $this->clientStatus,
+            $this->clientDeposit,
+        );
+    }
+
     public function withPartnerDelivery(
         bool $isDelivered,
         bool $deliveryError,

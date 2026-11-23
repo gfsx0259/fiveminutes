@@ -58,6 +58,22 @@
     </FormDialog>
 
     <section v-if="isAdmin" class="ui-filter-panel presets__markup-panel">
+      <h2 class="presets__markup-title">Shelf age &amp; discounts</h2>
+      <p class="presets__markup-hint">
+        Leads on the shelf are priced by age. Live (0–{{ boundaryLiveEnd }}m) is reserved for day orders only; older zones get stock discounts.
+      </p>
+      <ShelfAgePolicyPanel
+        :policy="shelfDraft"
+        :loading="shelfPolicyLoading"
+        @update:policy="onShelfDraft"
+      />
+      <div class="presets__markup-row">
+        <UiButton variant="outline" :loading="shelfPolicyBusy" @click="saveShelfPolicy">Save shelf policy</UiButton>
+      </div>
+      <p v-if="shelfPolicyError" class="presets__markup-error">{{ shelfPolicyError }}</p>
+    </section>
+
+    <section v-if="isAdmin" class="ui-filter-panel presets__markup-panel">
       <h2 class="presets__markup-title">Platform fee</h2>
       <p class="presets__markup-hint">
         Percent withheld from the buyer on each sold lead. Partners pay the order or stock catalog price.
@@ -145,6 +161,7 @@ import { api } from '@/api'
 import CountryFlag from '@/components/CountryFlag.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import FormDialog from '@/components/FormDialog.vue'
+import ShelfAgePolicyPanel from '@/components/ShelfAgePolicyPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiField from '@/components/ui/UiField.vue'
@@ -155,7 +172,7 @@ import { COUNTRY_SELECT_ITEMS, countryName } from '@/countries'
 import { exportTableCsv, cellToString } from '@/tableCsvExport'
 import { genders, genderLabel, modelLabel, paymentModels, trafficLabel, trafficSources, verticalLabel, verticals } from '@/marketOptions'
 import { dollars } from '@/money'
-import { useMarketStore, type PresetRow } from '@/stores/market'
+import { useMarketStore, type PresetRow, type ShelfAgePolicy } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 import { prepareTableHeaders } from '@/tableHeaders'
 
@@ -165,6 +182,75 @@ const isAdmin = computed(() => session.payload?.user?.role === 'admin')
 const markupPercent = ref('10')
 const markupBusy = ref(false)
 const markupError = ref('')
+const shelfPolicyLoading = ref(false)
+const shelfPolicyBusy = ref(false)
+const shelfPolicyError = ref('')
+const shelfDraft = ref<ShelfAgePolicy | null>(null)
+
+function onShelfDraft(policy: ShelfAgePolicy): void {
+  shelfDraft.value = policy
+}
+
+function defaultShelfPolicy(): ShelfAgePolicy {
+  return {
+    horizonMinutes: 2880,
+    zones: [
+      { id: 'live', label: 'Live', startMinutes: 0, endMinutes: 30, discountPercent: 0, sellableOnShelf: false },
+      { id: 'fresh', label: 'Fresh', startMinutes: 30, endMinutes: 120, discountPercent: 10, sellableOnShelf: true },
+      { id: 'good', label: 'Good', startMinutes: 120, endMinutes: 360, discountPercent: 30, sellableOnShelf: true },
+      { id: 'expired', label: 'Expired', startMinutes: 360, endMinutes: null, discountPercent: 70, sellableOnShelf: true },
+    ],
+  }
+}
+
+async function loadShelfPolicy(): Promise<void> {
+  shelfPolicyLoading.value = true
+  shelfPolicyError.value = ''
+  try {
+    const response = await api('/organization/shelf-age-policy')
+    if (!response.ok) {
+      shelfPolicyError.value = `Could not load shelf policy: ${response.status}`
+      return
+    }
+    const body = await response.json() as { shelfAgePolicy?: ShelfAgePolicy }
+    if (body.shelfAgePolicy) {
+      shelfDraft.value = body.shelfAgePolicy
+    }
+  } catch {
+    shelfPolicyError.value = 'Could not load shelf policy'
+  } finally {
+    shelfPolicyLoading.value = false
+  }
+}
+
+async function saveShelfPolicy(): Promise<void> {
+  shelfPolicyBusy.value = true
+  shelfPolicyError.value = ''
+  try {
+    const shelf_age_policy = shelfDraft.value ?? defaultShelfPolicy()
+    const response = await api('/organization/shelf-age-policy', {
+      method: 'PATCH',
+      body: JSON.stringify({ shelf_age_policy }),
+    })
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({})) as { error?: string }
+      shelfPolicyError.value = body.error ?? `Save failed: ${response.status}`
+      return
+    }
+    const body = await response.json() as { shelfAgePolicy?: ShelfAgePolicy }
+    if (body.shelfAgePolicy) {
+      shelfDraft.value = body.shelfAgePolicy
+      market.shelfAgePolicy = body.shelfAgePolicy
+    }
+    if (session.payload?.user?.organization) {
+      session.payload.user.organization.shelfAgePolicy = body.shelfAgePolicy ?? shelfDraft.value ?? defaultShelfPolicy()
+    }
+  } catch {
+    shelfPolicyError.value = 'Save failed'
+  } finally {
+    shelfPolicyBusy.value = false
+  }
+}
 const open = ref(false)
 const busy = ref(false)
 const formError = ref('')
@@ -319,6 +405,15 @@ async function saveMarkup(): Promise<void> {
 
 onMounted(() => {
   void market.loadPresets()
+  if (isAdmin.value) {
+    const fromSession = session.payload?.user?.organization?.shelfAgePolicy as ShelfAgePolicy | undefined
+    if (fromSession?.zones?.length) {
+      shelfDraft.value = fromSession
+    } else {
+      shelfDraft.value = defaultShelfPolicy()
+    }
+    void loadShelfPolicy()
+  }
 })
 </script>
 

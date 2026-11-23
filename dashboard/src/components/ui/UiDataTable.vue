@@ -275,28 +275,15 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 .ui-data-table :deep(.ui-col-sticky-end) {
   background: #fff;
   box-shadow: none;
+  padding-inline: 4px 10px !important;
   position: sticky;
   right: 0;
   z-index: 1;
 }
 
-.ui-data-table :deep(.ui-col-sticky-end)::before {
-  background: color-mix(in srgb, var(--lm-primary) 32%, var(--lm-lavender));
-  bottom: 8px;
-  content: '';
-  left: 0;
-  position: absolute;
-  top: 8px;
-  width: 1px;
-}
-
 .ui-data-table :deep(thead .ui-col-sticky-end) {
   background: var(--lm-lavender) !important;
   z-index: 3;
-}
-
-.ui-data-table :deep(thead .ui-col-sticky-end)::before {
-  display: none;
 }
 
 .ui-data-table :deep(tbody tr:hover .ui-col-sticky-end) {
@@ -305,7 +292,7 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 
 @media (max-width: 1280px) {
   .ui-data-table :deep(.ui-col-sticky-end) {
-    padding-inline: 8px !important;
+    padding-inline: 6px 8px !important;
   }
 }
 </style>

@@ -36,6 +36,9 @@ export interface OrderRow {
   partnerId: string
   partnerEmail: string
   createdAt: string
+  orderCostCents?: number | null
+  liveInjectScheduled?: number
+  liveInjectNextDueAt?: string | null
 }
 
 export interface CapRow {
@@ -52,6 +55,43 @@ export interface CapRow {
   supplied: number
 }
 
+export interface StockFreshness {
+  fresh: number
+  good: number
+  expired: number
+}
+
+export interface ShelfAgeZoneRow {
+  id: string
+  label: string
+  startMinutes: number
+  endMinutes: number | null
+  discountPercent: number
+  sellableOnShelf: boolean
+}
+
+export interface ShelfAgePolicy {
+  horizonMinutes: number
+  zones: ShelfAgeZoneRow[]
+}
+
+export interface StockQuoteLine {
+  zoneId: string
+  label: string
+  count: number
+  unitPriceCents: number
+  discountPercent: number
+  lineTotalCents: number
+}
+
+export interface StockQuote {
+  presetId: string
+  quantity: number
+  basePriceCents: number
+  lines: StockQuoteLine[]
+  totalCents: number
+}
+
 export interface StockOfferRow {
   presetId: string
   vertical: string
@@ -61,6 +101,7 @@ export interface StockOfferRow {
   conversion: number
   basePriceCents: number
   available: number
+  stockFreshness?: StockFreshness
   dailyCapVolume: number
   dailyCapSupplied: number
   updatedAt: string | null
@@ -115,6 +156,7 @@ export const useMarketStore = defineStore('market', () => {
   const caps = ref<CapRow[]>([])
   const offers = ref<OfferRow[]>([])
   const stock = ref<StockOfferRow[]>([])
+  const shelfAgePolicy = ref<ShelfAgePolicy | null>(null)
   const loading = ref(false)
   const error = ref('')
 
@@ -143,7 +185,8 @@ export const useMarketStore = defineStore('market', () => {
         error.value = `Склад не прочитался: ${response.status}`
         return
       }
-      const body = await response.json() as { stock?: StockOfferRow[] }
+      const body = await response.json() as { stock?: StockOfferRow[], shelfAgePolicy?: ShelfAgePolicy }
+      shelfAgePolicy.value = body.shelfAgePolicy ?? null
       stock.value = applyWarehouseDemoDailyCaps(body.stock ?? [])
     } catch {
       error.value = 'Склад не прочитался'
@@ -174,7 +217,24 @@ export const useMarketStore = defineStore('market', () => {
 
   async function createStockOrder(body: Record<string, string | number>): Promise<{ id?: string, supplied?: number }> {
     const payload = await submit('/orders', body)
+    await loadWarehouse()
     return payload as { id?: string, supplied?: number }
+  }
+
+  async function fetchStockQuote(presetId: string, quantity: number, stockGender = ''): Promise<StockQuote> {
+    const params = new URLSearchParams({
+      preset_id: presetId,
+      quantity: String(quantity),
+    })
+    if (stockGender.trim() !== '') {
+      params.set('stock_gender', stockGender.trim())
+    }
+    const response = await api(`/warehouse/stock/quote?${params.toString()}`)
+    const payload = await response.json().catch(() => ({})) as StockQuote & { error?: string }
+    if (!response.ok) {
+      throw new Error(payload.error ?? `Quote failed: ${response.status}`)
+    }
+    return payload
   }
 
   async function actOrder(id: string, action: 'pause' | 'resume' | 'finish'): Promise<void> {
@@ -226,6 +286,8 @@ export const useMarketStore = defineStore('market', () => {
     caps,
     offers,
     stock,
+    shelfAgePolicy,
+    fetchStockQuote,
     loading,
     error,
     loadPresets,

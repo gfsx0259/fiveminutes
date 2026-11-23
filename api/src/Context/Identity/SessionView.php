@@ -49,6 +49,7 @@ final readonly class SessionView
                     'name' => $organization->getName(),
                     'apex' => $organization->getApex(),
                     'markupPercent' => $organization->getMarkupPercent(),
+                    'shelfAgePolicy' => $organization->shelfAgePolicyArray(),
                     'balanceCents' => $user->getRole() === UserRole::Admin
                         ? $organization->getBalance()->cents()
                         : null,

@@ -15,6 +15,7 @@ final readonly class LeadJournal
         private LeadRepository $leads,
         private UserRepository $users,
         private OrganizationMarkup $markup,
+        private LiveDayInjectStore $liveInject,
     ) {}
 
     /**
@@ -30,9 +31,16 @@ final readonly class LeadJournal
         };
 
         $emails = $this->emails($organizationId);
-        $rows = [];
+        $leadList = [];
         foreach ($leads as $lead) {
-            $rows[] = $this->row($lead, $emails, $user);
+            $leadList[] = $lead;
+        }
+        $overlay = $user->getRole() === UserRole::Admin
+            ? $this->liveInject->overlayByLeadUuids(array_map(static fn (Lead $lead): string => $lead->getUuid(), $leadList))
+            : [];
+        $rows = [];
+        foreach ($leadList as $lead) {
+            $rows[] = $this->row($lead, $emails, $user, $overlay[$lead->getUuid()] ?? null);
         }
 
         return $rows;
@@ -48,7 +56,11 @@ final readonly class LeadJournal
             return null;
         }
 
-        return $this->row($lead, $this->emails($user->getOrganizationId()), $user);
+        $overlay = $user->getRole() === UserRole::Admin
+            ? $this->liveInject->overlayByLeadUuids([$uuid])[$uuid] ?? null
+            : null;
+
+        return $this->row($lead, $this->emails($user->getOrganizationId()), $user, $overlay);
     }
 
     /**
@@ -68,7 +80,10 @@ final readonly class LeadJournal
      * @param array<string, string> $emails
      * @return array<string, mixed>
      */
-    private function row(Lead $lead, array $emails, User $viewer): array
+    /**
+     * @param ?array{status: string, due_at: string, order_id: string} $inject
+     */
+    private function row(Lead $lead, array $emails, User $viewer, ?array $inject = null): array
     {
         $sellerId = $lead->getSellerId();
 
@@ -110,6 +125,11 @@ final readonly class LeadJournal
         }
         if ($viewer->getRole() === UserRole::Admin) {
             $row['platformFeeCents'] = $pricing->platformFeeCents($catalogCents);
+            if ($inject !== null) {
+                $row['liveInjectStatus'] = $inject['status'];
+                $row['liveInjectDueAt'] = (new \DateTimeImmutable($inject['due_at']))->format(DATE_ATOM);
+                $row['liveInjectOrderId'] = $inject['order_id'];
+            }
         }
 
         return $this->redact($row, $viewer);

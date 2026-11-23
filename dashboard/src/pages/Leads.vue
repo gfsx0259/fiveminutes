@@ -272,6 +272,21 @@
         <template #item.ip="{ item }">
           <span class="lead-ip">{{ item.ip || '—' }}</span>
         </template>
+        <template #item.liveInject="{ item }">
+          <div v-if="item.liveInjectStatus" class="lead-inject">
+            <StatusChip
+              :status="item.liveInjectStatus"
+              :title="liveInjectHint(item)"
+            />
+            <span
+              v-if="item.liveInjectStatus === 'scheduled' && item.liveInjectDueAt"
+              class="lead-inject__due text-medium-emphasis"
+            >
+              {{ formatIsoDate(item.liveInjectDueAt) }}
+            </span>
+          </div>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
         <template #item.status="{ item }">
           <StatusChip :status="item.status" :label="statusLabel(item.status ?? '')" />
         </template>
@@ -578,6 +593,7 @@ const headers = computed(() => {
     rows.push(
       { title: 'Buyer', key: 'buyerEmail' },
       { title: 'Partner', key: 'sellerEmail' },
+      { title: 'Day inject', key: 'liveInject', align: 'center' },
     )
   }
   if (isPartner.value) {
@@ -606,6 +622,7 @@ const headers = computed(() => {
     ip: 120,
     buyerEmail: 160,
     sellerEmail: 160,
+    liveInject: 128,
     partnerDelivery: 108,
     clientStatus: 116,
     clientDeposit: 96,
@@ -621,6 +638,27 @@ const statusLabels: Record<string, string> = {
   delivered: 'Delivered',
   approved: 'Approved',
   rejected: 'Rejected',
+}
+
+function formatIsoDate(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    return iso
+  }
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(date)
+}
+
+function liveInjectHint(item: CabinetLead): string | undefined {
+  if (item.liveInjectStatus === 'published' && item.status === 'in_stock') {
+    return 'Published, but still in stock — order may not have matched yet.'
+  }
+  if (item.liveInjectStatus === 'failed') {
+    return 'Error while selling into the day order.'
+  }
+  if (item.liveInjectStatus === 'scheduled' && item.liveInjectDueAt) {
+    return `Scheduled for ${formatIsoDate(item.liveInjectDueAt)}`
+  }
+  return undefined
 }
 
 function statusLabel(value: string): string {
@@ -941,7 +979,7 @@ async function copyKey(): Promise<void> {
 
 function exportCsv(): void {
   const header = isAdmin.value
-    ? ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'First name', 'Last name', 'Phone', 'Email', 'IP', 'Buyer', 'Partner', 'Status']
+    ? ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'First name', 'Last name', 'Phone', 'Email', 'IP', 'Buyer', 'Partner', 'Day inject', 'Status']
     : ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'First name', 'Last name', 'Phone', 'Email', 'IP', 'Status']
   downloadCsv('leads.csv', [header, ...filtered.value.map(csvRow)])
 }
@@ -960,8 +998,12 @@ function csvRow(lead: LeadTableRow): string[] {
   ]
   if (isAdmin.value) {
     row.push(lead.buyerEmail ?? '', lead.sellerEmail ?? '')
+    const inject = lead.liveInjectStatus
+      ? [lead.liveInjectStatus, lead.liveInjectDueAt ? formatIsoDate(lead.liveInjectDueAt) : ''].filter(Boolean).join(' ')
+      : '—'
+    row.push(inject)
   }
-  row.push(lead.status)
+  row.push(lead.status ?? '')
   return row
 }
 
@@ -1083,6 +1125,17 @@ onMounted(() => {
   text-overflow: ellipsis;
   vertical-align: middle;
   white-space: nowrap;
+}
+
+.lead-inject {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.lead-inject__due {
+  font-size: 0.75rem;
 }
 
 .lead-entity {

@@ -171,7 +171,20 @@
           />
         </template>
         <template #item.orderCostCents="{ item }">
-          <span class="order-cost">{{ orderCostLabel(item) }}</span>
+          <v-tooltip v-if="item.stock && item.supplied > 0" location="top" text="Sum of per-lead prices (zone discounts apply on stock).">
+            <template #activator="{ props: tip }">
+              <span v-bind="tip" class="order-cost order-cost--hint">{{ orderCostLabel(item) }}</span>
+            </template>
+          </v-tooltip>
+          <span v-else class="order-cost">{{ orderCostLabel(item) }}</span>
+        </template>
+        <template v-if="isAdmin" #item.liveInjectScheduled="{ item }">
+          <span v-if="!item.stock && item.liveInjectScheduled">{{ item.liveInjectScheduled }}</span>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+        <template v-if="isAdmin" #item.liveInjectNextDueAt="{ item }">
+          <span v-if="!item.stock && item.liveInjectNextDueAt" class="order-live-due">{{ formatIsoDate(item.liveInjectNextDueAt) }}</span>
+          <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item.priceCents="{ item }">
           {{ dollars(item.priceCents / 100) }}
@@ -315,6 +328,7 @@ const router = useRouter()
 const session = useSessionStore()
 const market = useMarketStore()
 const isPartner = computed(() => session.payload?.user?.role === 'partner')
+const isAdmin = computed(() => session.payload?.user?.role === 'admin')
 const compactTableActions = useCompactTableActions()
 const open = ref(false)
 const acting = ref('')
@@ -454,6 +468,10 @@ function orderExportCell(key: string, item: OrderRow): string {
       return `${item.supplied} / ${item.volume}`
     case 'orderCostCents':
       return orderCostLabel(item)
+    case 'liveInjectScheduled':
+      return !item.stock && item.liveInjectScheduled ? String(item.liveInjectScheduled) : '—'
+    case 'liveInjectNextDueAt':
+      return !item.stock && item.liveInjectNextDueAt ? formatIsoDate(item.liveInjectNextDueAt) : '—'
     case 'priceCents':
       return dollars(item.priceCents / 100)
     case 'partnerPriceCents':
@@ -487,6 +505,8 @@ const orderColumnMins: Record<string, number> = {
   whenDay: 108,
   supplied: 112,
   orderCostCents: 108,
+  liveInjectScheduled: 108,
+  liveInjectNextDueAt: 140,
   priceCents: 108,
   partnerPriceCents: 116,
   status: 100,
@@ -503,8 +523,15 @@ const headers = computed(() => {
       { title: '', key: 'orderActions', sortable: false, align: 'end' as const },
     ], actionMins)
   }
+  const adminCols = isAdmin.value
+    ? [
+      { title: 'Live scheduled', key: 'liveInjectScheduled', align: 'center' as const },
+      { title: 'Next live sale', key: 'liveInjectNextDueAt', align: 'center' as const },
+    ]
+    : []
   return prepareTableHeaders([
     ...partnerLeadColumns,
+    ...adminCols,
     { title: 'Catalog price', key: 'priceCents', align: 'end' as const },
     { title: 'Partner pays', key: 'partnerPriceCents', align: 'end' as const },
     { title: 'Status', key: 'status', align: 'center' as const },
@@ -512,13 +539,27 @@ const headers = computed(() => {
   ], actionMins)
 })
 
-function orderCostCents(item: OrderRow): number {
-  return item.partnerPriceCents * item.volume
+function resolvedOrderCostCents(item: OrderRow): number | null {
+  if (item.orderCostCents != null && item.orderCostCents > 0) {
+    return item.orderCostCents
+  }
+  return null
 }
 
 function orderCostLabel(item: OrderRow): string {
-  const cents = orderCostCents(item)
+  const cents = resolvedOrderCostCents(item)
+  if (cents === null) {
+    return '—'
+  }
   return cents % 100 === 0 ? wholeDollars(cents / 100) : dollars(cents / 100)
+}
+
+function formatIsoDate(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    return iso
+  }
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(date)
 }
 
 async function refresh(): Promise<void> {

@@ -6,10 +6,12 @@ namespace App\Context\Lead;
 
 use App\Clock;
 use App\Context\Market\Order;
+use App\Context\Market\OrganizationShelfAge;
 use App\Context\Market\PaymentModel;
 use App\Context\Market\Preset;
 use App\Context\Market\PresetMissingException;
 use App\Context\Market\PresetRepository;
+use App\Context\Market\StockPickPlan;
 use App\Context\Wallet\SettlementDesk;
 use App\Context\Tree\OrderPool;
 use Cycle\ORM\EntityManagerInterface;
@@ -20,12 +22,14 @@ final readonly class StockFulfillment
 {
     public function __construct(
         private PresetRepository $presets,
-        private LeadRepository $leads,
+        private StockPickPlan $pickPlan,
+        private OrganizationShelfAge $shelfAge,
         private PlacementRepository $placements,
         private EntityManagerInterface $entityManager,
         private OrderPool $pool,
         private Clock $clock,
         private SettlementDesk $settlement,
+        private LeadRepository $leads,
     ) {}
 
     public function fill(Order $order, ?string $leadGender = null): int
@@ -39,20 +43,27 @@ final readonly class StockFulfillment
             throw new PresetMissingException('Preset was not found');
         }
 
-        $at = $this->clock->now()->setTimezone(new DateTimeZone('UTC'));
-        $queued = $this->leads->findInStockForPreset(
+        $policy = $this->shelfAge->forOrganization($order->getOrganizationId());
+        $remaining = $order->getVolume() - $order->getSuppliedCount();
+        if ($remaining < 1) {
+            return 0;
+        }
+
+        $quote = $this->pickPlan->quote(
             $order->getOrganizationId(),
             $preset,
-            $order->getVolume(),
+            $remaining,
+            $policy,
             $leadGender,
         );
 
+        $at = $this->clock->now()->setTimezone(new DateTimeZone('UTC'));
         $filled = 0;
-        foreach ($queued as $lead) {
+        foreach ($quote->picks as $pick) {
             if (!$order->hasRoom()) {
                 break;
             }
-            $this->assign($lead, $order, PaymentModel::from($order->getPaymentModel()), $at);
+            $this->assign($pick['lead'], $order, PaymentModel::from($order->getPaymentModel()), $at, $pick['effectivePriceCents']);
             $order->supply($at);
             $filled++;
         }
@@ -66,9 +77,14 @@ final readonly class StockFulfillment
         return $filled;
     }
 
-    private function assign(Lead $lead, Order $order, PaymentModel $model, DateTimeImmutable $at): void
-    {
-        $sold = $lead->sell($order->getPartnerId(), $order->getId(), $order->getPriceCents(), $at);
+    private function assign(
+        Lead $lead,
+        Order $order,
+        PaymentModel $model,
+        DateTimeImmutable $at,
+        int $priceCents,
+    ): void {
+        $sold = $lead->sell($order->getPartnerId(), $order->getId(), $priceCents, $at);
         $settled = $this->settlement->settleStockLead($sold, $model);
         $placement = $this->placements->findByLead($lead->getUuid());
         if ($placement instanceof Placement) {

@@ -32,6 +32,9 @@ export interface CabinetLead {
   createdAt: string
   updatedAt: string
   soldAt: string | null
+  liveInjectStatus?: string
+  liveInjectDueAt?: string
+  liveInjectOrderId?: string
 }
 
 export const useLeadStore = defineStore('leads', () => {

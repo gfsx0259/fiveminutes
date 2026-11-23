@@ -48,7 +48,7 @@ export function prepareTableHeaders<T extends RiderTableHeader>(
     return {
       ...column,
       minWidth: pinnedMin,
-      width: column.width ?? pinnedMin,
+      ...(column.width != null ? { width: column.width } : {}),
       headerProps: {
         ...column.headerProps,
         class: mergeClass(column.headerProps?.class, STICKY_END),

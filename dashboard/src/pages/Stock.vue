@@ -81,7 +81,15 @@
       </div>
     </section>
 
-    <UiTableCard title="Offers">
+    <v-tabs v-model="viewTab" color="primary" class="stock-view-tabs">
+      <v-tab value="orders">Day orders</v-tab>
+      <v-tab value="stock">Stock</v-tab>
+    </v-tabs>
+
+    <UiTableCard
+      :title="viewTab === 'stock' ? 'In stock' : 'Presets'"
+      :subtitle="viewTab === 'stock' ? 'Instant delivery from the warehouse shelf' : 'Schedule a day order from a preset'"
+    >
       <template #actions>
         <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="refresh()">
           Refresh
@@ -94,7 +102,7 @@
       v-model:page="page"
       v-model:items-per-page="itemsPerPage"
       class="stock-market-table"
-      :headers="headers"
+      :headers="tableHeaders"
       :items="filtered"
       :loading="market.loading"
       :items-per-page-options="[10, 25, 50]"
@@ -102,7 +110,7 @@
       hover
     >
       <template #header.dailyCap="{ column }">
-        <span class="stock-th-hint">
+        <span v-if="viewTab === 'orders'" class="stock-th-hint">
           <span>{{ column.title }}</span>
           <v-tooltip location="top" max-width="300">
             <template #activator="{ props: tipProps }">
@@ -120,6 +128,44 @@
             <span>Leads supplied from your live today orders</span>
           </v-tooltip>
         </span>
+        <span v-else>{{ column.title }}</span>
+      </template>
+      <template #header.stockFreshness="{ column }">
+        <span v-if="viewTab === 'stock'" class="stock-th-hint">
+          <span>{{ column.title }}</span>
+          <v-tooltip location="top" max-width="280" content-class="stock-freshness-hint">
+            <template #activator="{ props: tipProps }">
+              <span
+                class="stock-th-hint__icon"
+                v-bind="tipProps"
+                tabindex="0"
+                role="button"
+                aria-label="Stock freshness legend"
+                @click.stop
+              >
+                <v-icon icon="mdi-information-outline" size="14" />
+              </span>
+            </template>
+            <div class="stock-freshness-hint__body">
+              <p class="stock-freshness-hint__lead">Share of shelf leads by age</p>
+              <ul class="stock-freshness-hint__list">
+                <li>
+                  <i class="stock-freshness-hint__dot stock-freshness-hint__dot--fresh" aria-hidden="true" />
+                  Fresh — less than 1 hour
+                </li>
+                <li>
+                  <i class="stock-freshness-hint__dot stock-freshness-hint__dot--good" aria-hidden="true" />
+                  Good — mid shelf age
+                </li>
+                <li>
+                  <i class="stock-freshness-hint__dot stock-freshness-hint__dot--expired" aria-hidden="true" />
+                  Expired — oldest shelf age
+                </li>
+              </ul>
+            </div>
+          </v-tooltip>
+        </span>
+        <span v-else>{{ column.title }}</span>
       </template>
       <template #item.offerId="{ item }">
         <span class="stock-offer-id">{{ offerId(item) }}</span>
@@ -156,21 +202,26 @@
       <template #item.available="{ item }">
         <span class="stock-qty">{{ item.available }}</span>
       </template>
-      <template #item.dailyCap="{ item }">
-        <StockVolumeBar
-          v-if="item.dailyCapVolume > 0"
-          :value="item.dailyCapSupplied"
-          :max="item.dailyCapVolume"
-          :parent="item.dailyCapVolume"
-        />
-        <span v-else class="stock-dim">—</span>
+      <template #item.stockFreshness="{ item }">
+        <div class="stock-freshness-cell">
+          <StockFreshnessBar :freshness="item.stockFreshness" />
+        </div>
       </template>
-      <template #item.updatedAt="{ item }">
-        {{ relativeUpdated(item.updatedAt) }}
+      <template #item.dailyCap="{ item }">
+        <div class="stock-live-today-cell">
+          <StockVolumeBar
+            v-if="item.dailyCapVolume > 0"
+            :value="item.dailyCapSupplied"
+            :max="item.dailyCapVolume"
+            :parent="item.dailyCapVolume"
+          />
+          <span v-else class="stock-dim">—</span>
+        </div>
       </template>
       <template #item.actions="{ item }">
-        <div class="stock-actions ui-table-cell-actions">
+        <div class="stock-actions ui-table-cell-actions" :class="{ 'stock-actions--solo': !compactTableActions }">
           <UiButton
+            v-if="viewTab === 'stock'"
             class="stock-actions__btn ui-table-cell-actions__btn"
             variant="primary"
             icon="mdi-cart"
@@ -179,10 +230,16 @@
           >
             Buy stock
           </UiButton>
-          <UiButton class="stock-actions__btn ui-table-cell-actions__btn" variant="outline" @click="openOrder(item)">
-            Make order
+          <UiButton
+            v-else
+            class="stock-actions__btn ui-table-cell-actions__btn"
+            variant="primary"
+            icon="mdi-calendar-plus"
+            @click="openOrder(item)"
+          >
+            Create order
           </UiButton>
-          <v-menu location="bottom end" content-class="stock-row-menu">
+          <v-menu v-if="compactTableActions" location="bottom end" content-class="stock-row-menu">
             <template #activator="{ props: menuProps }">
               <button
                 type="button"
@@ -196,6 +253,7 @@
             </template>
             <div class="stock-row-menu__list">
               <button
+                v-if="viewTab === 'stock'"
                 type="button"
                 class="ui-table-cell-actions__menu-only"
                 :disabled="item.available < 1"
@@ -204,9 +262,14 @@
                 <v-icon icon="mdi-cart" size="16" />
                 Buy stock
               </button>
-              <button type="button" class="ui-table-cell-actions__menu-only" @click="openOrder(item)">
-                <v-icon icon="mdi-file-document-outline" size="16" />
-                Make order
+              <button
+                v-else
+                type="button"
+                class="ui-table-cell-actions__menu-only"
+                @click="openOrder(item)"
+              >
+                <v-icon icon="mdi-calendar-plus" size="16" />
+                Create order
               </button>
               <button type="button" @click="copyPresetId(item.presetId)">
                 <v-icon icon="mdi-content-copy" size="16" />
@@ -245,6 +308,7 @@
       :initial-price-dollars="orderInitialPrice"
       :initial-service-on="orderInitialDay"
       @created="onOrderCreated"
+      @buy-stock="onBuyStockFromOrder"
     />
 
   </div>
@@ -258,6 +322,7 @@ import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
 import StockBuyDialog from '@/components/StockBuyDialog.vue'
+import StockFreshnessBar from '@/components/StockFreshnessBar.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
@@ -281,6 +346,7 @@ import { dollars, wholeDollars } from '@/money'
 import { parseStockModalIntent, STOCK_MODAL_QUERY_KEYS, STOCK_SHARE_ASSIST_KEYS } from '@/stockModalIntent'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { countryName } from '@/countries'
+import { stockFreshnessTooltip } from '@/stockFreshness'
 import { exportTableCsv, cellToString } from '@/tableCsvExport'
 import { prepareTableHeaders } from '@/tableHeaders'
 import { useCompactTableActions } from '@/viewport'
@@ -297,6 +363,7 @@ const filterModel = ref<string | null>(null)
 const filterCr = ref<string | null>(null)
 const filterAvailability = ref<string | null>(null)
 
+const viewTab = ref<'stock' | 'orders'>('orders')
 const page = ref(1)
 const itemsPerPage = ref(25)
 
@@ -322,18 +389,27 @@ const availabilityItems = [
   { title: 'Out of stock', value: 'empty' },
 ]
 
-const headers = computed(() => prepareTableHeaders(
+const baseHeaderColumns = [
+  { title: 'Offer ID', key: 'offerId', sortable: false, align: 'start' as const },
+  { title: 'Vertical', key: 'vertical', align: 'start' as const },
+  { title: 'Country', key: 'country', align: 'start' as const },
+  { title: 'Traffic Source', key: 'trafficSource', align: 'start' as const },
+  { title: 'Payment model', key: 'paymentModel', align: 'center' as const },
+  { title: 'Conversion', key: 'conversion', align: 'center' as const },
+  { title: 'Price', key: 'basePriceCents', align: 'end' as const },
+]
+
+const stockHeaders = computed(() => prepareTableHeaders(
   [
-    { title: 'Offer ID', key: 'offerId', sortable: false, align: 'start' as const },
-    { title: 'Vertical', key: 'vertical', align: 'start' as const },
-    { title: 'Country', key: 'country', align: 'start' as const },
-    { title: 'Traffic Source', key: 'trafficSource', align: 'start' as const },
-    { title: 'Payment model', key: 'paymentModel', align: 'center' as const },
-    { title: 'Conversion', key: 'conversion', align: 'center' as const },
-    { title: 'Price', key: 'basePriceCents', align: 'end' as const },
+    ...baseHeaderColumns,
     { title: 'Quantity', key: 'available', align: 'end' as const },
-    { title: 'Live today', key: 'dailyCap', align: 'center' as const },
-    { title: 'Updated', key: 'updatedAt', align: 'center' as const },
+    {
+      title: 'Freshness',
+      key: 'stockFreshness',
+      align: 'center' as const,
+      headerProps: { class: 'stock-col-freshness' },
+      cellProps: { class: 'stock-col-freshness' },
+    },
     { title: '', key: 'actions', sortable: false, align: 'end' as const },
   ],
   {
@@ -344,11 +420,39 @@ const headers = computed(() => prepareTableHeaders(
     paymentModel: 116,
     conversion: 100,
     basePriceCents: 88,
-    available: 92,
-    dailyCap: 148,
-    updatedAt: 100,
-    actions: compactTableActions.value ? 56 : 272,
+    available: 80,
+    stockFreshness: 148,
+    actions: compactTableActions.value ? 56 : 126,
   },
+))
+
+const orderHeaders = computed(() => prepareTableHeaders(
+  [
+    ...baseHeaderColumns,
+    {
+      title: 'Live today',
+      key: 'dailyCap',
+      align: 'center' as const,
+      headerProps: { class: 'stock-col-live-today' },
+      cellProps: { class: 'stock-col-live-today' },
+    },
+    { title: '', key: 'actions', sortable: false, align: 'end' as const },
+  ],
+  {
+    offerId: 96,
+    vertical: 108,
+    country: 124,
+    trafficSource: 132,
+    paymentModel: 116,
+    conversion: 100,
+    basePriceCents: 88,
+    dailyCap: 148,
+    actions: compactTableActions.value ? 56 : 134,
+  },
+))
+
+const tableHeaders = computed(() => (
+  viewTab.value === 'stock' ? stockHeaders.value : orderHeaders.value
 ))
 
 const filtered = computed(() => {
@@ -389,8 +493,13 @@ watch(filtered, () => {
   }
 })
 
+watch(viewTab, () => {
+  page.value = 1
+})
+
 function exportCsv(): void {
-  exportTableCsv('stock.csv', headers.value, filtered.value, stockExportCell)
+  const name = viewTab.value === 'stock' ? 'stock.csv' : 'presets.csv'
+  exportTableCsv(name, tableHeaders.value, filtered.value, stockExportCell)
 }
 
 function stockExportCell(key: string, item: StockOfferRow): string {
@@ -409,10 +518,10 @@ function stockExportCell(key: string, item: StockOfferRow): string {
       return `${item.conversion}%`
     case 'basePriceCents':
       return payoutDollars(item.basePriceCents)
+    case 'stockFreshness':
+      return stockFreshnessTooltip(item.stockFreshness).replace(/\n/g, '; ')
     case 'dailyCap':
       return item.dailyCapVolume > 0 ? `${item.dailyCapSupplied} / ${item.dailyCapVolume}` : '—'
-    case 'updatedAt':
-      return item.updatedAt ?? ''
     default:
       return cellToString((item as Record<string, unknown>)[key])
   }
@@ -477,6 +586,17 @@ function openOrder(row: StockOfferRow): void {
   orderOpen.value = true
 }
 
+function onBuyStockFromOrder(presetId: string): void {
+  const row = market.stock.find((offer) => offer.presetId === presetId)
+  if (!row || row.available < 1) {
+    showToast('No stock available for this preset')
+    return
+  }
+  orderOpen.value = false
+  viewTab.value = 'stock'
+  openBuy(row)
+}
+
 async function applyStockModalLink(): Promise<void> {
   const intent = parseStockModalIntent(route.query)
   if (!intent || applyingModalLink.value || buyOpen.value || orderOpen.value) {
@@ -494,11 +614,13 @@ async function applyStockModalLink(): Promise<void> {
       return
     }
     if (intent.action === 'buy') {
+      viewTab.value = 'stock'
       buyInitialQty.value = intent.qty ?? null
       buyTarget.value = row
       buyOpen.value = true
       return
     }
+    viewTab.value = 'orders'
     orderPresetId.value = row.presetId
     orderBasePriceCents.value = row.basePriceCents
     orderInitialVolume.value = intent.qty ?? null
@@ -541,29 +663,6 @@ function onBuyFinished(): void {
   void refresh()
 }
 
-function relativeUpdated(iso: string | null): string {
-  if (!iso) {
-    return '—'
-  }
-  const at = new Date(iso).getTime()
-  if (!Number.isFinite(at) || at < Date.UTC(2000, 0, 1)) {
-    return '—'
-  }
-  const diff = Date.now() - at
-  const min = Math.floor(diff / 60_000)
-  if (min < 1) {
-    return 'just now'
-  }
-  if (min < 60) {
-    return `${min} min ago`
-  }
-  const hours = Math.floor(min / 60)
-  if (hours < 48) {
-    return `${hours} h ago`
-  }
-  return new Date(iso).toLocaleDateString()
-}
-
 async function refresh(): Promise<void> {
   await market.loadWarehouse()
 }
@@ -582,6 +681,14 @@ onMounted(async () => {
   gap: 0;
   min-width: 0;
   width: 100%;
+}
+
+.stock-view-tabs {
+  margin-bottom: 12px;
+}
+
+.stock-actions--solo {
+  justify-content: flex-end;
 }
 
 .stock-chips {
@@ -774,6 +881,20 @@ onMounted(async () => {
   justify-content: center;
 }
 
+.stock-live-today-cell,
+.stock-freshness-cell {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.stock-live-today-cell .stock-vol,
+.stock-freshness-cell .stock-freshness {
+  width: 100%;
+}
+
 .stock-th-hint__icon {
   align-items: center;
   color: #8b90a8;
@@ -928,6 +1049,25 @@ onMounted(async () => {
   width: 100%;
 }
 
+.stock-market-table .ui-data-table :deep(th.stock-col-live-today),
+.stock-market-table .ui-data-table :deep(td.stock-col-live-today),
+.stock-market-table .ui-data-table :deep(th.stock-col-freshness),
+.stock-market-table .ui-data-table :deep(td.stock-col-freshness) {
+  max-width: 152px;
+  min-width: 148px;
+  width: 148px;
+}
+
+.stock-market-table .ui-data-table :deep(th.stock-col-live-today .v-data-table-header__content),
+.stock-market-table .ui-data-table :deep(th.stock-col-freshness .v-data-table-header__content) {
+  justify-content: center;
+}
+
+.stock-market-table .ui-data-table :deep(th.stock-col-live-today .stock-th-hint),
+.stock-market-table .ui-data-table :deep(th.stock-col-freshness .stock-th-hint) {
+  width: 100%;
+}
+
 .stock-market-table .ui-data-table :deep(th.v-data-table-column--align-end .v-data-table-header__content) {
   justify-content: flex-end;
   width: 100%;
@@ -949,10 +1089,6 @@ onMounted(async () => {
   min-height: 52px;
   padding-block: 9px;
   vertical-align: middle;
-}
-
-.stock-market-table .ui-data-table :deep(tbody td:last-child) {
-  padding-inline: 12px 10px;
 }
 
 .stock-market-table .ui-data-table :deep(thead .ui-col-sticky-end) {
@@ -992,5 +1128,58 @@ onMounted(async () => {
 .stock-row-menu.v-overlay__content {
   background: transparent;
   box-shadow: none;
+}
+
+.stock-freshness-hint.v-overlay__content {
+  padding: 12px 14px !important;
+}
+
+.stock-freshness-hint__body {
+  display: block;
+  max-width: 248px;
+}
+
+.stock-freshness-hint__lead {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0 0 8px;
+}
+
+.stock-freshness-hint__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stock-freshness-hint__list li {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  line-height: 1.35;
+}
+
+.stock-freshness-hint__dot {
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+  height: 8px;
+  width: 8px;
+}
+
+.stock-freshness-hint__dot--fresh {
+  background: #22a06b;
+}
+
+.stock-freshness-hint__dot--good {
+  background: #e8a317;
+}
+
+.stock-freshness-hint__dot--expired {
+  background: #d14343;
 }
 </style>

@@ -8,11 +8,27 @@
     :error="formError"
     :loading="busy"
     :max-width="680"
+    :cluster-max-width="1240"
+    :aside-open="showStockNudge && Boolean(stockNudge)"
     :shareable="shareable"
     @update:model-value="open = $event"
     @submit="create"
     @share="copyShareLink"
   >
+    <template v-if="showStockNudge && stockNudge" #aside>
+      <StockOrderNudge
+        panel="side"
+        :preset-id="stockNudge.presetId"
+        :available="stockNudge.available"
+        :requested-qty="volumeQty"
+        :vertical="stockNudge.vertical"
+        :country="stockNudge.country"
+        :traffic-source="stockNudge.trafficSource"
+        :compare-price-cents="stockComparePriceCents"
+        @buy="emit('buyStock', stockNudge.presetId)"
+        @dismiss="stockNudgeDismissed = true"
+      />
+    </template>
     <PresetOfferSummary
       v-if="matchedPreset"
       :heading="`Preset ${presetDisplayId(matchedPreset.id)}`"
@@ -141,6 +157,7 @@ import CountryFlag from '@/components/CountryFlag.vue'
 import FormDialog from '@/components/FormDialog.vue'
 import OrderCheckoutSummary from '@/components/OrderCheckoutSummary.vue'
 import PresetOfferSummary from '@/components/PresetOfferSummary.vue'
+import StockOrderNudge from '@/components/StockOrderNudge.vue'
 import UiDateField from '@/components/ui/UiDateField.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
@@ -181,11 +198,13 @@ const props = withDefaults(defineProps<{
 const open = defineModel<boolean>({ default: false })
 const emit = defineEmits<{
   created: []
+  buyStock: [presetId: string]
 }>()
 
 const market = useMarketStore()
 const session = useSessionStore()
 const busy = ref(false)
+const stockNudgeDismissed = ref(false)
 const formError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 const vertical = ref<string | null>(null)
@@ -402,6 +421,26 @@ const volumeQty = computed(() => {
   return Math.floor(qty)
 })
 
+const stockNudge = computed(() => {
+  const preset = matchedPreset.value
+  if (!preset) {
+    return null
+  }
+  const row = market.stock.find((offer) => offer.presetId === preset.id)
+  if (!row || row.available < 1) {
+    return null
+  }
+  return {
+    presetId: preset.id,
+    available: row.available,
+    vertical: preset.vertical,
+    country: preset.country,
+    trafficSource: preset.trafficSource,
+  }
+})
+
+const showStockNudge = computed(() => Boolean(stockNudge.value) && !stockNudgeDismissed.value)
+
 const priceCents = computed(() => {
   const p = Number(price.value)
   if (!Number.isFinite(p) || p <= 0) {
@@ -410,11 +449,27 @@ const priceCents = computed(() => {
   return Math.round(p * 100)
 })
 
+const stockComparePriceCents = computed(() => {
+  if (priceCents.value > 0) {
+    return priceCents.value
+  }
+  const preset = matchedPreset.value
+  if (!preset) {
+    return 0
+  }
+  return props.initialBasePriceCents ?? preset.basePriceCents
+})
+
 const showCheckoutSummary = computed(() => Boolean(matchedPreset.value) && volumeQty.value > 0 && priceCents.value > 0)
 
 watch(open, (value) => {
   if (!value) {
+    stockNudgeDismissed.value = false
     return
+  }
+  stockNudgeDismissed.value = false
+  if (market.stock.length === 0) {
+    void market.loadWarehouse()
   }
   void syncFormToInitialPreset()
 })

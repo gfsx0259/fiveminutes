@@ -1,10 +1,77 @@
 <template>
   <v-dialog
     :model-value="modelValue"
-    :max-width="maxWidth"
+    :max-width="showAside ? clusterMaxWidth : maxWidth"
+    :content-class="showAside ? 'form-dialog__overlay form-dialog__overlay--split' : ''"
+    scrollable
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <v-card>
+    <div
+      v-if="showAside"
+      class="form-dialog__cluster"
+      :class="{ 'form-dialog__cluster--aside-collapsed': mobileAside && !asideLayerOpen }"
+    >
+      <v-card class="form-dialog__main-card" elevation="8" rounded="lg">
+        <v-card-title class="form-dialog__title">
+          <span>{{ title }}</span>
+          <UiButton
+            v-if="shareable"
+            variant="ghost"
+            icon="mdi-share-variant"
+            class="form-dialog__share"
+            title="Copy link with current form"
+            @click="emit('share')"
+          >
+            Share
+          </UiButton>
+        </v-card-title>
+        <v-card-text class="form-dialog__main-body">
+          <p v-if="hint" class="form-dialog__hint">{{ hint }}</p>
+          <p v-if="error" class="form-dialog__error">{{ error }}</p>
+          <div
+            v-if="mobileAside && showAside && !asideLayerOpen"
+            class="form-dialog__stock-peek"
+          >
+            <UiButton
+              variant="outline"
+              icon="mdi-warehouse"
+              class="form-dialog__stock-peek-btn"
+              @click="asideLayerOpen = true"
+            >
+              View stock offer
+            </UiButton>
+          </div>
+          <form class="ui-form" @submit.prevent="emit('submit')">
+            <slot />
+          </form>
+        </v-card-text>
+        <v-card-actions class="form-dialog__actions">
+          <UiButton variant="outline" :disabled="loading" @click="emit('update:modelValue', false)">
+            Cancel
+          </UiButton>
+          <UiButton :loading="loading" :icon="submitIcon" @click="emit('submit')">{{ submitLabel }}</UiButton>
+        </v-card-actions>
+      </v-card>
+      <v-card
+        v-show="!mobileAside || asideLayerOpen"
+        class="form-dialog__aside-card form-dialog__aside-card--layer"
+        elevation="8"
+        rounded="lg"
+      >
+        <button
+          type="button"
+          class="form-dialog__aside-close"
+          aria-label="Close stock offer"
+          @click="asideLayerOpen = false"
+        >
+          <v-icon icon="mdi-close" size="22" />
+        </button>
+        <v-card-text class="form-dialog__aside-body">
+          <slot name="aside" />
+        </v-card-text>
+      </v-card>
+    </div>
+    <v-card v-else elevation="12" rounded="lg">
       <v-card-title class="form-dialog__title">
         <span>{{ title }}</span>
         <UiButton
@@ -36,9 +103,11 @@
 </template>
 
 <script setup lang="ts">
+import { Comment, Text, computed, onMounted, onUnmounted, ref, useSlots, watch } from 'vue'
+import type { VNode } from 'vue'
 import UiButton from '@/components/ui/UiButton.vue'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: boolean
   title: string
   hint?: string
@@ -46,15 +115,20 @@ withDefaults(defineProps<{
   submitLabel: string
   loading?: boolean
   maxWidth?: number
+  clusterMaxWidth?: number
   submitIcon?: string
   shareable?: boolean
+  /** Parent toggles split layout (stock panel + form) */
+  asideOpen?: boolean
 }>(), {
   hint: '',
   error: '',
   loading: false,
   maxWidth: 520,
+  clusterMaxWidth: 1180,
   submitIcon: '',
   shareable: false,
+  asideOpen: false,
 })
 
 const emit = defineEmits<{
@@ -62,6 +136,70 @@ const emit = defineEmits<{
   submit: []
   share: []
 }>()
+
+const slots = useSlots()
+
+function slotHasContent(nodes: VNode[] | undefined): boolean {
+  if (!nodes?.length) {
+    return false
+  }
+  return nodes.some((node) => {
+    if (node.type === Comment) {
+      return false
+    }
+    if (node.type === Text) {
+      return String(node.children ?? '').trim() !== ''
+    }
+    return true
+  })
+}
+
+const showAside = computed(() => {
+  if (!props.asideOpen) {
+    return false
+  }
+  const render = slots.aside
+  if (!render) {
+    return false
+  }
+  return slotHasContent(render())
+})
+
+const MOBILE_SPLIT_BP = 768
+const mobileAside = ref(
+  typeof window !== 'undefined'
+    ? window.matchMedia(`(max-width: ${MOBILE_SPLIT_BP}px)`).matches
+    : false,
+)
+const asideLayerOpen = ref(true)
+
+function syncMobileAside(): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+  mobileAside.value = window.matchMedia(`(max-width: ${MOBILE_SPLIT_BP}px)`).matches
+}
+
+onMounted(() => {
+  syncMobileAside()
+  window.addEventListener('resize', syncMobileAside)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', syncMobileAside)
+})
+
+watch(showAside, (open) => {
+  if (open) {
+    asideLayerOpen.value = true
+  }
+})
+
+watch(() => props.modelValue, (open) => {
+  if (open) {
+    syncMobileAside()
+  }
+})
 </script>
 
 <style scoped>
@@ -76,4 +214,98 @@ const emit = defineEmits<{
   flex-shrink: 0;
   margin-left: auto;
 }
+
+.form-dialog__cluster {
+  align-items: stretch;
+  display: flex;
+  gap: 24px;
+  width: 100%;
+}
+
+.form-dialog__main-card {
+  flex: 1 1 560px;
+  min-width: 0;
+}
+
+.form-dialog__hint {
+  color: #6d6a88;
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0 0 16px;
+}
+
+.form-dialog__aside-card {
+  flex: 0 0 440px;
+  max-width: 460px;
+}
+
+.form-dialog__aside-card :deep(.form-dialog__aside-body) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.form-dialog__stock-peek {
+  margin: 14px 0 12px;
+}
+
+.form-dialog__stock-peek-btn {
+  width: 100%;
+}
+
+.form-dialog__aside-close {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #5c5878;
+  cursor: pointer;
+  display: none;
+  height: 40px;
+  justify-content: center;
+  opacity: 0.85;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 40px;
+  z-index: 3;
+}
+
+.form-dialog__aside-close:hover {
+  color: #2a1578;
+  opacity: 1;
+}
+
+@media (min-width: 769px) and (max-width: 960px) {
+  .form-dialog__cluster {
+    flex-direction: column;
+  }
+
+  .form-dialog__aside-card {
+    flex: 1 1 auto;
+    max-width: none;
+    order: 2;
+    width: 100%;
+  }
+
+  .form-dialog__main-card {
+    order: 1;
+  }
+}
+</style>
+
+<style>
+/* Two separate “modals” — transparent shell, shadow on each card */
+.form-dialog__overlay--split.v-overlay__content {
+  background: transparent !important;
+  box-shadow: none !important;
+  margin: 32px 24px;
+  max-width: min(1200px, 94vw) !important;
+  overflow: visible;
+  padding: 0;
+  width: min(1200px, 94vw);
+}
+
 </style>

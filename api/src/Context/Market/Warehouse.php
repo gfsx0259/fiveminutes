@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Context\Market;
 
 use App\Context\Lead\LeadRepository;
+use App\Context\Lead\LiveDayInjectStore;
 use App\Context\User\User;
 use App\Context\User\UserRole;
 use DomainException;
+use InvalidArgumentException;
 
 final readonly class Warehouse
 {
@@ -15,12 +17,13 @@ final readonly class Warehouse
         private PresetRepository $presets,
         private LeadRepository $leads,
         private OrderRepository $orders,
+        private OrganizationShelfAge $shelfAge,
+        private StockPickPlan $pickPlan,
+        private LiveDayInjectStore $liveInject,
     ) {}
 
     /**
-     * Partner catalog: one row per preset with stock qty and today's day-order cap fill.
-     *
-     * @return list<array<string, mixed>>
+     * @return array{shelfAgePolicy: array<string, mixed>, stock: list<array<string, mixed>>}
      */
     public function inventory(User $user): array
     {
@@ -29,16 +32,21 @@ final readonly class Warehouse
         }
 
         $organizationId = $user->getOrganizationId();
+        $policy = $this->shelfAge->forOrganization($organizationId);
         $daily = $this->dailyCapsByPreset($user);
         $rows = [];
         foreach ($this->presets->findByOrganization($organizationId) as $preset) {
             if (!$preset instanceof Preset) {
                 continue;
             }
-            $available = $this->leads->countInStockForPreset($organizationId, $preset);
+            $reservedLive = $this->liveInject->scheduledLeadUuids($organizationId);
+            $available = $this->leads->countSellableInStockForPreset($organizationId, $preset, $policy);
             $latest = $available > 0
                 ? $this->leads->latestStockAtForPreset($organizationId, $preset)
                 : null;
+            $freshness = $available > 0
+                ? $this->leads->stockShelfMixForPreset($organizationId, $preset, $policy)
+                : ['fresh' => 0, 'good' => 0, 'expired' => 0];
             $cap = $daily[$preset->getId()] ?? ['volume' => 0, 'supplied' => 0];
             $rows[] = [
                 'presetId' => $preset->getId(),
@@ -49,6 +57,13 @@ final readonly class Warehouse
                 'conversion' => $preset->getCr(),
                 'basePriceCents' => $preset->getBasePriceCents(),
                 'available' => $available,
+                'liveInStock' => $this->leads->countLiveInStockForPreset(
+                    $organizationId,
+                    $preset,
+                    $policy,
+                    excludeLeadUuids: $reservedLive,
+                ),
+                'stockFreshness' => $freshness,
                 'dailyCapVolume' => $cap['volume'],
                 'dailyCapSupplied' => $cap['supplied'],
                 'updatedAt' => $latest?->format(DATE_ATOM),
@@ -71,14 +86,50 @@ final readonly class Warehouse
             return $b <=> $a;
         });
 
-        return $rows;
+        return [
+            'shelfAgePolicy' => $policy->toArray(),
+            'stock' => $rows,
+        ];
     }
 
     public function available(User $user, string $presetId, ?string $leadGender = null): int
     {
         $preset = $this->preset($user, $presetId);
+        $policy = $this->shelfAge->forOrganization($user->getOrganizationId());
 
-        return $this->leads->countInStockForPreset($user->getOrganizationId(), $preset, $leadGender);
+        return $this->leads->countSellableInStockForPreset(
+            $user->getOrganizationId(),
+            $preset,
+            $policy,
+            $leadGender,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function quote(User $user, string $presetId, int $quantity, ?string $leadGender = null): array
+    {
+        if ($quantity < 1) {
+            throw new InvalidArgumentException('Quantity must be at least 1');
+        }
+        $preset = $this->preset($user, $presetId);
+        $policy = $this->shelfAge->forOrganization($user->getOrganizationId());
+        $quote = $this->pickPlan->quote(
+            $user->getOrganizationId(),
+            $preset,
+            $quantity,
+            $policy,
+            $leadGender,
+        );
+
+        return [
+            'presetId' => $presetId,
+            'quantity' => $quantity,
+            'basePriceCents' => $quote->basePriceCents,
+            'lines' => $quote->lines,
+            'totalCents' => $quote->totalCents,
+        ];
     }
 
     /**

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Context\Market;
 
 use App\Clock;
+use App\Context\Lead\LiveDayInjector;
+use App\Context\Lead\LiveDayInjectStore;
 use App\Context\Lead\StockFulfillment;
 use App\Context\Tree\OrderPool;
 use App\Context\User\User;
@@ -33,6 +35,10 @@ final readonly class OrderDesk
         private EntityManagerInterface $entityManager,
         private UserRepository $users,
         private SettlementDesk $settlement,
+        private OrganizationShelfAge $shelfAge,
+        private StockPickPlan $pickPlan,
+        private LiveDayInjector $liveDayInject,
+        private LiveDayInjectStore $liveDayInjectStore,
     ) {}
 
     public function open(
@@ -68,20 +74,26 @@ final readonly class OrderDesk
                 throw new InvalidArgumentException('Price cannot be below the preset base price');
             }
         }
+        $stockTotalCents = null;
         if ($stock) {
-            $available = $this->warehouse->available($partner, $presetId, $stockLeadGender);
-            if ($available < $volume) {
-                throw new InvalidArgumentException('Not enough leads in stock');
-            }
+            $policy = $this->shelfAge->forOrganization($partner->getOrganizationId());
+            $quote = $this->pickPlan->quote(
+                $partner->getOrganizationId(),
+                $preset,
+                $volume,
+                $policy,
+                $stockLeadGender,
+            );
+            $stockTotalCents = $quote->totalCents;
         }
 
-        $unitCents = $stock ? $base : $priceCents;
         $freshPartner = $this->users->findByPK($partner->getId());
         if (!$freshPartner instanceof User) {
             throw new DomainException('Partner was not found');
         }
+        $affordCents = $stockTotalCents ?? ($priceCents * $volume);
         try {
-            $this->settlement->assertPartnerCanAfford($freshPartner, new Money($unitCents * $volume));
+            $this->settlement->assertPartnerCanAfford($freshPartner, new Money($affordCents));
         } catch (InsufficientBalanceException $exception) {
             throw new InvalidArgumentException($exception->getMessage(), 0, $exception);
         }
@@ -110,6 +122,8 @@ final readonly class OrderDesk
             if ($filled < $volume) {
                 throw new InvalidArgumentException('Stock changed while the order was opening');
             }
+        } else {
+            $this->liveDayInject->scheduleForOrder($order, $preset);
         }
 
         return $order;
@@ -120,6 +134,9 @@ final readonly class OrderDesk
         $order = $this->owned($actor, $id);
         $order->pause($this->clock->now());
         $this->save($order);
+        if (!$order->isStock()) {
+            $this->liveDayInjectStore->cancelScheduledForOrder($order->getId());
+        }
 
         return $order;
     }
@@ -129,6 +146,12 @@ final readonly class OrderDesk
         $order = $this->owned($actor, $id);
         $order->resume($this->clock->now());
         $this->save($order);
+        if (!$order->isStock() && $order->hasRoom() && $order->getStatus() === OrderStatus::InProgress) {
+            $preset = $this->presets->findById($order->getPresetId());
+            if ($preset instanceof Preset) {
+                $this->liveDayInject->scheduleForOrder($order, $preset);
+            }
+        }
 
         return $order;
     }
@@ -138,6 +161,9 @@ final readonly class OrderDesk
         $order = $this->owned($actor, $id);
         $order->finish($this->clock->now());
         $this->save($order);
+        if (!$order->isStock()) {
+            $this->liveDayInjectStore->cancelScheduledForOrder($order->getId());
+        }
 
         return $order;
     }

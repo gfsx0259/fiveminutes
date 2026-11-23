@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Organization;
 
 use App\Clock;
+use App\Context\Market\ShelfAgePolicy;
 use App\Value\Apex;
 use App\Value\Balance;
 use App\Value\Money;
@@ -28,6 +29,10 @@ class Organization
     #[Column(type: 'integer', typecast: 'int')]
     private int $balance;
 
+    /** @var array<string, mixed> */
+    #[Column(type: 'jsonb', name: 'shelf_age_policy', typecast: 'json')]
+    private array $shelfAgePolicy;
+
     public function __construct(
         #[Column(type: 'uuid', primary: true)]
         private readonly string $id,
@@ -39,12 +44,15 @@ class Organization
         private DateTimeInterface $updatedAt,
         int $markupPercent = 10,
         int $balance = 0,
+        ?array $shelfAgePolicy = null,
     ) {
         $this->name = $this->requireName($name);
         $this->apex = (new Apex($apex))->toString();
         $this->markupPercent = $this->requireMarkupPercent($markupPercent);
         $this->balance = $balance;
+        $this->shelfAgePolicy = ($shelfAgePolicy ?? ShelfAgePolicy::default()->toArray());
         new Balance($this->balance);
+        $this->requireShelfAgePolicy($this->shelfAgePolicy);
     }
 
     public function getId(): string
@@ -99,6 +107,41 @@ class Organization
     {
         $this->name = $this->requireName($name);
         $this->updatedAt = $clock->now();
+    }
+
+    public function getShelfAgePolicy(): ShelfAgePolicy
+    {
+        if ($this->shelfAgePolicy === []) {
+            return ShelfAgePolicy::default();
+        }
+
+        return ShelfAgePolicy::fromArray($this->shelfAgePolicy);
+    }
+
+    /**
+     * @param array<string, mixed> $policy
+     */
+    public function setShelfAgePolicy(array $policy, Clock $clock): void
+    {
+        $this->requireShelfAgePolicy($policy);
+        $this->shelfAgePolicy = $policy;
+        $this->updatedAt = $clock->now();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function shelfAgePolicyArray(): array
+    {
+        return $this->getShelfAgePolicy()->toArray();
+    }
+
+    /**
+     * @param array<string, mixed> $policy
+     */
+    private function requireShelfAgePolicy(array $policy): void
+    {
+        ShelfAgePolicy::fromArray($policy);
     }
 
     private function requireName(string $name): string

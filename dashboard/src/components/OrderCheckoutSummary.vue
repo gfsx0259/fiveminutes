@@ -9,6 +9,20 @@
         <span>Quantity</span>
         <span>{{ quantity > 0 ? quantity : '—' }}</span>
       </div>
+      <div
+        v-if="catalogTotalCents != null && catalogTotalCents > totalCents && totalCents > 0"
+        class="order-checkout__line"
+      >
+        <span>Catalog total</span>
+        <span class="order-checkout__catalog">{{ dollars(catalogTotalCents / 100) }}</span>
+      </div>
+      <div
+        v-if="savingsCents > 0"
+        class="order-checkout__line order-checkout__line--savings"
+      >
+        <span>Shelf discount</span>
+        <span>−{{ dollars(savingsCents / 100) }}</span>
+      </div>
       <div class="order-checkout__line order-checkout__line--total">
         <span>{{ totalLabel }}</span>
         <strong>{{ totalCents > 0 ? dollars(totalCents / 100) : '—' }}</strong>
@@ -37,14 +51,21 @@ const props = withDefaults(
     balanceCents: number
     priceLabel?: string
     totalLabel?: string
+    totalCentsOverride?: number | null
+    catalogTotalCents?: number | null
   }>(),
   {
     priceLabel: 'Price per lead',
     totalLabel: 'Total cost',
+    totalCentsOverride: null,
+    catalogTotalCents: null,
   },
 )
 
 const totalCents = computed(() => {
+  if (props.totalCentsOverride != null && props.totalCentsOverride > 0) {
+    return props.totalCentsOverride
+  }
   if (props.quantity < 1 || props.pricePerLeadCents < 1) {
     return 0
   }
@@ -52,6 +73,13 @@ const totalCents = computed(() => {
 })
 
 const insufficient = computed(() => Math.max(0, totalCents.value - props.balanceCents))
+
+const savingsCents = computed(() => {
+  if (props.catalogTotalCents == null || totalCents.value < 1) {
+    return 0
+  }
+  return Math.max(0, props.catalogTotalCents - totalCents.value)
+})
 </script>
 
 <style scoped>
@@ -59,7 +87,7 @@ const insufficient = computed(() => Math.max(0, totalCents.value - props.balance
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 4px;
+  margin: 8px 0 4px;
 }
 
 .order-checkout__panel {
@@ -80,13 +108,38 @@ const insufficient = computed(() => Math.max(0, totalCents.value - props.balance
   font-size: 18px;
 }
 
+.order-checkout__catalog {
+  color: #8b90a8;
+  text-decoration: line-through;
+}
+
+.order-checkout__line--savings {
+  color: #2e9b6a;
+  font-weight: 600;
+}
+
 .order-checkout__alert {
   margin-top: 8px;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 767px) {
   .order-checkout__grid {
+    gap: 8px;
     grid-template-columns: minmax(0, 1fr);
+    margin: 6px 0 2px;
+  }
+
+  .order-checkout__panel {
+    padding: 10px;
+  }
+
+  .order-checkout__line {
+    font-size: 13px;
+    padding: 3px 0;
+  }
+
+  .order-checkout__line--total strong {
+    font-size: 16px;
   }
 }
 </style>
