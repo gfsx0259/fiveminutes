@@ -9,7 +9,9 @@ use App\Context\Market\Preset;
 use App\Context\Market\ShelfAgePolicy;
 use App\Context\Market\ShelfAgePolicyQuery;
 use App\Context\Market\ShelfAgeZone;
+use App\Context\Market\StockPickPreference;
 use App\Value\AgeBracket;
+use InvalidArgumentException;
 use Beeterty\ClickHouse\Client;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -284,13 +286,15 @@ final readonly class LeadRepository
         int $limit,
         ShelfAgePolicy $policy,
         ?string $leadGender = null,
+        ?StockPickPreference $pick = null,
     ): array {
         if ($limit < 1) {
             return [];
         }
 
-        $stock = $this->sellableStockMatch($organizationId, $preset, $policy, $leadGender);
-        $order = (new ShelfAgePolicyQuery($policy))->pickOrderSql();
+        $pick ??= StockPickPreference::default();
+        $stock = $this->sellableStockMatch($organizationId, $preset, $policy, $leadGender, $pick);
+        $order = (new ShelfAgePolicyQuery($policy))->pickOrderSql($pick);
         $rows = $this->clickhouse->query(
             'SELECT ' . self::SELECT_COLUMNS . '
              FROM leads FINAL
@@ -425,10 +429,19 @@ final readonly class LeadRepository
         Preset $preset,
         ShelfAgePolicy $policy,
         ?string $leadGender = null,
+        ?StockPickPreference $pick = null,
     ): array {
+        $pick ??= StockPickPreference::default();
         $stock = $this->stockMatch($organizationId, $preset, $leadGender);
-        $predicate = (new ShelfAgePolicyQuery($policy))->sellableAgePredicate();
-        $stock['sql'] .= ' AND ' . $predicate;
+        $query = new ShelfAgePolicyQuery($policy);
+        $stock['sql'] .= ' AND ' . $query->sellableAgePredicate();
+        if ($pick->zoneId !== null) {
+            $zone = $policy->zoneById($pick->zoneId);
+            if ($zone === null || !$zone->sellableOnShelf) {
+                throw new InvalidArgumentException('Shelf zone is not available for stock');
+            }
+            $stock['sql'] .= ' AND ' . $query->zoneAgePredicate($zone);
+        }
 
         return $stock;
     }

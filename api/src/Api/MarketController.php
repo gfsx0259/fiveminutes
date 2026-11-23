@@ -99,6 +99,7 @@ final readonly class MarketController
                 $form->opensAt(),
                 $form->closesAt(),
                 $form->stockLeadGender(),
+                $form->stockPickPreference(),
             );
         } catch (Throwable $exception) {
             return $this->failure($exception);
@@ -131,6 +132,7 @@ final readonly class MarketController
                 $form->presetId(),
                 $form->quantity(),
                 $form->stockLeadGender(),
+                $form->stockPickPreference(),
             );
         } catch (Throwable $exception) {
             return $this->failure($exception);

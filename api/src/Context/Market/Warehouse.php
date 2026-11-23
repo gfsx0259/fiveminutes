@@ -108,7 +108,13 @@ final readonly class Warehouse
     /**
      * @return array<string, mixed>
      */
-    public function quote(User $user, string $presetId, int $quantity, ?string $leadGender = null): array
+    public function quote(
+        User $user,
+        string $presetId,
+        int $quantity,
+        ?string $leadGender = null,
+        ?StockPickPreference $pick = null,
+    ): array
     {
         if ($quantity < 1) {
             throw new InvalidArgumentException('Quantity must be at least 1');
@@ -121,6 +127,7 @@ final readonly class Warehouse
             $quantity,
             $policy,
             $leadGender,
+            $pick,
         );
 
         return [
@@ -129,6 +136,7 @@ final readonly class Warehouse
             'basePriceCents' => $quote->basePriceCents,
             'lines' => $quote->lines,
             'totalCents' => $quote->totalCents,
+            ...($pick ?? StockPickPreference::default())->toArray(),
         ];
     }
 

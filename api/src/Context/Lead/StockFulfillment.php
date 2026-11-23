@@ -55,6 +55,7 @@ final readonly class StockFulfillment
             $remaining,
             $policy,
             $leadGender,
+            $order->stockPickPreference(),
         );
 
         $at = $this->clock->now()->setTimezone(new DateTimeZone('UTC'));

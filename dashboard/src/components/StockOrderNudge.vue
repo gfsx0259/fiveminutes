@@ -16,6 +16,8 @@
     </header>
 
     <div class="stock-side__main">
+      <StockPickControls v-model:pick-priority="pickPriority" v-model:pick-zone="pickZone" />
+
       <section class="stock-side__zones" aria-labelledby="stock-zones-heading">
         <h3 id="stock-zones-heading" class="stock-side__zones-title">Shelf zones for your quantity</h3>
 
@@ -144,6 +146,13 @@
         </template>
       </p>
 
+      <StockPickControls
+        v-if="quoteQty > 0"
+        v-model:pick-priority="pickPriority"
+        v-model:pick-zone="pickZone"
+        class="stock-order-nudge__pick"
+      />
+
       <div v-if="quoteQty > 0" class="stock-order-nudge__breakdown">
         <p v-if="quoteLoading" class="stock-order-nudge__breakdown-lead stock-order-nudge__muted">
           Calculating shelf mix…
@@ -189,7 +198,9 @@
 import { computed, ref, watchEffect } from 'vue'
 import type { StockQuoteLine } from '@/stores/market'
 import CountryFlag from '@/components/CountryFlag.vue'
+import StockPickControls from '@/components/StockPickControls.vue'
 import UiButton from '@/components/ui/UiButton.vue'
+import { defaultStockPickPrefs, type StockPickPrefs } from '@/stockPick'
 import { countryName } from '@/countries'
 import {
   trafficColor,
@@ -235,6 +246,8 @@ const quoteLines = ref<StockQuoteLine[]>([])
 const quoteTotalCents = ref(0)
 const quoteBaseCents = ref(0)
 const quoteLoading = ref(false)
+const pickPriority = ref<StockPickPrefs['pickPriority']>(defaultStockPickPrefs().pickPriority)
+const pickZone = ref<StockPickPrefs['pickZone']>(defaultStockPickPrefs().pickZone)
 
 function zoneBlurb(zoneId: string): string {
   return ZONE_BLURB[zoneId] ?? 'Shelf age zone'
@@ -299,6 +312,7 @@ const savingsCents = computed(() => {
 watchEffect((onCleanup) => {
   const qty = quoteQty.value
   const presetId = props.presetId
+  const pick = { pickPriority: pickPriority.value, pickZone: pickZone.value }
   if (!presetId || qty < 1) {
     quoteLines.value = []
     quoteTotalCents.value = 0
@@ -310,7 +324,7 @@ watchEffect((onCleanup) => {
     cancelled = true
   })
   quoteLoading.value = true
-  void market.fetchStockQuote(presetId, qty).then((quote) => {
+  void market.fetchStockQuote(presetId, qty, '', pick).then((quote) => {
     if (cancelled) {
       return
     }

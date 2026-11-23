@@ -28,6 +28,10 @@ final class StockQuoteForm extends AbstractInput
         public readonly int $quantity = 0,
         #[StringValue]
         public readonly string $stock_gender = '',
+        #[StringValue]
+        public readonly string $pick_priority = '',
+        #[StringValue]
+        public readonly string $pick_zone = '',
     ) {}
 
     public function presetId(): string
@@ -45,5 +49,10 @@ final class StockQuoteForm extends AbstractInput
         $gender = trim($this->stock_gender);
 
         return $gender === '' ? null : $gender;
+    }
+
+    public function stockPickPreference(): \App\Context\Market\StockPickPreference
+    {
+        return \App\Context\Market\StockPickPreference::fromRequest($this->pick_priority, $this->pick_zone);
     }
 }

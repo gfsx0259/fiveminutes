@@ -38,6 +38,12 @@ class Order
     #[Column(type: 'datetime', name: 'updated_at', typecast: 'datetime')]
     private DateTimeInterface $updatedAt;
 
+    #[Column(type: 'string', name: 'stock_pick_priority', nullable: true)]
+    private readonly ?string $stockPickPriority;
+
+    #[Column(type: 'string', name: 'stock_pick_zone', nullable: true)]
+    private readonly ?string $stockPickZone;
+
     public function __construct(
         #[Column(type: 'uuid', primary: true)]
         private readonly string $id,
@@ -64,9 +70,17 @@ class Order
         #[Column(type: 'datetime', name: 'created_at', typecast: 'datetime')]
         private readonly DateTimeInterface $createdAt,
         DateTimeInterface $updatedAt,
+        ?string $stockPickPriority = null,
+        ?string $stockPickZone = null,
     ) {
         if ($this->stock === ($this->serviceOn !== null)) {
             throw new InvalidArgumentException('A day order has a date and a stock order does not');
+        }
+        if (!$this->stock && ($stockPickPriority !== null || $stockPickZone !== null)) {
+            throw new InvalidArgumentException('Day orders do not carry stock pick preferences');
+        }
+        if ($this->stock) {
+            StockPickPreference::fromStored($stockPickPriority, $stockPickZone);
         }
         new Volume($this->volume);
         new Money($this->priceCents);
@@ -85,6 +99,21 @@ class Order
         $this->suppliedCount = $suppliedCount;
         $this->status = OrderStatus::from($status)->value;
         $this->updatedAt = $updatedAt;
+        $this->stockPickPriority = $this->stock
+            ? ($stockPickPriority ?? StockPickPriority::OldestFirst->value)
+            : null;
+        $this->stockPickZone = $this->stock && $stockPickZone !== null && $stockPickZone !== ''
+            ? $stockPickZone
+            : null;
+    }
+
+    public function stockPickPreference(): StockPickPreference
+    {
+        if (!$this->stock) {
+            return StockPickPreference::default();
+        }
+
+        return StockPickPreference::fromStored($this->stockPickPriority, $this->stockPickZone);
     }
 
     public function getId(): string

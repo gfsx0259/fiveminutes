@@ -221,13 +221,24 @@ export const useMarketStore = defineStore('market', () => {
     return payload as { id?: string, supplied?: number }
   }
 
-  async function fetchStockQuote(presetId: string, quantity: number, stockGender = ''): Promise<StockQuote> {
+  async function fetchStockQuote(
+    presetId: string,
+    quantity: number,
+    stockGender = '',
+    pick?: { pickPriority?: string, pickZone?: string },
+  ): Promise<StockQuote> {
     const params = new URLSearchParams({
       preset_id: presetId,
       quantity: String(quantity),
     })
     if (stockGender.trim() !== '') {
       params.set('stock_gender', stockGender.trim())
+    }
+    if (pick?.pickPriority) {
+      params.set('pick_priority', pick.pickPriority)
+    }
+    if (pick?.pickZone) {
+      params.set('pick_zone', pick.pickZone)
     }
     const response = await api(`/warehouse/stock/quote?${params.toString()}`)
     const payload = await response.json().catch(() => ({})) as StockQuote & { error?: string }

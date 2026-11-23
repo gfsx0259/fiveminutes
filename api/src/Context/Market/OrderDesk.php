@@ -53,7 +53,9 @@ final readonly class OrderDesk
         string $opensAt,
         string $closesAt,
         ?string $stockLeadGender = null,
+        ?StockPickPreference $stockPick = null,
     ): Order {
+        $stockPick ??= StockPickPreference::default();
         if ($partner->getRole() !== UserRole::Partner) {
             throw new DomainException('Only a partner can open an order');
         }
@@ -83,6 +85,7 @@ final readonly class OrderDesk
                 $volume,
                 $policy,
                 $stockLeadGender,
+                $stockPick,
             );
             $stockTotalCents = $quote->totalCents;
         }
@@ -115,6 +118,8 @@ final readonly class OrderDesk
             OrderStatus::InProgress->value,
             $this->clock->now(),
             $this->clock->now(),
+            $stock ? $stockPick->priority->value : null,
+            $stock ? $stockPick->zoneId : null,
         );
         $this->save($order);
         if ($stock) {

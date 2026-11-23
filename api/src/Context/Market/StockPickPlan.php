@@ -23,7 +23,9 @@ final readonly class StockPickPlan
         int $quantity,
         ShelfAgePolicy $policy,
         ?string $leadGender = null,
+        ?StockPickPreference $pick = null,
     ): StockPickQuote {
+        $pick ??= StockPickPreference::default();
         if ($quantity < 1) {
             throw new InvalidArgumentException('Quantity must be at least 1');
         }
@@ -35,6 +37,7 @@ final readonly class StockPickPlan
             $quantity,
             $policy,
             $leadGender,
+            $pick,
         );
         if (count($picked) < $quantity) {
             throw new InvalidArgumentException('Not enough leads in stock');

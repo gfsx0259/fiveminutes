@@ -33,6 +33,8 @@
         Available: <strong>{{ target.available }}</strong>
       </p>
 
+      <StockPickControls v-model:pick-priority="pickPriority" v-model:pick-zone="pickZone" />
+
       <section v-if="volumeQty > 0" class="stock-buy__pricing" aria-label="Shelf pricing">
         <header class="stock-buy__pricing-head">
           <span>Shelf pricing</span>
@@ -109,6 +111,8 @@ import type { StockQuoteLine } from '@/stores/market'
 import FormDialog from '@/components/FormDialog.vue'
 import OrderCheckoutSummary from '@/components/OrderCheckoutSummary.vue'
 import PresetOfferSummary from '@/components/PresetOfferSummary.vue'
+import StockPickControls from '@/components/StockPickControls.vue'
+import { defaultStockPickPrefs, stockPickApiFields, type StockPickPrefs } from '@/stockPick'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import { showToast } from '@/composables/useToast'
@@ -140,6 +144,8 @@ const quoteLines = ref<StockQuoteLine[]>([])
 const quoteTotalCents = ref(0)
 const quoteLoading = ref(false)
 const quoteError = ref('')
+const pickPriority = ref<StockPickPrefs['pickPriority']>(defaultStockPickPrefs().pickPriority)
+const pickZone = ref<StockPickPrefs['pickZone']>(defaultStockPickPrefs().pickZone)
 
 const balanceCents = computed(() => session.payload?.user?.balanceCents ?? 0)
 
@@ -235,6 +241,7 @@ watch(volume, () => {
 watchEffect((onCleanup) => {
   const target = props.target
   const qty = volumeQty.value
+  const pick = { pickPriority: pickPriority.value, pickZone: pickZone.value }
   if (!open.value || !target || qty < 1) {
     quoteLines.value = []
     quoteTotalCents.value = 0
@@ -247,7 +254,7 @@ watchEffect((onCleanup) => {
   })
   quoteLoading.value = true
   quoteError.value = ''
-  void market.fetchStockQuote(target.presetId, qty).then((quote) => {
+  void market.fetchStockQuote(target.presetId, qty, '', pick).then((quote) => {
     if (cancelled) {
       return
     }
@@ -309,6 +316,7 @@ async function buy(): Promise<void> {
       price: Math.round(target.basePriceCents / 100),
       payment_model: target.paymentModel,
       kind: 'stock',
+      ...stockPickApiFields({ pickPriority: pickPriority.value, pickZone: pickZone.value }),
     })
     const supplied = result.supplied ?? qty
     noticeText.value = `Stock order · ${supplied} leads · ${dollars(totalCents.value / 100)}`

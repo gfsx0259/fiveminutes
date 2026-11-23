@@ -22,18 +22,20 @@ final readonly class ShelfAgePolicyQuery
         return self::AGE_MINUTES . ' >= ' . $liveEnd;
     }
 
-    public function pickOrderSql(): string
+    public function pickOrderSql(?StockPickPreference $pick = null): string
     {
+        $pick ??= StockPickPreference::default();
         $age = self::AGE_MINUTES;
+        $newest = $pick->priority === StockPickPriority::NewestFirst;
         $parts = [];
         foreach ($this->policy->zones as $zone) {
             if (!$zone->sellableOnShelf) {
                 continue;
             }
             $rank = match ($zone->id) {
-                ShelfAgeZone::EXPIRED => 0,
+                ShelfAgeZone::EXPIRED => $newest ? 2 : 0,
                 ShelfAgeZone::GOOD => 1,
-                ShelfAgeZone::FRESH => 2,
+                ShelfAgeZone::FRESH => $newest ? 0 : 2,
                 default => 9,
             };
             if ($zone->endMinutes === null) {
@@ -50,7 +52,25 @@ final readonly class ShelfAgePolicyQuery
             }
         }
 
-        return 'multiIf(' . implode(', ', $parts) . ', 9), created_at ASC';
+        $createdAt = $newest ? 'created_at DESC' : 'created_at ASC';
+
+        return 'multiIf(' . implode(', ', $parts) . ', 9), ' . $createdAt;
+    }
+
+    public function zoneAgePredicate(ShelfAgeZone $zone): string
+    {
+        $age = self::AGE_MINUTES;
+        if ($zone->endMinutes === null) {
+            return sprintf('%s >= %d', $age, $zone->startMinutes);
+        }
+
+        return sprintf(
+            '%s >= %d AND %s < %d',
+            $age,
+            $zone->startMinutes,
+            $age,
+            $zone->endMinutes,
+        );
     }
 
     public function countIfForZone(ShelfAgeZone $zone): string

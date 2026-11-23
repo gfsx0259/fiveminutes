@@ -54,6 +54,8 @@ final class OrderForm extends AbstractInput
         public readonly string $opens_at = '',
         public readonly string $closes_at = '',
         public readonly string $stock_gender = '',
+        public readonly string $pick_priority = '',
+        public readonly string $pick_zone = '',
     ) {}
 
     public function kindAndHours(mixed $value, Callback $rule, ValidationContext $context): Result
@@ -165,5 +167,14 @@ final class OrderForm extends AbstractInput
         }
 
         return $this->stock_gender;
+    }
+
+    public function stockPickPreference(): \App\Context\Market\StockPickPreference
+    {
+        if (!$this->stock()) {
+            return \App\Context\Market\StockPickPreference::default();
+        }
+
+        return \App\Context\Market\StockPickPreference::fromRequest($this->pick_priority, $this->pick_zone);
     }
 }
