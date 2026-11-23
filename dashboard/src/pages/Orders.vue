@@ -136,7 +136,7 @@
         :headers="headers"
         :items="filteredOrders"
         :loading="market.loading"
-        :items-per-page-options="[10, 25, 50]"
+        :items-per-page-options="[50, 100, 200]"
         item-value="id"
         hover
         fixed-header
@@ -283,7 +283,7 @@
             :page-count="pageCount"
             :items-length="filteredOrders.length"
             :items-per-page="itemsPerPage"
-            :items-per-page-options="[10, 25, 50]"
+            :items-per-page-options="[50, 100, 200]"
             @update:page="page = $event"
             @update:items-per-page="itemsPerPage = $event"
           />
@@ -345,7 +345,7 @@ const acting = ref('')
 const actionError = ref('')
 
 const page = ref(1)
-const itemsPerPage = ref(25)
+const itemsPerPage = ref(50)
 
 type OrderListScope = 'active' | 'past' | 'all'
 

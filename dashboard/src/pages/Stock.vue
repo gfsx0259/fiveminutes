@@ -108,7 +108,7 @@
       :headers="tableHeaders"
       :items="filtered"
       :loading="market.loading"
-      :items-per-page-options="[10, 25, 50]"
+      :items-per-page-options="[50, 100, 200]"
       item-value="presetId"
       hover
       fixed-header
@@ -289,7 +289,7 @@
           :page-count="pageCount"
           :items-length="filtered.length"
           :items-per-page="itemsPerPage"
-          :items-per-page-options="[10, 25, 50]"
+          :items-per-page-options="[50, 100, 200]"
           @update:page="page = $event"
           @update:items-per-page="itemsPerPage = $event"
         />
@@ -380,7 +380,7 @@ const activeFilterCount = computed(() => countFilledFilters({
 
 const viewTab = ref<'stock' | 'orders'>('orders')
 const page = ref(1)
-const itemsPerPage = ref(25)
+const itemsPerPage = ref(50)
 
 const buyOpen = ref(false)
 const buyTarget = ref<StockBuyTarget | null>(null)

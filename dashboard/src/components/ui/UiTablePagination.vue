@@ -59,7 +59,7 @@ const props = withDefaults(defineProps<{
   itemsPerPage: number
   itemsPerPageOptions?: number[]
 }>(), {
-  itemsPerPageOptions: () => [10, 25, 50],
+  itemsPerPageOptions: () => [50, 100, 200],
 })
 
 const emit = defineEmits<{

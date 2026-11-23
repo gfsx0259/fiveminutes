@@ -242,7 +242,7 @@
         :headers="headers"
         :items="filtered"
         :loading="leadStore.loading"
-        :items-per-page-options="[25, 50, 100]"
+        :items-per-page-options="[50, 100, 200]"
         item-value="uuid"
         hover
         fixed-header
@@ -406,7 +406,7 @@
             :page-count="pageCount"
             :items-length="filtered.length"
             :items-per-page="itemsPerPage"
-            :items-per-page-options="[25, 50, 100]"
+            :items-per-page-options="[50, 100, 200]"
             @update:page="page = $event"
             @update:items-per-page="itemsPerPage = $event"
           />
@@ -499,7 +499,7 @@ const filterLeadId = ref('')
 const routeOrderFilter = ref('')
 
 const page = ref(1)
-const itemsPerPage = ref(25)
+const itemsPerPage = ref(50)
 
 const filterVerticals = ref<string[]>([])
 const filterCountries = ref<string[]>([])
