@@ -51,6 +51,12 @@
   }
 }
 
+@media (max-width: 767px) {
+  .ui-filter-panel--collapsible .ui-filter-panel__body .filter-panel-reset {
+    display: none;
+  }
+}
+
 .lead-filters {
   display: grid;
   gap: 16px;

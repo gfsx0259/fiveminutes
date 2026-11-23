@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="orders-page cabinet-page--fill">
     <div class="page-head">
       <div>
         <h1>{{ isPartner ? 'My orders' : 'Orders' }}</h1>
@@ -15,7 +15,14 @@
       {{ actionError || market.error }}
     </v-alert>
 
-    <section class="ui-filter-panel orders-filter-panel" aria-label="Order filters">
+    <CollapsibleFilterPanel
+      class="orders-filter-panel"
+      aria-label="Order filters"
+      :active-count="activeFilterCount"
+    >
+      <template #mobile-actions>
+        <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+      </template>
       <div class="orders-filters__toolbar">
         <div class="orders-filters__main">
           <UiLabeledField label="Order ID">
@@ -46,7 +53,7 @@
             More filters
             <span v-if="advancedFiltersCount > 0" class="orders-filters__badge">{{ advancedFiltersCount }}</span>
           </UiButton>
-          <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+          <UiButton class="filter-panel-reset" variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
         </div>
       </div>
       <div v-show="advancedOpen" class="orders-filters__advanced">
@@ -111,7 +118,7 @@
           />
         </UiLabeledField>
       </div>
-    </section>
+    </CollapsibleFilterPanel>
 
     <UiTableCard title="Orders">
       <template #actions>
@@ -132,6 +139,7 @@
         :items-per-page-options="[10, 25, 50]"
         item-value="id"
         hover
+        fixed-header
       >
         <template #item.id="{ item }">
           <span class="order-id">{{ orderDisplayId(item.id) }}</span>
@@ -293,6 +301,7 @@ import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
+import CollapsibleFilterPanel from '@/components/ui/CollapsibleFilterPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiDateField from '@/components/ui/UiDateField.vue'
@@ -304,6 +313,7 @@ import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import { countryName } from '@/countries'
 import { exportTableCsv, cellToString } from '@/tableCsvExport'
+import { countFilledFilters } from '@/filterCount'
 import { prepareTableHeaders } from '@/tableHeaders'
 import { useCompactTableActions } from '@/viewport'
 import {
@@ -365,6 +375,15 @@ const advancedFiltersCount = computed(() => (
   + filterCountries.value.length
   + filterTraffics.value.length
   + (filterPaymentModel.value ? 1 : 0)
+))
+
+const activeFilterCount = computed(() => (
+  countFilledFilters({
+    orderId: filterOrderId.value,
+    serviceOn: filterServiceOn.value,
+    orderType: filterOrderType.value,
+    scope: filterScope.value === 'active' ? '' : filterScope.value,
+  }) + advancedFiltersCount.value
 ))
 
 watch(advancedFiltersCount, (count) => {
@@ -610,9 +629,12 @@ onMounted(() => {
 
 <style scoped>
 .orders-filter-panel {
+  margin-bottom: 16px;
+}
+
+.orders-filter-panel :deep(.ui-filter-panel__body) {
   display: grid;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .orders-filters__toolbar {
@@ -710,8 +732,8 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 700px) {
-  .orders-filter-panel {
+@media (max-width: 767px) {
+  .orders-filter-panel :deep(.ui-filter-panel__body) {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -734,11 +756,14 @@ onMounted(() => {
 
   .orders-filters__toolbar-end {
     order: 3;
+    border-top: 1px solid #ece8ff;
     display: grid;
     gap: 8px;
     grid-template-columns: 1fr;
     height: auto;
     margin-left: 0;
+    margin-top: 4px;
+    padding-top: 12px;
     width: 100%;
   }
 

@@ -630,6 +630,97 @@ html:has(.lm-nav-dialog) {
   min-width: 0;
 }
 
+/* List pages: fill viewport height, scroll inside the table (LM-style). */
+.lm-app:has(.cabinet-page--fill) {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.lm-app:has(.cabinet-page--fill) .v-main,
+.lm-app:has(.cabinet-page--fill) .v-main__wrap,
+.lm-app:has(.cabinet-page--fill) .lm-workspace {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lm-app:has(.cabinet-page--fill) .lm-topbar {
+  flex: 0 0 auto;
+}
+
+.lm-app:has(.cabinet-page--fill) .lm-page {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cabinet-page--fill {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cabinet-page--fill > :not(.ui-table-card) {
+  flex: 0 0 auto;
+}
+
+.cabinet-page--fill > .ui-table-card {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cabinet-page--fill .ui-table-card__head {
+  flex: 0 0 auto;
+}
+
+.cabinet-page--fill .ui-data-table-shell {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+.cabinet-page--fill .ui-data-table-shell .ui-data-table {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100% !important;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cabinet-page--fill .ui-data-table-shell .v-table {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cabinet-page--fill .ui-data-table-shell .v-table__wrapper {
+  flex: 1 1 auto;
+  height: 0 !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+}
+
+.cabinet-page--fill .ui-data-table-shell .v-data-table-footer {
+  flex: 0 0 auto;
+}
+
 /* Mobile drawer: full WalletHero backdrop + glass panels */
 .lm-mobile-nav {
   background:

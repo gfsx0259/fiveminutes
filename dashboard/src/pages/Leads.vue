@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="leads-page" :class="{ 'cabinet-page--fill': showJournal }">
     <div class="page-head">
       <div>
         <h1>{{ pageTitle }}</h1>
@@ -30,7 +30,15 @@
       <pre v-if="apiKey" class="key-panel__example">{{ example }}</pre>
     </section>
 
-    <section v-if="showJournal" class="ui-filter-panel leads-filter-panel" aria-label="Lead filters">
+    <CollapsibleFilterPanel
+      v-if="showJournal"
+      class="leads-filter-panel"
+      aria-label="Lead filters"
+      :active-count="activeFilterCount"
+    >
+      <template #mobile-actions>
+        <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+      </template>
       <div class="leads-filters__toolbar">
         <div v-if="isPartner" class="leads-filters__main leads-filters__main--partner">
           <UiLabeledField label="Lead ID">
@@ -128,7 +136,7 @@
             More filters
             <span v-if="advancedFiltersCount > 0" class="leads-filters__badge">{{ advancedFiltersCount }}</span>
           </UiButton>
-          <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+          <UiButton class="filter-panel-reset" variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
         </div>
       </div>
       <div
@@ -207,7 +215,7 @@
           </UiLabeledField>
         </template>
       </div>
-    </section>
+    </CollapsibleFilterPanel>
 
     <v-alert v-if="showJournal && leadStore.error" type="error" variant="tonal" class="mb-4">{{ leadStore.error }}</v-alert>
 
@@ -237,6 +245,7 @@
         :items-per-page-options="[25, 50, 100]"
         item-value="uuid"
         hover
+        fixed-header
         class="lead-table"
         @click:row="onRow"
       >
@@ -389,7 +398,7 @@
           </div>
         </template>
         <template #no-data>
-          <div class="py-8 text-medium-emphasis">{{ isBuyer ? 'Лидов пока нет' : 'Купленных лидов пока нет' }}</div>
+          <div class="py-8 text-medium-emphasis">{{ isBuyer ? 'No leads yet' : 'No purchased leads yet' }}</div>
         </template>
         <template #bottom>
           <UiTablePagination
@@ -435,6 +444,7 @@ import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import LeadDetailDialog from '@/components/LeadDetailDialog.vue'
 import StatusChip from '@/components/StatusChip.vue'
+import CollapsibleFilterPanel from '@/components/ui/CollapsibleFilterPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiInput from '@/components/ui/UiInput.vue'
@@ -442,6 +452,7 @@ import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
+import { countFilledFilters } from '@/filterCount'
 import { prepareTableHeaders } from '@/tableHeaders'
 import { useCompactTableActions } from '@/viewport'
 import { showToast } from '@/composables/useToast'
@@ -526,6 +537,17 @@ const advancedFiltersCount = computed(() => {
   }
   return count
 })
+
+const activeFilterCount = computed(() => (
+  countFilledFilters({
+    leadId: filterLeadId.value,
+    countries: filterCountries.value,
+    email: filterEmail.value,
+    clientStatus: filterClientStatus.value,
+    deposit: filterDeposit.value,
+    phone: filterPhone.value,
+  }) + advancedFiltersCount.value
+))
 
 watch(advancedFiltersCount, (count) => {
   if (count > 0) {
@@ -1030,9 +1052,12 @@ onMounted(() => {
 }
 
 .leads-filter-panel {
+  margin-bottom: 16px;
+}
+
+.leads-filter-panel :deep(.ui-filter-panel__body) {
   display: grid;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .leads-filters__toolbar {
@@ -1394,7 +1419,7 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 767px) {
   .key-panel__head,
   .key-panel__value {
     grid-template-columns: minmax(0, 1fr);
@@ -1404,7 +1429,7 @@ onMounted(() => {
     display: grid;
   }
 
-  .leads-filter-panel {
+  .leads-filter-panel :deep(.ui-filter-panel__body) {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -1430,11 +1455,14 @@ onMounted(() => {
 
   .leads-filters__toolbar-end {
     order: 3;
+    border-top: 1px solid #ece8ff;
     display: grid;
     gap: 8px;
     grid-template-columns: 1fr;
     height: auto;
     margin-left: 0;
+    margin-top: 4px;
+    padding-top: 12px;
     width: 100%;
   }
 

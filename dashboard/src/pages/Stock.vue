@@ -1,5 +1,5 @@
 <template>
-  <div class="stock-page">
+  <div class="stock-page cabinet-page--fill">
     <div class="page-head">
       <div>
         <h1>Buy Leads</h1>
@@ -31,7 +31,10 @@
       </button>
     </section>
 
-    <section class="ui-filter-panel stock-filter-panel">
+    <CollapsibleFilterPanel class="stock-filter-panel" :active-count="activeFilterCount">
+      <template #mobile-actions>
+        <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+      </template>
       <div class="stock-filters__row">
         <UiLabeledField label="Country">
           <CountryMultiSelect v-model="filterCountries" />
@@ -76,10 +79,10 @@
           <UiSelect v-model="filterAvailability" :items="availabilityItems" placeholder="Any" empty-label="Any" clearable />
         </UiLabeledField>
         <div class="stock-filter-panel__reset">
-          <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+          <UiButton class="filter-panel-reset" variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
         </div>
       </div>
-    </section>
+    </CollapsibleFilterPanel>
 
     <v-tabs v-model="viewTab" color="primary" class="stock-view-tabs">
       <v-tab value="orders">Day orders</v-tab>
@@ -108,6 +111,7 @@
       :items-per-page-options="[10, 25, 50]"
       item-value="presetId"
       hover
+      fixed-header
     >
       <template #header.dailyCap="{ column }">
         <span v-if="viewTab === 'orders'" class="stock-th-hint">
@@ -224,7 +228,7 @@
             v-if="viewTab === 'stock'"
             class="stock-actions__btn ui-table-cell-actions__btn"
             variant="primary"
-            icon="mdi-cart"
+            icon="mdi-cart-outline"
             :disabled="item.available < 1"
             @click="openBuy(item)"
           >
@@ -259,7 +263,7 @@
                 :disabled="item.available < 1"
                 @click="openBuy(item)"
               >
-                <v-icon icon="mdi-cart" size="16" />
+                <v-icon icon="mdi-cart-outline" size="16" />
                 Buy stock
               </button>
               <button
@@ -324,6 +328,7 @@ import OrderFormDialog from '@/components/OrderFormDialog.vue'
 import StockBuyDialog from '@/components/StockBuyDialog.vue'
 import StockFreshnessBar from '@/components/StockFreshnessBar.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
+import CollapsibleFilterPanel from '@/components/ui/CollapsibleFilterPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiLabeledField from '@/components/ui/UiLabeledField.vue'
@@ -348,6 +353,7 @@ import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { countryName } from '@/countries'
 import { stockFreshnessTooltip } from '@/stockFreshness'
 import { exportTableCsv, cellToString } from '@/tableCsvExport'
+import { countFilledFilters } from '@/filterCount'
 import { prepareTableHeaders } from '@/tableHeaders'
 import { useCompactTableActions } from '@/viewport'
 import { useMarketStore, type StockOfferRow } from '@/stores/market'
@@ -362,6 +368,15 @@ const filterTraffics = ref<string[]>([])
 const filterModel = ref<string | null>(null)
 const filterCr = ref<string | null>(null)
 const filterAvailability = ref<string | null>(null)
+
+const activeFilterCount = computed(() => countFilledFilters({
+  verticals: filterVerticals.value,
+  countries: filterCountries.value,
+  traffics: filterTraffics.value,
+  model: filterModel.value,
+  cr: filterCr.value,
+  availability: filterAvailability.value,
+}))
 
 const viewTab = ref<'stock' | 'orders'>('orders')
 const page = ref(1)
