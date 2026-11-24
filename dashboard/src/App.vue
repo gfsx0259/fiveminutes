@@ -86,9 +86,6 @@
         </button>
         <div class="lm-topbar__right">
           <TopbarWallet v-if="showWallet" :compact="overlayNav" />
-          <router-link to="/account" class="lm-topbar__avatar" :title="email" aria-label="User settings">
-            {{ initials }}
-          </router-link>
         </div>
       </header>
       <div class="lm-page">
@@ -125,23 +122,9 @@ const collapsed = ref(false)
 
 const rail = computed(() => !overlayNav.value && (tabletRail.value || collapsed.value))
 
-const email = computed(() => {
-  const identity = session.payload?.session.identity
-  if (!identity || typeof identity !== 'object') return session.payload?.user?.email ?? ''
-  const traits = (identity as { traits?: { email?: string } }).traits
-  return traits?.email || session.payload?.user?.email || ''
-})
-
 const showWallet = computed(() => {
   const role = session.payload?.user?.role
   return role === 'partner' || role === 'buyer'
-})
-
-const initials = computed(() => {
-  const name = email.value.split('@')[0] ?? ''
-  const parts = name.split(/[._-]/).filter(Boolean)
-  const letters = `${parts[0]?.[0] ?? ''}${parts[1]?.[0] ?? ''}`
-  return (letters || name.slice(0, 2) || 'R').toUpperCase()
 })
 
 try {
