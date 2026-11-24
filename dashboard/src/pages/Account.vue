@@ -183,7 +183,7 @@ import {
   type IdentitySession,
   type SettingsFlow,
 } from '@/identity'
-import { loginUrl, logout } from '@/host'
+import { identityReauthUrl, loginUrl, logout } from '@/host'
 import { showToast } from '@/composables/useToast'
 import { useSessionStore } from '@/stores/session'
 
@@ -256,7 +256,7 @@ async function ensureFlow(): Promise<SettingsFlow> {
 function handleIdentityError(err: unknown): boolean {
   const identity = err as IdentityError
   if (identity?.reauth && identity.redirectBrowserTo) {
-    window.location.href = identity.redirectBrowserTo
+    window.location.href = identityReauthUrl(window.location.hostname, identity.redirectBrowserTo)
     return true
   }
   if (identity?.reauth) {

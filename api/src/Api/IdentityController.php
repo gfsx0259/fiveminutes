@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Context\Identity\IdentitySettingsException;
+use App\Context\Identity\KratosBrowserRedirect;
 use App\Context\Identity\KratosSettings;
 use App\Context\Identity\NoAccountException;
 use App\Context\Identity\NoSessionException;
@@ -127,7 +128,12 @@ final readonly class IdentityController
             $payload = ['error' => $exception->getMessage()];
             $redirect = $exception->redirectBrowserTo();
             if ($redirect !== null) {
-                $payload['redirectBrowserTo'] = $redirect;
+                $request = $this->requests->get();
+                $clientOrigin = KratosBrowserRedirect::clientOriginFromHeaders(
+                    $request->getHeaderLine('Origin'),
+                    $request->getHeaderLine('Referer'),
+                );
+                $payload['redirectBrowserTo'] = KratosBrowserRedirect::rewrite($redirect, $clientOrigin) ?? $redirect;
                 $payload['reauth'] = true;
             }
 
