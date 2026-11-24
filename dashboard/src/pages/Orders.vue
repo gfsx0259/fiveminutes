@@ -1,5 +1,5 @@
 <template>
-  <div class="orders-page cabinet-page--fill">
+  <div class="orders-page" :class="tableListLayoutClass">
     <div class="page-head">
       <div>
         <h1>{{ isPartner ? 'My orders' : 'Orders' }}</h1>
@@ -344,6 +344,9 @@ import {
 } from '@/tableViewShare'
 import { useMarketStore, type OrderRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
+import { useTableListLayout } from '@/composables/useTableListLayout'
+
+const { tableListLayoutClass } = useTableListLayout()
 
 const route = useRoute()
 const router = useRouter()

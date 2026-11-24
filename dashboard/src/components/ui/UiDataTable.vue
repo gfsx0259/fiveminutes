@@ -115,6 +115,7 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 }
 
 .ui-data-table :deep(.v-table) {
+  --v-table-row-height: var(--lm-table-row-height);
   background: #fff;
   border: 0;
   color: var(--lm-foreground);
@@ -224,18 +225,21 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 
 .ui-data-table :deep(tbody td) {
   border-bottom: 1px solid var(--lm-lavender) !important;
+  box-sizing: border-box;
   font-size: var(--lm-font-table);
-  height: auto;
-  min-height: 38px;
-  padding-block: 8px;
+  height: var(--lm-table-row-height);
+  line-height: 1.25;
+  min-height: var(--lm-table-row-height);
+  padding-block: 0;
+  padding-inline: 16px;
   text-align: left;
   vertical-align: middle;
 }
 
 /* Compact row actions; overrides .lm-page default 40px control height */
 .ui-data-table :deep(tbody td .ui-btn.v-btn:not(.v-btn--icon)) {
-  height: 34px !important;
-  min-height: 34px !important;
+  height: 30px !important;
+  min-height: 30px !important;
 }
 
 .ui-data-table :deep(tbody td .ui-table-cell-actions) {

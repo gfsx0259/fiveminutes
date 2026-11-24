@@ -1,5 +1,5 @@
 <template>
-  <div class="leads-page" :class="{ 'cabinet-page--fill': showJournal }">
+  <div class="leads-page" :class="tableListLayoutClass">
     <div class="page-head">
       <div>
         <h1>{{ pageTitle }}</h1>
@@ -494,6 +494,7 @@ import {
 import { useLeadStore, type CabinetLead } from '@/stores/leads'
 import { useMarketStore, type OrderRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
+import { useTableListLayout } from '@/composables/useTableListLayout'
 
 type LeadTableRow = CabinetLead & { vertical: string }
 
@@ -508,6 +509,7 @@ const canShareTableView = computed(() => Boolean(tableViewShareAssist(session.pa
 const compactTableActions = useCompactTableActions()
 const tab = ref<'journal' | 'send'>('journal')
 const showJournal = computed(() => !isBuyer.value || tab.value === 'journal')
+const { tableListLayoutClass } = useTableListLayout(showJournal)
 const pageTitle = computed(() => (isPartner.value ? 'My leads' : 'Leads'))
 const filterLeadId = ref('')
 /** Set from /leads?order= when opened from My orders; not shown in Lead ID field. */

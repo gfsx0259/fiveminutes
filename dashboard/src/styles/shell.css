@@ -789,6 +789,114 @@ html:has(.lm-nav-dialog) {
   flex: 0 0 auto;
 }
 
+/* List pages: grow with row count, scroll the main column (optional preference). */
+.lm-app:has(.cabinet-page--page-scroll) {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.lm-app:has(.cabinet-page--page-scroll) .v-main,
+.lm-app:has(.cabinet-page--page-scroll) .v-main__wrap,
+.lm-app:has(.cabinet-page--page-scroll) .lm-workspace {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lm-app:has(.cabinet-page--page-scroll) .lm-page {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.cabinet-page--page-scroll .stock-chips,
+.cabinet-page--page-scroll .lead-tabs,
+.cabinet-page--page-scroll .stock-view-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 17;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel {
+  background:
+    radial-gradient(ellipse at 92% 140%, #6847e8d0, transparent 55%),
+    radial-gradient(ellipse at 35% -60%, #4b30c466, transparent 60%),
+    linear-gradient(120deg, #191e3a, #221d4f);
+  border-color: rgb(255 255 255 / 12%);
+  box-shadow: 0 10px 30px #1a154a29;
+  color: #fff;
+  overflow: hidden;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel--collapsible {
+  position: sticky;
+  top: 0;
+  z-index: 19;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-labeled-field__label,
+.cabinet-page--page-scroll .ui-filter-panel .ui-field__label {
+  color: #bfc5e5;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-btn--outline {
+  background: rgb(255 255 255 / 10%) !important;
+  border: 1px solid rgb(255 255 255 / 22%) !important;
+  box-shadow: none !important;
+  color: #fff !important;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-btn--outline:hover {
+  background: rgb(255 255 255 / 16%) !important;
+  border-color: rgb(255 255 255 / 32%) !important;
+  color: #fff !important;
+  filter: none;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-btn--ghost {
+  background: transparent !important;
+  color: #e8eaf9 !important;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-btn--ghost:hover {
+  background: rgb(255 255 255 / 10%) !important;
+  color: #fff !important;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-btn--ghost .v-icon {
+  color: inherit;
+}
+
+.cabinet-page--page-scroll .ui-data-table-shell .ui-data-table,
+.cabinet-page--page-scroll .ui-data-table-shell .v-table {
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+.cabinet-page--page-scroll .ui-data-table-shell .v-table__wrapper {
+  overflow-x: auto;
+  overflow-y: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+}
+
+.cabinet-page--page-scroll .ui-data-table-shell .v-table__wrapper thead th {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  background: #f0ecff;
+  box-shadow: 0 1px 0 rgb(7 9 22 / 8%);
+}
+
 /* Mobile drawer: full WalletHero backdrop + glass panels */
 .lm-mobile-nav {
   background:

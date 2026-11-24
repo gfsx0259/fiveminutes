@@ -1,5 +1,5 @@
 <template>
-  <div class="stock-page cabinet-page--fill">
+  <div class="stock-page" :class="tableListLayoutClass">
     <div class="page-head">
       <div>
         <h1>Buy Leads</h1>
@@ -243,7 +243,7 @@
             icon="mdi-calendar-plus"
             @click="openOrder(item)"
           >
-            Create order
+            Make order
           </UiButton>
           <v-menu v-if="compactTableActions" location="bottom end" content-class="stock-row-menu">
             <template #activator="{ props: menuProps }">
@@ -275,7 +275,7 @@
                 @click="openOrder(item)"
               >
                 <v-icon icon="mdi-calendar-plus" size="16" />
-                Create order
+                Make order
               </button>
               <button type="button" @click="copyPresetId(item.presetId)">
                 <v-icon icon="mdi-content-copy" size="16" />
@@ -369,6 +369,9 @@ import { countFilledFilters } from '@/filterCount'
 import { prepareTableHeaders } from '@/tableHeaders'
 import { useCompactTableActions } from '@/viewport'
 import { useMarketStore, type StockOfferRow } from '@/stores/market'
+import { useTableListLayout } from '@/composables/useTableListLayout'
+
+const { tableListLayoutClass } = useTableListLayout()
 
 const route = useRoute()
 const router = useRouter()
