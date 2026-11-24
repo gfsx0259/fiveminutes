@@ -1,7 +1,12 @@
 <template>
-  <div class="stock-pick" role="group" aria-label="Zone for stock purchase">
+  <div
+    class="stock-pick"
+    :class="{ 'stock-pick--bare': hideLabel }"
+    role="group"
+    aria-label="Zone for stock purchase"
+  >
     <div class="stock-pick__field">
-      <span class="stock-pick__label">Zone</span>
+      <span v-if="!hideLabel" class="stock-pick__label">Zone</span>
       <UiSegmented v-model="pickZone" :items="zoneItems" class="stock-pick__segmented stock-pick__segmented--zones" />
     </div>
   </div>
@@ -12,6 +17,13 @@ import { computed } from 'vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import { stockZoneDisplayLabel, type StockPickZoneId } from '@/stockPick'
 import { useMarketStore } from '@/stores/market'
+
+withDefaults(
+  defineProps<{
+    hideLabel?: boolean
+  }>(),
+  { hideLabel: false },
+)
 
 const pickZone = defineModel<StockPickZoneId>('pickZone', { default: '' })
 
@@ -75,5 +87,10 @@ const zoneItems = computed(() => {
   min-width: 0;
   padding-inline: 6px;
   text-align: center;
+}
+
+.stock-pick--bare,
+.stock-pick--bare .stock-pick__field {
+  gap: 0;
 }
 </style>

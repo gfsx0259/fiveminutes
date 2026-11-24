@@ -2,7 +2,7 @@
   <FormDialog
     :model-value="open"
     title="Create order"
-    hint="Create a new order to purchase leads from the marketplace."
+    hint="Open a day order with your targeting and volume — leads are generated for you."
     submit-label="Create order"
     submit-icon="mdi-cart-outline"
     :error="formError"
@@ -14,6 +14,7 @@
     @update:model-value="open = $event"
     @submit="create"
     @share="copyShareLink"
+    @aside-dismiss="stockNudgeDismissed = true"
   >
     <template v-if="showStockNudge && stockNudge" #aside>
       <StockOrderNudge
@@ -468,13 +469,13 @@ async function purchaseStockFromNudge(): Promise<void> {
       const quote = await market.fetchStockQuote(preset.id, qty, '', { pickZone })
       totalCents = quote.totalCents
     } catch {
-      showToast('Shelf price unavailable')
+      showToast('Stock quote unavailable')
       return
     }
   }
 
   if (totalCents > balanceCents.value) {
-    showToast('Insufficient wallet balance')
+    showToast('Your balance is not enough for this order')
     return
   }
 

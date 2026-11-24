@@ -30,12 +30,13 @@
     </div>
     <div class="order-checkout__panel">
       <div class="order-checkout__line">
-        <span>Wallet balance</span>
+        <span>Your balance</span>
         <span>{{ dollars(balanceCents / 100) }}</span>
       </div>
-      <v-alert v-if="insufficient > 0" type="warning" variant="tonal" density="compact" class="order-checkout__alert">
-        Insufficient balance by {{ dollars(insufficient / 100) }}
-      </v-alert>
+      <div v-if="insufficient > 0" class="ui-notice ui-notice--warning order-checkout__alert" role="status">
+        <strong class="order-checkout__notice-title">Insufficient balance</strong>
+        Top up by {{ dollars(insufficient / 100) }}.
+      </div>
     </div>
   </div>
 </template>
@@ -120,6 +121,12 @@ const savingsCents = computed(() => {
 
 .order-checkout__alert {
   margin-top: 8px;
+}
+
+.order-checkout__notice-title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 @media (max-width: 767px) {

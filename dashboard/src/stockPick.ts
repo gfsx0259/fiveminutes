@@ -17,6 +17,22 @@ export function stockZoneDisplayLabel(zoneId: string, apiLabel?: string): string
 
 export const defaultStockPickZone = (): StockPickZoneId => ''
 
+/** User-facing quote/API errors when a zone filter is active. */
+export function formatStockQuoteError(message: string, pickZone: StockPickZoneId): string {
+  const text = message.trim()
+  if (/not enough leads in the .+ zone/i.test(text)) {
+    return text
+  }
+  if (/not enough leads/i.test(text)) {
+    if (pickZone !== '') {
+      const zone = stockZoneDisplayLabel(pickZone)
+      return `Not enough leads in the ${zone} zone. Try another zone, Any zone, or a lower quantity.`
+    }
+    return 'Not enough leads for this quantity.'
+  }
+  return text || 'Quote request failed'
+}
+
 /** API + orders: any zone → backend uses oldest_first; only zone filter is sent. */
 export function stockPickApiFields(pickZone: StockPickZoneId): Record<string, string> {
   if (pickZone === '') {

@@ -2,7 +2,7 @@
   <FormDialog
     :model-value="open"
     title="Buy leads"
-    hint="Purchase leads from the selected offer."
+    hint="Buy leads now from marketplace stock for the selected offer."
     submit-label="Confirm purchase"
     submit-icon="mdi-cart-outline"
     :error="formError"
@@ -79,15 +79,14 @@
         </div>
 
         <p v-else-if="quoteLoading" class="stock-buy__pricing-hint">Calculating price…</p>
-        <v-alert
+        <div
           v-else-if="quoteError"
-          type="warning"
-          variant="tonal"
-          density="compact"
-          class="stock-buy__pricing-alert"
+          class="ui-notice ui-notice--warning stock-buy__pricing-alert"
+          role="status"
         >
-          Quote unavailable ({{ quoteError }}). Showing catalog price until quote loads.
-        </v-alert>
+          <strong class="stock-buy__notice-title">Quote unavailable</strong>
+          {{ quoteErrorText }}
+        </div>
         <p v-else class="stock-buy__pricing-hint stock-buy__muted">
           Enter quantity to see details.
         </p>
@@ -115,7 +114,7 @@ import FormDialog from '@/components/FormDialog.vue'
 import OrderCheckoutSummary from '@/components/OrderCheckoutSummary.vue'
 import PresetOfferSummary from '@/components/PresetOfferSummary.vue'
 import StockPickControls from '@/components/StockPickControls.vue'
-import { defaultStockPickZone, stockPickApiFields, type StockPickZoneId } from '@/stockPick'
+import { defaultStockPickZone, formatStockQuoteError, stockPickApiFields, type StockPickZoneId } from '@/stockPick'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import { showToast } from '@/composables/useToast'
@@ -178,6 +177,8 @@ const effectiveUnitCents = computed(() => {
 })
 
 const quoteReady = computed(() => quoteTotalCents.value > 0 && quoteLines.value.length > 0)
+
+const quoteErrorText = computed(() => formatStockQuoteError(quoteError.value, pickZone.value))
 
 const catalogTotalCents = computed(() => {
   if (!props.target || volumeQty.value < 1) {
@@ -291,7 +292,7 @@ function validateBuy(target: StockBuyTarget): number | null {
   }
   const qty = volumeQty.value
   if (totalCents.value > balanceCents.value) {
-    formError.value = 'Insufficient wallet balance'
+    formError.value = 'Your balance is not enough for this order'
     return null
   }
   return qty
@@ -430,6 +431,12 @@ async function buy(): Promise<void> {
 
 .stock-buy__pricing-alert {
   margin: 0;
+}
+
+.stock-buy__notice-title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 @media (max-width: 767px) {

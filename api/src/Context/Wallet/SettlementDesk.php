@@ -32,7 +32,7 @@ final readonly class SettlementDesk
     public function assertPartnerCanAfford(User $partner, Money $total): void
     {
         if (!$partner->getBalance()->covers($total)) {
-            throw new InsufficientBalanceException('Partner balance is not enough for this order');
+            throw new InsufficientBalanceException('Your balance is not enough for this order');
         }
     }
 

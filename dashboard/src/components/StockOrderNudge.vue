@@ -3,23 +3,23 @@
   <div v-if="panel === 'side'" class="stock-side" role="complementary" aria-label="Buy from stock">
     <header class="stock-side__offer">
       <h2 class="stock-side__title">Buy leads from stock</h2>
-      <p class="stock-side__subtitle">Ready-to-buy leads at shelf prices. Instant delivery — no service day.</p>
+      <p class="stock-side__subtitle">Ready-to-buy leads at stock prices. Instant delivery — no service day.</p>
       <p class="stock-side__context">
         <strong>{{ available }}</strong> in stock
         <template v-if="requestedQty > 0">
           <span class="stock-side__context-sep">·</span>
           your order <strong>{{ requestedQty }}</strong>
           <template v-if="instantQty >= requestedQty">— fully covered</template>
-          <template v-else>— up to <strong>{{ instantQty }}</strong> from shelf</template>
+          <template v-else>— up to <strong>{{ instantQty }}</strong> from stock</template>
         </template>
       </p>
     </header>
 
     <div class="stock-side__main">
-      <StockPickControls v-model:pick-zone="pickZone" />
+      <StockPickControls v-model:pick-zone="pickZone" hide-label class="stock-side__pick" />
 
       <section class="stock-side__zones" aria-labelledby="stock-zones-heading">
-        <h3 id="stock-zones-heading" class="stock-side__zones-title">Shelf zones for your quantity</h3>
+        <h3 id="stock-zones-heading" class="stock-side__zones-title">Zones for your quantity</h3>
 
         <div class="stock-side__zone-scroll">
           <p v-if="quoteQty < 1" class="stock-side__empty">
@@ -27,8 +27,16 @@
           </p>
           <p v-else-if="quoteLoading" class="stock-side__loading">
             <v-progress-circular indeterminate color="primary" size="20" width="2" />
-            Calculating shelf mix…
+            Calculating zone mix…
           </p>
+
+          <div
+            v-else-if="quoteError"
+            class="ui-notice ui-notice--warning stock-side__zone-alert"
+            role="status"
+          >
+            {{ quoteErrorText }}
+          </div>
 
           <div v-else-if="quoteReady" class="stock-side__zone-list">
             <article
@@ -119,13 +127,6 @@
         >
           Buy from stock
         </UiButton>
-        <button type="button" class="stock-side__dismiss" @click="emit('dismiss')">
-          Continue with day order
-        </button>
-        <p class="stock-side__note">
-          <v-icon icon="mdi-sync" size="14" />
-          Updates when you change quantity or price.
-        </p>
       </footer>
     </div>
   </div>
@@ -139,7 +140,7 @@
       <p class="stock-order-nudge__title">Stock available now</p>
       <p class="stock-order-nudge__text">
         <strong>{{ available }}</strong>
-        {{ available === 1 ? 'lead is' : 'leads are' }} on the shelf for
+        {{ available === 1 ? 'lead is' : 'leads are' }} in stock for
         <strong>{{ verticalLabel(vertical) }}</strong> · <strong>{{ countryName(country) }}</strong> ·
         <strong>{{ trafficLabel(trafficSource) }}</strong> — instant delivery, no service day.
       </p>
@@ -161,7 +162,10 @@
 
       <div v-if="quoteQty > 0" class="stock-order-nudge__breakdown">
         <p v-if="quoteLoading" class="stock-order-nudge__breakdown-lead stock-order-nudge__muted">
-          Calculating shelf mix…
+          Calculating zone mix…
+        </p>
+        <p v-else-if="quoteError" class="stock-order-nudge__breakdown-lead stock-order-nudge__muted">
+          {{ quoteErrorText }}
         </p>
         <template v-else-if="quoteReady">
           <p class="stock-order-nudge__breakdown-lead">
@@ -212,7 +216,7 @@ import type { StockQuoteLine } from '@/stores/market'
 import CountryFlag from '@/components/CountryFlag.vue'
 import StockPickControls from '@/components/StockPickControls.vue'
 import UiButton from '@/components/ui/UiButton.vue'
-import { defaultStockPickZone, type StockPickZoneId } from '@/stockPick'
+import { defaultStockPickZone, formatStockQuoteError, type StockPickZoneId } from '@/stockPick'
 import { countryName } from '@/countries'
 import {
   trafficColor,
@@ -228,10 +232,10 @@ import { useMarketStore } from '@/stores/market'
 const ZONE_ORDER = ['fresh', 'good', 'expired', 'live'] as const
 
 const ZONE_BLURB: Record<string, string> = {
-  fresh: 'Fresh shelf window — best age mix',
+  fresh: 'Fresh — newest leads, best age mix',
   good: 'Aged leads — balanced price',
-  expired: 'Older shelf — deepest discount',
-  live: 'Live pool leads on shelf',
+  expired: 'Expired — deepest discount',
+  live: 'Live pool — available now',
 }
 
 const props = withDefaults(defineProps<{
@@ -260,10 +264,11 @@ const quoteLines = ref<StockQuoteLine[]>([])
 const quoteTotalCents = ref(0)
 const quoteBaseCents = ref(0)
 const quoteLoading = ref(false)
+const quoteError = ref('')
 const pickZone = ref<StockPickZoneId>(defaultStockPickZone())
 
 function zoneBlurb(zoneId: string): string {
-  return ZONE_BLURB[zoneId] ?? 'Shelf age zone'
+  return ZONE_BLURB[zoneId] ?? 'Stock age zone'
 }
 
 const ZONE_ICON: Record<string, string> = {
@@ -287,6 +292,13 @@ const instantQty = computed(() => {
 const quoteQty = computed(() => (props.requestedQty > 0 ? instantQty.value : 0))
 
 const quoteReady = computed(() => quoteTotalCents.value > 0 && quoteLines.value.length > 0)
+
+const quoteErrorText = computed(() => {
+  if (!quoteError.value.trim()) {
+    return ''
+  }
+  return formatStockQuoteError(quoteError.value, pickZone.value)
+})
 
 const buyDisabled = computed(() => props.buyLoading || quoteQty.value < 1 || quoteLoading.value || !quoteReady.value)
 
@@ -332,6 +344,7 @@ watchEffect((onCleanup) => {
     quoteLines.value = []
     quoteTotalCents.value = 0
     quoteBaseCents.value = 0
+    quoteError.value = ''
     return
   }
   let cancelled = false
@@ -339,18 +352,28 @@ watchEffect((onCleanup) => {
     cancelled = true
   })
   quoteLoading.value = true
+  quoteError.value = ''
   void market.fetchStockQuote(presetId, qty, '', pick).then((quote) => {
     if (cancelled) {
+      return
+    }
+    if (!quote.lines?.length || quote.totalCents < 1) {
+      quoteLines.value = []
+      quoteTotalCents.value = 0
+      quoteBaseCents.value = quote.basePriceCents ?? 0
+      quoteError.value = 'Not enough leads'
       return
     }
     quoteLines.value = quote.lines
     quoteTotalCents.value = quote.totalCents
     quoteBaseCents.value = quote.basePriceCents
-  }).catch(() => {
+    quoteError.value = ''
+  }).catch((error: unknown) => {
     if (!cancelled) {
       quoteLines.value = []
       quoteTotalCents.value = 0
       quoteBaseCents.value = 0
+      quoteError.value = error instanceof Error ? error.message : 'request failed'
     }
   }).finally(() => {
     if (!cancelled) {
@@ -375,7 +398,7 @@ defineExpose({
 .stock-side {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
   height: 100%;
   margin: 0;
   min-height: 0;
@@ -386,9 +409,13 @@ defineExpose({
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   min-height: 0;
   overflow: hidden;
+}
+
+.stock-side__pick {
+  margin: 0;
 }
 
 .stock-side__zones {
@@ -422,6 +449,7 @@ defineExpose({
 
 .stock-side__offer {
   margin: 0;
+  padding-right: 36px;
 }
 
 .stock-side__title {
@@ -450,7 +478,15 @@ defineExpose({
   margin: 0 4px;
 }
 
-.stock-side__zones-title,
+.stock-side__zones-title {
+  color: #303861;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 14px 0 8px;
+  text-transform: uppercase;
+}
+
 .stock-side__economy-title {
   color: #303861;
   font-size: 11px;
@@ -467,6 +503,11 @@ defineExpose({
   display: flex;
   font-size: 13px;
   gap: 10px;
+  margin: 0;
+}
+
+.stock-side__zone-alert {
+  font-size: 13px;
   margin: 0;
 }
 
@@ -673,34 +714,6 @@ defineExpose({
 
 .stock-side__buy {
   width: 100%;
-}
-
-.stock-side__dismiss {
-  background: none;
-  border: 0;
-  color: #6d6a88;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 4px 0;
-  text-align: center;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.stock-side__dismiss:hover {
-  color: #3512bc;
-}
-
-.stock-side__note {
-  align-items: center;
-  color: #8b90a8;
-  display: flex;
-  font-size: 11px;
-  gap: 6px;
-  justify-content: center;
-  line-height: 1.35;
-  margin: 2px 0 0;
-  text-align: center;
 }
 
 /* —— Inline —— */

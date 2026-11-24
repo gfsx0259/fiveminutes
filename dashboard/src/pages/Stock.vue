@@ -85,7 +85,7 @@
     </CollapsibleFilterPanel>
 
     <v-tabs v-model="viewTab" color="primary" class="stock-view-tabs">
-      <v-tab value="orders">Day orders</v-tab>
+      <v-tab value="orders">Orders</v-tab>
       <v-tab value="stock">Stock</v-tab>
     </v-tabs>
 

@@ -40,6 +40,16 @@ final readonly class StockPickPlan
             $pick,
         );
         if (count($picked) < $quantity) {
+            if ($pick->zoneId !== null) {
+                $zoneLabel = $pick->zoneId;
+                foreach ($policy->zones as $zone) {
+                    if ($zone->id === $pick->zoneId) {
+                        $zoneLabel = $zone->label;
+                        break;
+                    }
+                }
+                throw new InvalidArgumentException(sprintf('Not enough leads in the %s zone', $zoneLabel));
+            }
             throw new InvalidArgumentException('Not enough leads in stock');
         }
 
