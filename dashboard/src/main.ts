@@ -9,6 +9,7 @@ import 'vuetify/styles'
 import '@/styles/tokens.css'
 import '@/styles/shell.css'
 import '@/styles/app.css'
+import '@/styles/profile.css'
 import App from './App.vue'
 import { router } from './router'
 

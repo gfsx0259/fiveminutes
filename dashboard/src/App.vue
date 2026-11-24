@@ -86,7 +86,9 @@
         </button>
         <div class="lm-topbar__right">
           <TopbarWallet v-if="showWallet" :compact="overlayNav" />
-          <span class="lm-topbar__avatar" :title="email">{{ initials }}</span>
+          <router-link to="/account" class="lm-topbar__avatar" :title="email" aria-label="User settings">
+            {{ initials }}
+          </router-link>
         </div>
       </header>
       <div class="lm-page">

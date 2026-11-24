@@ -12,6 +12,7 @@ import PresetPage from '@/pages/PresetPage.vue'
 import Reports from '@/pages/Reports.vue'
 import Stock from '@/pages/Stock.vue'
 import Users from '@/pages/Users.vue'
+import Account from '@/pages/Account.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -28,6 +29,7 @@ export const router = createRouter({
     { path: '/offers', component: Offers },
     { path: '/performance', component: Performance },
     { path: '/users', component: Users },
+    { path: '/account', component: Account },
   ],
 })
 

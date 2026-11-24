@@ -25,7 +25,7 @@ final readonly class ShelfAgePolicy
         return new self(self::MAX_HORIZON_MINUTES, [
             new ShelfAgeZone(ShelfAgeZone::LIVE, 'Live', 0, 30, 0, false),
             new ShelfAgeZone(ShelfAgeZone::FRESH, 'Fresh', 30, 120, 10, true),
-            new ShelfAgeZone(ShelfAgeZone::GOOD, 'Good', 120, 360, 30, true),
+            new ShelfAgeZone(ShelfAgeZone::GOOD, 'Aged', 120, 360, 30, true),
             new ShelfAgeZone(ShelfAgeZone::EXPIRED, 'Expired', 360, null, 70, true),
         ]);
     }

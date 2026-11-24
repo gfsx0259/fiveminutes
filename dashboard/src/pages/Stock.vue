@@ -159,7 +159,7 @@
                 </li>
                 <li>
                   <i class="stock-freshness-hint__dot stock-freshness-hint__dot--good" aria-hidden="true" />
-                  Good — mid shelf age
+                  Aged — mid shelf age
                 </li>
                 <li>
                   <i class="stock-freshness-hint__dot stock-freshness-hint__dot--expired" aria-hidden="true" />

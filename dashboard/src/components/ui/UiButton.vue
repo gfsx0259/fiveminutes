@@ -2,6 +2,7 @@
   <v-btn
     class="ui-btn"
     :class="`ui-btn--${variant}`"
+    :color="variant === 'primary' ? 'primary' : 'surface'"
     :prepend-icon="icon"
     :loading="loading"
     :disabled="disabled"
@@ -88,7 +89,18 @@ const emit = defineEmits<{
   color: #3512bc !important;
 }
 
+.ui-btn--ghost :deep(.v-btn__overlay),
+.ui-btn--ghost :deep(.v-btn__underlay) {
+  opacity: 0 !important;
+}
+
 .ui-btn--ghost:hover {
   background: #efecff !important;
+}
+
+.ui-btn--ghost.v-btn--disabled {
+  background: transparent !important;
+  color: #9a94bf !important;
+  opacity: 1;
 }
 </style>

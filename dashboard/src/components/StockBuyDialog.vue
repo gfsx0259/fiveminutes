@@ -14,30 +14,33 @@
     @share="copyShareLink"
   >
     <template v-if="target">
-      <PresetOfferSummary
-        :heading="`Offer ${offerId(target)}`"
-        :badge="target.available > 0 ? 'Active' : undefined"
-        :vertical="target.vertical"
-        :country="target.country"
-        :traffic-source="target.trafficSource"
-        :payment-model="target.paymentModel"
-        :payout-cents="target.basePriceCents"
-        amount-label="Price"
-        :conversion="target.conversion"
-      />
+      <div class="stock-buy__offer">
+        <PresetOfferSummary
+          :heading="`Offer ${offerId(target)}`"
+          :badge="target.available > 0 ? 'Active' : undefined"
+          :vertical="target.vertical"
+          :country="target.country"
+          :traffic-source="target.trafficSource"
+          :payment-model="target.paymentModel"
+          :payout-cents="target.basePriceCents"
+          amount-label="Price"
+          :conversion="target.conversion"
+        />
+        <p class="stock-buy__caps">
+          Available: <strong>{{ target.available }}</strong>
+        </p>
+      </div>
 
-      <UiField label="Quantity *" icon="mdi-counter" :error="fieldErrors.volume">
-        <UiInput v-model="volume" type="number" :placeholder="String(target.available)" />
-      </UiField>
-      <p class="stock-buy__caps">
-        Available: <strong>{{ target.available }}</strong>
-      </p>
+      <div class="stock-buy__fields">
+        <UiField label="Quantity *" icon="mdi-counter" :error="fieldErrors.volume">
+          <UiInput v-model="volume" type="number" :placeholder="String(target.available)" />
+        </UiField>
+        <StockPickControls v-model:pick-zone="pickZone" class="stock-buy__pick" />
+      </div>
 
-      <StockPickControls v-model:pick-zone="pickZone" />
-
-      <section v-if="volumeQty > 0" class="stock-buy__pricing" aria-label="Shelf pricing">
+      <section v-if="volumeQty > 0" class="stock-buy__pricing" aria-label="Purchase details">
         <header class="stock-buy__pricing-head">
-          <span>Shelf pricing</span>
+          <span>Details</span>
           <v-progress-circular v-if="quoteLoading" indeterminate color="primary" size="18" width="2" />
         </header>
 
@@ -45,7 +48,7 @@
           <table class="stock-buy__pricing-table">
             <thead>
               <tr>
-                <th>Shelf zone</th>
+                <th>Zone</th>
                 <th>Qty</th>
                 <th class="stock-buy__col-hide-narrow">Catalog</th>
                 <th>Off</th>
@@ -75,7 +78,7 @@
           </table>
         </div>
 
-        <p v-else-if="quoteLoading" class="stock-buy__pricing-hint">Calculating shelf price…</p>
+        <p v-else-if="quoteLoading" class="stock-buy__pricing-hint">Calculating price…</p>
         <v-alert
           v-else-if="quoteError"
           type="warning"
@@ -83,10 +86,10 @@
           density="compact"
           class="stock-buy__pricing-alert"
         >
-          Shelf price unavailable ({{ quoteError }}). Showing catalog price until quote loads.
+          Quote unavailable ({{ quoteError }}). Showing catalog price until quote loads.
         </v-alert>
         <p v-else class="stock-buy__pricing-hint stock-buy__muted">
-          Enter quantity to see age-zone discounts.
+          Enter quantity to see details.
         </p>
       </section>
 
@@ -332,10 +335,33 @@ async function buy(): Promise<void> {
 </script>
 
 <style scoped>
+.stock-buy__offer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stock-buy__offer :deep(.preset-offer-summary) {
+  margin-bottom: 0;
+}
+
 .stock-buy__caps {
   color: #8b90a8;
-  font-size: 13px;
-  margin: 4px 0 10px;
+  font-size: 12px;
+  line-height: 1.3;
+  margin: 0;
+  padding: 0 2px;
+}
+
+.stock-buy__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.stock-buy__pick {
+  margin-bottom: 0 !important;
 }
 
 .stock-buy__caps strong {
@@ -346,6 +372,7 @@ async function buy(): Promise<void> {
   background: #f6f4fc;
   border-radius: 10px;
   margin-bottom: 10px;
+  margin-top: 12px;
   padding: 10px;
 }
 

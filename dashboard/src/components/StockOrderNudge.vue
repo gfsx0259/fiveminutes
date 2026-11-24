@@ -229,7 +229,7 @@ const ZONE_ORDER = ['fresh', 'good', 'expired', 'live'] as const
 
 const ZONE_BLURB: Record<string, string> = {
   fresh: 'Fresh shelf window — best age mix',
-  good: 'Good age — balanced price',
+  good: 'Aged leads — balanced price',
   expired: 'Older shelf — deepest discount',
   live: 'Live pool leads on shelf',
 }

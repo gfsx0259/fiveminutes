@@ -58,6 +58,15 @@
         <strong>{{ email }}</strong>
         <small>{{ accountLine }}</small>
       </span>
+      <router-link
+        to="/account"
+        class="lm-account__settings"
+        title="User settings"
+        aria-label="User settings"
+        @click="emit('navigate')"
+      >
+        <v-icon icon="mdi-cog-outline" size="18" />
+      </router-link>
     </div>
 
     <nav class="lm-nav" :class="{ 'lm-mobile-nav__links': light }">

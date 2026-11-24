@@ -24,7 +24,7 @@
             step="5"
           >
         </UiField>
-        <UiField :label="`Fresh → Good (${formatMinutes(boundaries[1])})`">
+        <UiField :label="`Fresh → Aged (${formatMinutes(boundaries[1])})`">
           <input
             v-model.number="boundaries[1]"
             class="shelf-policy__range"
@@ -34,7 +34,7 @@
             step="5"
           >
         </UiField>
-        <UiField :label="`Good → Expired (${formatMinutes(boundaries[2])})`">
+        <UiField :label="`Aged → Expired (${formatMinutes(boundaries[2])})`">
           <input
             v-model.number="boundaries[2]"
             class="shelf-policy__range"
@@ -54,7 +54,7 @@
         <UiField label="Fresh discount, %">
           <UiInput v-model="discounts.fresh" type="number" min="1" max="99" />
         </UiField>
-        <UiField label="Good discount, %">
+        <UiField label="Aged discount, %">
           <UiInput v-model="discounts.good" type="number" min="1" max="99" />
         </UiField>
         <UiField label="Expired discount, %">
@@ -66,7 +66,7 @@
         Example at ${{ exampleBase }} catalog:
         Live ${{ preview.live }},
         Fresh ${{ preview.fresh }},
-        Good ${{ preview.good }},
+        Aged ${{ preview.good }},
         Expired ${{ preview.expired }}.
       </p>
     </template>
@@ -152,7 +152,7 @@ function buildPolicy(): ShelfAgePolicy {
     zones: [
       { id: 'live', label: 'Live', startMinutes: 0, endMinutes: liveEnd, discountPercent: 0, sellableOnShelf: false },
       { id: 'fresh', label: 'Fresh', startMinutes: liveEnd, endMinutes: freshEnd, discountPercent: Number(discounts.fresh), sellableOnShelf: true },
-      { id: 'good', label: 'Good', startMinutes: freshEnd, endMinutes: goodEnd, discountPercent: Number(discounts.good), sellableOnShelf: true },
+      { id: 'good', label: 'Aged', startMinutes: freshEnd, endMinutes: goodEnd, discountPercent: Number(discounts.good), sellableOnShelf: true },
       { id: 'expired', label: 'Expired', startMinutes: goodEnd, endMinutes: null, discountPercent: Number(discounts.expired), sellableOnShelf: true },
     ],
   }

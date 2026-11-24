@@ -197,7 +197,7 @@ function defaultShelfPolicy(): ShelfAgePolicy {
     zones: [
       { id: 'live', label: 'Live', startMinutes: 0, endMinutes: 30, discountPercent: 0, sellableOnShelf: false },
       { id: 'fresh', label: 'Fresh', startMinutes: 30, endMinutes: 120, discountPercent: 10, sellableOnShelf: true },
-      { id: 'good', label: 'Good', startMinutes: 120, endMinutes: 360, discountPercent: 30, sellableOnShelf: true },
+      { id: 'good', label: 'Aged', startMinutes: 120, endMinutes: 360, discountPercent: 30, sellableOnShelf: true },
       { id: 'expired', label: 'Expired', startMinutes: 360, endMinutes: null, discountPercent: 70, sellableOnShelf: true },
     ],
   }

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '@/api'
+import { stockZoneDisplayLabel } from '@/stockPick'
 
 export interface PresetRow {
   id: string
@@ -186,7 +187,16 @@ export const useMarketStore = defineStore('market', () => {
         return
       }
       const body = await response.json() as { stock?: StockOfferRow[], shelfAgePolicy?: ShelfAgePolicy }
-      shelfAgePolicy.value = body.shelfAgePolicy ?? null
+      const rawPolicy = body.shelfAgePolicy ?? null
+      shelfAgePolicy.value = rawPolicy
+        ? {
+            ...rawPolicy,
+            zones: rawPolicy.zones.map((zone) => ({
+              ...zone,
+              label: stockZoneDisplayLabel(zone.id, zone.label),
+            })),
+          }
+        : null
       stock.value = applyWarehouseDemoDailyCaps(body.stock ?? [])
     } catch {
       error.value = 'Склад не прочитался'
@@ -242,7 +252,13 @@ export const useMarketStore = defineStore('market', () => {
     if (!response.ok) {
       throw new Error(payload.error ?? `Quote failed: ${response.status}`)
     }
-    return payload
+    return {
+      ...payload,
+      lines: (payload.lines ?? []).map((line) => ({
+        ...line,
+        label: stockZoneDisplayLabel(line.zoneId, line.label),
+      })),
+    }
   }
 
   async function actOrder(id: string, action: 'pause' | 'resume' | 'finish'): Promise<void> {

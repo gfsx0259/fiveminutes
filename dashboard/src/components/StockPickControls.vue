@@ -1,20 +1,16 @@
 <template>
-  <div class="stock-pick" role="group" aria-label="Shelf zone for stock purchase">
-    <div class="stock-pick__row">
-      <span class="stock-pick__label">Shelf zone</span>
+  <div class="stock-pick" role="group" aria-label="Zone for stock purchase">
+    <div class="stock-pick__field">
+      <span class="stock-pick__label">Zone</span>
       <UiSegmented v-model="pickZone" :items="zoneItems" class="stock-pick__segmented stock-pick__segmented--zones" />
     </div>
-    <p class="stock-pick__hint">
-      <template v-if="pickZone !== ''">Only <strong>{{ pickZone }}</strong> leads — quote shows what you get.</template>
-      <template v-else>Any zone — we pick oldest shelf stock first (expired → fresh).</template>
-    </p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
-import type { StockPickZoneId } from '@/stockPick'
+import { stockZoneDisplayLabel, type StockPickZoneId } from '@/stockPick'
 import { useMarketStore } from '@/stores/market'
 
 const pickZone = defineModel<StockPickZoneId>('pickZone', { default: '' })
@@ -30,7 +26,7 @@ const zoneItems = computed(() => {
     return [
       ...items,
       { title: 'Fresh', value: 'fresh' },
-      { title: 'Good', value: 'good' },
+      { title: stockZoneDisplayLabel('good'), value: 'good' },
       { title: 'Expired', value: 'expired' },
     ]
   }
@@ -41,7 +37,7 @@ const zoneItems = computed(() => {
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
   })
   for (const zone of sellable) {
-    items.push({ title: zone.label, value: zone.id })
+    items.push({ title: stockZoneDisplayLabel(zone.id, zone.label), value: zone.id })
   }
   return items
 })
@@ -51,45 +47,33 @@ const zoneItems = computed(() => {
 .stock-pick {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 0 0 12px;
-}
-
-.stock-pick__row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  justify-content: space-between;
-}
-
-.stock-pick__label {
-  color: #5a6080;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.stock-pick__segmented {
-  flex: 1 1 auto;
-  max-width: 100%;
-}
-
-.stock-pick__segmented--zones {
-  flex-wrap: wrap;
-}
-
-.stock-pick__hint {
-  color: #8b90a8;
-  font-size: 12px;
-  line-height: 1.4;
+  gap: 6px;
   margin: 0;
 }
 
-.stock-pick__hint strong {
-  color: #4a5070;
+.stock-pick__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.stock-pick__label {
+  color: #5c6078;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: capitalize;
+  line-height: 1.2;
+}
+
+.stock-pick__segmented.ui-segmented {
+  display: flex;
+  width: 100%;
+}
+
+.stock-pick__segmented :deep(.ui-segmented__item) {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 6px;
+  text-align: center;
 }
 </style>

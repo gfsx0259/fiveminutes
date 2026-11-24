@@ -33,7 +33,7 @@ export function stockFreshnessTooltip(freshness: StockFreshness | undefined): st
   return [
     `${total} leads on shelf`,
     `Fresh: ${freshness.fresh} (${pct.fresh}%)`,
-    `Good: ${freshness.good} (${pct.good}%)`,
+    `Aged: ${freshness.good} (${pct.good}%)`,
     `Expired: ${freshness.expired} (${pct.expired}%)`,
   ].join('\n')
 }

@@ -20,7 +20,7 @@
         v-if="savingsCents > 0"
         class="order-checkout__line order-checkout__line--savings"
       >
-        <span>Shelf discount</span>
+        <span>Discount</span>
         <span>−{{ dollars(savingsCents / 100) }}</span>
       </div>
       <div class="order-checkout__line order-checkout__line--total">

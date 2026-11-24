@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Api\ApiKeyController;
 use App\Api\HealthController;
+use App\Api\IdentityController;
 use App\Api\ImpersonationController;
 use App\Api\LeadController;
 use App\Api\MarketController;
@@ -20,6 +21,11 @@ return [
         Route::get('/health')->action([HealthController::class, 'index'])->name('health'),
         Route::post('/user/registration')->action([RegistrationController::class, 'create'])->name('user-registration'),
         Route::get('/session')->action([SessionController::class, 'show'])->name('session'),
+        Route::get('/identity/settings-flow')->action([IdentityController::class, 'settingsFlow'])->name('identity-settings-flow'),
+        Route::post('/identity/settings')->action([IdentityController::class, 'updateSettings'])->name('identity-settings-update'),
+        Route::get('/identity/sessions')->action([IdentityController::class, 'sessions'])->name('identity-sessions'),
+        Route::delete('/identity/sessions/others')->action([IdentityController::class, 'revokeOtherSessions'])->name('identity-sessions-others'),
+        Route::delete('/identity/sessions/{id}')->action([IdentityController::class, 'revokeSession'])->name('identity-session-revoke'),
         Route::get('/users')->action([UserController::class, 'index'])->name('users'),
         Route::post('/impersonate')->action([ImpersonationController::class, 'start'])->name('impersonate-start'),
         Route::delete('/impersonate')->action([ImpersonationController::class, 'stop'])->name('impersonate-stop'),

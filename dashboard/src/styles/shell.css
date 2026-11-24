@@ -214,6 +214,24 @@ html:has(.lm-nav-dialog) {
   text-transform: capitalize;
 }
 
+.lm-account__settings {
+  align-items: center;
+  border-radius: 8px;
+  color: #d7daf7;
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: center;
+  margin-left: auto;
+  min-height: 32px;
+  min-width: 32px;
+  text-decoration: none;
+}
+
+.lm-account__settings:hover {
+  background: rgb(255 255 255 / 8%);
+  color: #fff;
+}
+
 .lm-balance {
   font-size: 13px;
   font-weight: 600;
@@ -557,6 +575,7 @@ html:has(.lm-nav-dialog) {
   box-sizing: border-box;
   color: #4212a7;
   display: inline-flex;
+  text-decoration: none;
   font-family: Inter, sans-serif;
   font-size: 12px;
   font-weight: 700;
