@@ -10,8 +10,6 @@
       </div>
     </div>
 
-    <v-alert v-if="problem" type="error" variant="tonal" class="mb-4">{{ problem }}</v-alert>
-
     <WalletHero :purchases="purchases" :orders="market.orders" :now="now" />
 
     <div class="dashboard__kpis">
@@ -94,6 +92,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import ChartLegend from '@/components/charts/ChartLegend.vue'
 import ComboChart from '@/components/charts/ComboChart.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
@@ -163,6 +162,8 @@ async function refresh(): Promise<void> {
   now.value = Date.now()
   await Promise.all([leadStore.load(), market.loadOrders(), wallet.load()])
 }
+
+useLoadErrorToast(problem, () => { void refresh() })
 
 onMounted(() => {
   void refresh()

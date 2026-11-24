@@ -143,8 +143,8 @@ const props = withDefaults(defineProps<{
   submitIcon: '',
   shareable: false,
   asideOpen: false,
-  asideRevealDelayMs: 2200,
-  asidePanelDelayMs: 480,
+  asideRevealDelayMs: 1100,
+  asidePanelDelayMs: 240,
 })
 
 const emit = defineEmits<{
@@ -330,7 +330,7 @@ watch(() => props.modelValue, (open) => {
   justify-content: center;
   margin-inline: auto;
   max-width: 100%;
-  transition: gap 0.48s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: gap 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   width: fit-content;
 }
 
@@ -361,10 +361,10 @@ watch(() => props.modelValue, (open) => {
   overflow: hidden;
   transform: translateX(0);
   transition:
-    flex-basis 0.48s cubic-bezier(0.4, 0, 0.2, 1),
-    max-width 0.48s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.4s ease,
-    transform 0.48s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-basis 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s ease,
+    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .form-dialog__cluster--aside-pending .form-dialog__main-card {
@@ -490,7 +490,7 @@ watch(() => props.modelValue, (open) => {
   max-width: min(1200px, 94vw) !important;
   overflow: visible;
   padding: 0;
-  transition: max-width 0.48s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   width: auto !important;
 }
 

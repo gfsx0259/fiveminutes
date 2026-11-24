@@ -7,8 +7,6 @@
       </div>
     </div>
 
-    <v-alert v-if="market.error" type="error" variant="tonal" class="mb-4">{{ market.error }}</v-alert>
-
     <section class="stock-chips" aria-label="Vertical filters">
       <button
         type="button"
@@ -114,6 +112,7 @@
       item-value="presetId"
       hover
       fixed-header
+      :cell-copy-value="stockTableCellCopy"
     >
       <template #header.dailyCap="{ column }">
         <span v-if="viewTab === 'orders'" class="stock-th-hint">
@@ -323,6 +322,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import { showToast } from '@/composables/useToast'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
@@ -367,6 +367,7 @@ import { stockFreshnessTooltip } from '@/stockFreshness'
 import { exportTableCsv, cellToString } from '@/tableCsvExport'
 import { countFilledFilters } from '@/filterCount'
 import { prepareTableHeaders } from '@/tableHeaders'
+import { tableCellCopyFromExport } from '@/tableCellCopy'
 import { useCompactTableActions } from '@/viewport'
 import { useMarketStore, type StockOfferRow } from '@/stores/market'
 import { useTableListLayout } from '@/composables/useTableListLayout'
@@ -559,6 +560,8 @@ function stockExportCell(key: string, item: StockOfferRow): string {
       return cellToString((item as Record<string, unknown>)[key])
   }
 }
+
+const stockTableCellCopy = tableCellCopyFromExport<StockOfferRow>(stockExportCell)
 
 function payoutDollars(cents: number): string {
   return cents % 100 === 0 ? wholeDollars(cents / 100) : dollars(cents / 100)
@@ -763,6 +766,9 @@ async function refresh(): Promise<void> {
   await market.loadWarehouse()
 }
 
+const marketLoadError = computed(() => market.error)
+useLoadErrorToast(marketLoadError, () => { void refresh() })
+
 onMounted(async () => {
   void market.loadPresets()
   await refresh()
@@ -928,7 +934,7 @@ onMounted(async () => {
   align-items: center;
   display: inline-flex;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 2px;
   justify-content: flex-end;
 }
 
@@ -1185,6 +1191,10 @@ onMounted(async () => {
   min-height: 52px;
   padding-block: 9px;
   vertical-align: middle;
+}
+
+.stock-market-table .ui-data-table :deep(tbody tr:last-child td) {
+  border-bottom: 0 !important;
 }
 
 .stock-market-table .ui-data-table :deep(thead .ui-col-sticky-end) {

@@ -217,7 +217,6 @@
       </div>
     </CollapsibleFilterPanel>
 
-    <v-alert v-if="showJournal && leadStore.error" type="error" variant="tonal" class="mb-4">{{ leadStore.error }}</v-alert>
 
     <LeadDetailDialog
       v-model="detailOpen"
@@ -251,7 +250,7 @@
         hover
         fixed-header
         class="lead-table"
-        @click:row="onRow"
+        :cell-copy-value="leadTableCellCopy"
       >
         <template #item.leadId="{ item }">
           <span class="lead-id">{{ leadDisplayId(item.uuid) }}</span>
@@ -333,9 +332,15 @@
         </template>
         <template #item.actions="{ item }">
           <div class="lead-actions ui-table-cell-actions" @click.stop>
-            <UiButton class="lead-actions__btn ui-table-cell-actions__btn" variant="outline" @click="openLead(item)">
-              View
-            </UiButton>
+            <v-btn
+              class="lead-actions__icon ui-table-cell-actions__btn"
+              icon="mdi-eye"
+              variant="text"
+              size="small"
+              :aria-label="`View lead ${leadDisplayId(item.uuid)}`"
+              title="View lead"
+              @click="openLead(item)"
+            />
             <span class="lead-actions__menu">
               <v-menu location="bottom end" content-class="lead-row-menu">
                 <template #activator="{ props: menuProps }">
@@ -459,7 +464,9 @@ import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import { countFilledFilters } from '@/filterCount'
 import { prepareTableHeaders } from '@/tableHeaders'
+import { copyTextFromExportCell } from '@/tableCellCopy'
 import { useCompactTableActions } from '@/viewport'
+import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import { showToast } from '@/composables/useToast'
 import { downloadCsv } from '@/csv'
 import { apiOrigin } from '@/host'
@@ -510,6 +517,13 @@ const compactTableActions = useCompactTableActions()
 const tab = ref<'journal' | 'send'>('journal')
 const showJournal = computed(() => !isBuyer.value || tab.value === 'journal')
 const { tableListLayoutClass } = useTableListLayout(showJournal)
+
+const leadLoadError = computed(() => leadStore.error)
+useLoadErrorToast(
+  leadLoadError,
+  () => { void leadStore.load() },
+  { when: showJournal },
+)
 const pageTitle = computed(() => (isPartner.value ? 'My leads' : 'Leads'))
 const filterLeadId = ref('')
 /** Set from /leads?order= when opened from My orders; not shown in Lead ID field. */
@@ -754,7 +768,7 @@ const headers = computed(() => {
     clientStatus: 116,
     clientDeposit: 96,
     status: 100,
-    actions: compactTableActions.value ? 56 : 148,
+    actions: compactTableActions.value ? 56 : 88,
   })
 })
 
@@ -903,8 +917,30 @@ const example = computed(() => {
   ].join('\n')
 })
 
-function onRow(_event: PointerEvent, row: { item: LeadTableRow }): void {
-  void openLead(row.item)
+function leadTableCellCopy(key: string, item: Record<string, unknown>): string | null {
+  const lead = item as unknown as LeadTableRow
+  switch (key) {
+    case 'leadId':
+      return leadDisplayId(lead.uuid)
+    case 'vertical':
+      return copyTextFromExportCell(lead.vertical ? verticalLabel(lead.vertical) : '')
+    case 'country':
+      return lead.country || null
+    case 'trafficSource':
+      return copyTextFromExportCell(lead.trafficSource ? trafficLabel(lead.trafficSource) : '')
+    case 'firstName':
+    case 'lastName':
+    case 'phone':
+    case 'email':
+    case 'ip':
+    case 'buyerEmail':
+    case 'sellerEmail':
+      return copyTextFromExportCell(String(lead[key as keyof LeadTableRow] ?? ''))
+    case 'clientStatus':
+      return lead.isDelivered && lead.clientStatus ? lead.clientStatus : null
+    default:
+      return null
+  }
 }
 
 function onDetailOpenChange(open: boolean): void {
@@ -1286,7 +1322,7 @@ onMounted(() => {
   display: inline-flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 2px;
   justify-content: flex-end;
 }
 
@@ -1296,15 +1332,8 @@ onMounted(() => {
   vertical-align: middle;
 }
 
-.lead-actions__btn {
+.lead-actions__icon {
   flex-shrink: 0;
-  font-size: 12px !important;
-  height: 34px !important;
-  letter-spacing: 0 !important;
-  min-height: 34px !important;
-  min-width: 0 !important;
-  padding-inline: 12px !important;
-  white-space: nowrap;
 }
 
 .lead-actions__more {
@@ -1393,10 +1422,6 @@ onMounted(() => {
 .lead-row-menu__list > button:disabled {
   cursor: default;
   opacity: 0.5;
-}
-
-.lead-table :deep(tbody tr) {
-  cursor: pointer;
 }
 
 .lead-tabs {

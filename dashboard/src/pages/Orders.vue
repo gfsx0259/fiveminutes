@@ -11,10 +11,6 @@
 
     <OrderFormDialog v-if="!isPartner" v-model="open" />
 
-    <v-alert v-if="actionError || market.error" type="error" variant="tonal" class="mb-4">
-      {{ actionError || market.error }}
-    </v-alert>
-
     <CollapsibleFilterPanel
       class="orders-filter-panel"
       aria-label="Order filters"
@@ -142,6 +138,7 @@
         item-value="id"
         hover
         fixed-header
+        :cell-copy-value="orderTableCellCopy"
       >
         <template #item.id="{ item }">
           <span class="order-id">{{ orderDisplayId(item.id) }}</span>
@@ -206,15 +203,17 @@
           <StatusChip :status="item.status" />
         </template>
         <template #item.orderActions="{ item }">
-          <div class="order-actions ui-table-cell-actions">
-            <UiButton
+          <div class="order-actions ui-table-cell-actions" @click.stop>
+            <v-btn
               v-if="isPartner"
-              class="order-actions__btn ui-table-cell-actions__btn"
-              variant="outline"
+              class="order-actions__icon ui-table-cell-actions__btn"
+              icon="mdi-format-list-bulleted"
+              variant="text"
+              size="small"
+              :aria-label="`My leads for order ${orderDisplayId(item.id)}`"
+              title="My leads"
               @click="goOrderLeads(item.id)"
-            >
-              My leads
-            </UiButton>
+            />
             <v-menu location="bottom end" content-class="order-row-menu">
               <template #activator="{ props: menuProps }">
                 <button
@@ -235,7 +234,7 @@
                   class="order-row-menu__item ui-table-cell-actions__menu-only"
                   @click="goOrderLeads(item.id)"
                 >
-                  <v-icon icon="mdi-account-group-outline" size="18" class="order-row-menu__icon" />
+                  <v-icon icon="mdi-format-list-bulleted" size="18" class="order-row-menu__icon" />
                   My leads
                 </button>
                 <button type="button" class="order-row-menu__item" @click="copyOrderUuid(item.id)">
@@ -277,7 +276,7 @@
           </div>
         </template>
         <template #no-data>
-          <div class="py-8 text-medium-emphasis">Заказов пока нет</div>
+          <div class="py-8 text-medium-emphasis">No orders yet</div>
         </template>
         <template #bottom>
           <UiTablePagination
@@ -318,6 +317,7 @@ import { countryName } from '@/countries'
 import { exportTableCsv, cellToString } from '@/tableCsvExport'
 import { countFilledFilters } from '@/filterCount'
 import { prepareTableHeaders } from '@/tableHeaders'
+import { tableCellCopyFromExport } from '@/tableCellCopy'
 import { useCompactTableActions } from '@/viewport'
 import {
   modelLabel,
@@ -332,7 +332,8 @@ import {
   verticals,
 } from '@/marketOptions'
 import { dollars, wholeDollars } from '@/money'
-import { showToast } from '@/composables/useToast'
+import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
+import { showErrorToast, showToast } from '@/composables/useToast'
 import { matchesOrderDisplayId, orderDisplayId, orderWhenDay } from '@/orderDisplay'
 import {
   applyOrdersTableShareFromQuery,
@@ -360,6 +361,15 @@ const compactTableActions = useCompactTableActions()
 const open = ref(false)
 const acting = ref('')
 const actionError = ref('')
+
+const marketLoadError = computed(() => market.error)
+useLoadErrorToast(marketLoadError, () => { void market.loadOrders() })
+
+watch(actionError, (message) => {
+  if (message) {
+    showErrorToast(message)
+  }
+})
 
 const page = ref(1)
 const itemsPerPage = ref(50)
@@ -597,6 +607,8 @@ function orderExportCell(key: string, item: OrderRow): string {
   }
 }
 
+const orderTableCellCopy = tableCellCopyFromExport<OrderRow>(orderExportCell)
+
 const partnerLeadColumns = [
   { title: 'Order ID', key: 'id', sortable: false, align: 'start' as const },
   { title: 'Vertical', key: 'vertical', align: 'start' as const },
@@ -624,11 +636,11 @@ const orderColumnMins: Record<string, number> = {
   priceCents: 108,
   partnerPriceCents: 116,
   status: 100,
-  orderActions: 120,
+  orderActions: 88,
 }
 
 const headers = computed(() => {
-  const orderActionsMin = compactTableActions.value ? 56 : (isPartner.value ? 168 : 72)
+  const orderActionsMin = compactTableActions.value ? 56 : (isPartner.value ? 88 : 72)
   const actionMins = { ...orderColumnMins, orderActions: orderActionsMin }
   if (isPartner.value) {
     return prepareTableHeaders([
@@ -871,19 +883,12 @@ onMounted(() => {
   align-items: center;
   display: inline-flex;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 2px;
   justify-content: flex-end;
 }
 
-.order-actions__btn {
+.order-actions__icon {
   flex-shrink: 0;
-  font-size: 12px !important;
-  height: 34px !important;
-  letter-spacing: 0 !important;
-  min-height: 34px !important;
-  min-width: 0 !important;
-  padding-inline: 12px !important;
-  white-space: nowrap;
 }
 
 .order-actions__more {

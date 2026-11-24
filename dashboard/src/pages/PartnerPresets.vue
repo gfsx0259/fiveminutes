@@ -39,8 +39,6 @@
       </div>
     </section>
 
-    <v-alert v-if="market.error" type="error" variant="tonal" class="mb-4">{{ market.error }}</v-alert>
-
     <UiTableCard title="Presets">
       <template #actions>
         <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="market.loadPresets()">
@@ -50,7 +48,14 @@
           Export
         </UiButton>
       </template>
-      <UiDataTable :headers="headers" :items="rows" :loading="market.loading" item-value="id" hover>
+      <UiDataTable
+        :headers="headers"
+        :items="rows"
+        :loading="market.loading"
+        item-value="id"
+        hover
+        :cell-copy-value="presetTableCellCopy"
+      >
         <template #item.country="{ item }">
           <CountryPick :code="item.country" />
         </template>
@@ -85,6 +90,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import CountryFlag from '@/components/CountryFlag.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
@@ -99,8 +105,12 @@ import { modelLabel, trafficLabel, verticalLabel } from '@/marketOptions'
 import { dollars } from '@/money'
 import { useMarketStore, type PresetRow } from '@/stores/market'
 import { prepareTableHeaders } from '@/tableHeaders'
+import { tableCellCopyFromExport } from '@/tableCellCopy'
 
 const market = useMarketStore()
+
+const presetsLoadError = computed(() => market.error)
+useLoadErrorToast(presetsLoadError, () => { void market.loadPresets() })
 const open = ref(false)
 const presetId = ref<string | null>(null)
 const country = ref<string | null>(null)
@@ -179,6 +189,8 @@ function presetExportCell(key: string, item: PresetRow): string {
       return cellToString((item as Record<string, unknown>)[key])
   }
 }
+
+const presetTableCellCopy = tableCellCopyFromExport<PresetRow>(presetExportCell)
 
 function clearFilters(): void {
   country.value = null

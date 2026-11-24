@@ -162,19 +162,19 @@ export const useMarketStore = defineStore('market', () => {
   const error = ref('')
 
   async function loadPresets(): Promise<void> {
-    await load('/presets', 'presets', presets, 'Пресеты не прочитались')
+    await load('/presets', 'presets', presets, 'Failed to load presets')
   }
 
   async function loadOrders(): Promise<void> {
-    await load('/orders', 'orders', orders, 'Заказы не прочитались')
+    await load('/orders', 'orders', orders, 'Failed to load orders')
   }
 
   async function loadCaps(): Promise<void> {
-    await load('/caps', 'caps', caps, 'Капы не прочитались')
+    await load('/caps', 'caps', caps, 'Failed to load caps')
   }
 
   async function loadOffers(): Promise<void> {
-    await load('/offers', 'offers', offers, 'Предложения не прочитались')
+    await load('/offers', 'offers', offers, 'Failed to load offers')
   }
 
   async function loadWarehouse(): Promise<void> {
@@ -183,7 +183,7 @@ export const useMarketStore = defineStore('market', () => {
     try {
       const response = await api('/warehouse')
       if (!response.ok) {
-        error.value = `Склад не прочитался: ${response.status}`
+        error.value = `Failed to load stock: ${response.status}`
         return
       }
       const body = await response.json() as { stock?: StockOfferRow[], shelfAgePolicy?: ShelfAgePolicy }
@@ -199,7 +199,7 @@ export const useMarketStore = defineStore('market', () => {
         : null
       stock.value = applyWarehouseDemoDailyCaps(body.stock ?? [])
     } catch {
-      error.value = 'Склад не прочитался'
+      error.value = 'Failed to load stock'
     } finally {
       loading.value = false
     }

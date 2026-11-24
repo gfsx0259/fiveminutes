@@ -87,8 +87,6 @@
       <p v-if="markupError" class="presets__markup-error">{{ markupError }}</p>
     </section>
 
-    <v-alert v-if="market.error" type="error" variant="tonal" class="mb-4">{{ market.error }}</v-alert>
-
     <UiTableCard title="Presets">
       <template #actions>
         <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="market.loadPresets()">
@@ -98,7 +96,14 @@
           Export
         </UiButton>
       </template>
-      <UiDataTable :headers="headers" :items="market.presets" :loading="market.loading" item-value="id" hover>
+      <UiDataTable
+        :headers="headers"
+        :items="market.presets"
+        :loading="market.loading"
+        item-value="id"
+        hover
+        :cell-copy-value="presetTableCellCopy"
+      >
         <template #item.country="{ item }">
           <CountryPick :code="item.country" />
         </template>
@@ -157,6 +162,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import { api } from '@/api'
 import CountryFlag from '@/components/CountryFlag.vue'
 import CountryPick from '@/components/CountryPick.vue'
@@ -175,9 +181,13 @@ import { dollars } from '@/money'
 import { useMarketStore, type PresetRow, type ShelfAgePolicy } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 import { prepareTableHeaders } from '@/tableHeaders'
+import { tableCellCopyFromExport } from '@/tableCellCopy'
 
 const session = useSessionStore()
 const market = useMarketStore()
+
+const presetsLoadError = computed(() => market.error)
+useLoadErrorToast(presetsLoadError, () => { void market.loadPresets() })
 const isAdmin = computed(() => session.payload?.user?.role === 'admin')
 const markupPercent = ref('10')
 const markupBusy = ref(false)
@@ -317,6 +327,8 @@ function adminPresetExportCell(key: string, item: PresetRow): string {
       return cellToString((item as Record<string, unknown>)[key])
   }
 }
+
+const presetTableCellCopy = tableCellCopyFromExport<PresetRow>(adminPresetExportCell)
 
 function show(): void {
   formError.value = ''

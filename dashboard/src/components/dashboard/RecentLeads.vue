@@ -2,6 +2,7 @@
   <div class="recent-leads">
     <UiDataTable
       :headers="headers"
+      :cell-copy-value="recentLeadCellCopy"
       :items="rows"
       :items-per-page="-1"
       hide-default-footer
@@ -46,6 +47,7 @@ import UiDataTable from '@/components/ui/UiDataTable.vue'
 import { dollars } from '@/money'
 import { momentOf, outcomeView, type Purchase } from '@/purchases'
 import { prepareTableHeaders } from '@/tableHeaders'
+import { copyTextFromExportCell } from '@/tableCellCopy'
 
 const props = defineProps<{
   purchases: Purchase[]
@@ -82,6 +84,26 @@ type RecentLeadRow = {
   model: string
   cost: number
   outcome: string
+}
+
+function recentLeadCellCopy(key: string, item: Record<string, unknown>): string | null {
+  const row = item as RecentLeadRow
+  switch (key) {
+    case 'at':
+      return copyTextFromExportCell(momentOf(row.at, props.now))
+    case 'name':
+      return row.name
+    case 'country':
+      return row.country
+    case 'trafficSource':
+      return row.trafficSource
+    case 'model':
+      return row.model
+    case 'cost':
+      return copyTextFromExportCell(dollars(row.cost))
+    default:
+      return null
+  }
 }
 
 const rows = computed((): RecentLeadRow[] => props.purchases.slice(-7).reverse().map((purchase) => ({

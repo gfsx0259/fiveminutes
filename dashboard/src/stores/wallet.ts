@@ -25,13 +25,13 @@ export const useWalletStore = defineStore('wallet', () => {
     try {
       const response = await api('/wallet/transactions')
       if (!response.ok) {
-        error.value = `История кошелька не прочиталась: ${response.status}`
+        error.value = `Failed to load wallet history: ${response.status}`
         return
       }
       const body = await response.json() as { transactions?: WalletTransaction[] }
       transactions.value = body.transactions ?? []
     } catch {
-      error.value = 'История кошелька не прочиталась'
+      error.value = 'Failed to load wallet history'
     } finally {
       loading.value = false
     }

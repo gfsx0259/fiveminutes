@@ -13,6 +13,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { copyText } from '@/copyText'
 import { showToast } from '@/composables/useToast'
 
 const props = withDefaults(defineProps<{
@@ -32,32 +33,10 @@ const copyTitle = computed(() => {
   return value ? 'Click to copy' : undefined
 })
 
-async function write(value: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(value)
-    return true
-  } catch {
-    const textarea = document.createElement('textarea')
-    textarea.value = value
-    textarea.style.position = 'fixed'
-    textarea.style.opacity = '0'
-    document.body.appendChild(textarea)
-    textarea.focus()
-    textarea.select()
-    try {
-      return document.execCommand('copy')
-    } catch {
-      return false
-    } finally {
-      document.body.removeChild(textarea)
-    }
-  }
-}
-
 async function handleCopy(): Promise<void> {
   const value = props.text ?? ''
   if (!value) return
-  if (!await write(value)) {
+  if (!await copyText(value)) {
     showToast('Copy unavailable')
     return
   }

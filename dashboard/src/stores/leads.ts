@@ -52,13 +52,13 @@ export const useLeadStore = defineStore('leads', () => {
         return
       }
       if (!response.ok) {
-        error.value = `Лиды не прочитались: ${response.status}`
+        error.value = `Failed to load leads: ${response.status}`
         return
       }
       const body = await response.json() as { leads?: CabinetLead[] }
       leads.value = body.leads ?? []
     } catch {
-      error.value = 'Лиды не прочитались'
+      error.value = 'Failed to load leads'
     } finally {
       loading.value = false
     }

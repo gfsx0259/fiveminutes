@@ -3,6 +3,7 @@
     <UiDataTable
       v-model:sort-by="sortBy"
       :headers="headers"
+      :cell-copy-value="breakdownCellCopy"
       :items="rows"
       :items-per-page="-1"
       hide-default-footer
@@ -77,6 +78,7 @@ import { countryName } from '@/countries'
 import { verticalColor, verticalIcon, verticalLabel } from '@/marketOptions'
 import { dollars } from '@/money'
 import { prepareTableHeaders } from '@/tableHeaders'
+import { copyTextFromExportCell } from '@/tableCellCopy'
 import { HOUR, percent, timeOf, type BreakdownGroup, type BreakdownRow, type Period, type PurchaseTotals } from '@/purchases'
 
 const props = defineProps<{
@@ -140,6 +142,36 @@ function timeLabel(row: BreakdownRow): string {
   const start = Number(row.order)
   if (props.unit === 'hour') return `${timeOf(start)}–${timeOf(start + HOUR)}`
   return new Date(start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+function breakdownCellCopy(key: string, item: Record<string, unknown>): string | null {
+  const row = item as unknown as BreakdownRow
+  switch (key) {
+    case 'key':
+      if (props.group === 'country') {
+        return copyTextFromExportCell(countryName(String(row.key)))
+      }
+      if (props.group === 'vertical') {
+        return row.key ? copyTextFromExportCell(verticalLabel(String(row.key))) : null
+      }
+      if (props.group === 'traffic' || props.group === 'model') {
+        return copyTextFromExportCell(String(row.key))
+      }
+      return copyTextFromExportCell(timeLabel(row))
+    case 'spent':
+    case 'averageCost':
+      return copyTextFromExportCell(dollars(row[key]))
+    case 'costPerApproved':
+      return row.approved ? copyTextFromExportCell(dollars(row.costPerApproved)) : null
+    case 'leads':
+    case 'delivered':
+    case 'pending':
+    case 'approved':
+    case 'rejected':
+      return String(row[key])
+    default:
+      return null
+  }
 }
 </script>
 

@@ -52,12 +52,12 @@ export const useSessionStore = defineStore('session', () => {
         return
       }
       if (!response.ok) {
-        error.value = `Сессия не прочиталась: ${response.status}`
+        error.value = `Failed to load session: ${response.status}`
         return
       }
       payload.value = await response.json() as SessionPayload
     } catch {
-      error.value = 'Сессия не прочиталась'
+      error.value = 'Failed to load session'
     } finally {
       loading.value = false
     }

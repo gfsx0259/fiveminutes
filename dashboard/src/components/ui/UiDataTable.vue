@@ -2,7 +2,9 @@
   <div class="ui-data-table-shell" :class="{ 'ui-data-table-shell--loading': isLoading }">
     <v-data-table
       class="ui-data-table"
-      v-bind="attrs"
+      :class="{ 'ui-data-table--cell-copy': cellCopy }"
+      v-bind="tableAttrs"
+      :cell-props="mergedCellProps"
       :loading="loading"
       :sort-asc-icon="sortAscIcon"
       :sort-desc-icon="sortDescIcon"
@@ -29,17 +31,81 @@
 
 <script setup lang="ts">
 import { computed, h, useAttrs, useSlots } from 'vue'
+import { showToast } from '@/composables/useToast'
+import { copyText } from '@/copyText'
+import {
+  TABLE_CELL_COPY_SKIP_KEYS,
+  isTableCellCopyTarget,
+  resolveTableCellCopyText,
+  type TableCellCopyResolver,
+} from '@/tableCellCopy'
 
 defineOptions({ inheritAttrs: false })
 
+type CellPropsInput = Record<string, unknown> | undefined
+type CellPropsFn = (data: {
+  item: Record<string, unknown>
+  column: { key?: string }
+  index: number
+}) => CellPropsInput
+
 const props = withDefaults(defineProps<{
   loading?: boolean | string
+  cellCopy?: boolean
+  cellCopyExclude?: string[]
+  cellCopyValue?: TableCellCopyResolver
 }>(), {
   loading: false,
+  cellCopy: true,
+  cellCopyExclude: () => [],
 })
 
 const attrs = useAttrs()
 const slots = useSlots()
+
+const tableAttrs = computed(() => {
+  const { cellProps: _cellProps, ...rest } = attrs
+  return rest
+})
+
+const externalCellProps = computed(() => attrs.cellProps as CellPropsFn | CellPropsInput | undefined)
+
+function mergedCellProps(data: {
+  item: Record<string, unknown>
+  column: { key?: string }
+  index: number
+}): CellPropsInput {
+  const external = externalCellProps.value
+  const base = typeof external === 'function' ? external(data) : external
+  const key = data.column.key ?? ''
+  if (!props.cellCopy || !key || TABLE_CELL_COPY_SKIP_KEYS.has(key) || props.cellCopyExclude.includes(key)) {
+    return base
+  }
+
+  const baseClass = base?.class
+  return {
+    ...base,
+    class: [
+      'ui-table-cell-copy',
+      baseClass,
+    ],
+    onClick: (event: MouseEvent) => {
+      if (typeof base?.onClick === 'function') {
+        base.onClick(event)
+      }
+      if (event.defaultPrevented || !isTableCellCopyTarget(event.target)) {
+        return
+      }
+      const text = resolveTableCellCopyText(key, data.item, props.cellCopyValue)
+      if (!text) {
+        return
+      }
+      void copyText(text).then((ok) => {
+        showToast(ok ? 'Copied' : 'Copy unavailable')
+      })
+    },
+  }
+}
 
 const isLoading = computed(() => props.loading !== false && props.loading != null && props.loading !== '')
 
@@ -236,6 +302,10 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
   vertical-align: middle;
 }
 
+.ui-data-table :deep(tbody tr:last-child td) {
+  border-bottom: 0 !important;
+}
+
 /* Compact row actions; overrides .lm-page default 40px control height */
 .ui-data-table :deep(tbody td .ui-btn.v-btn:not(.v-btn--icon)) {
   height: 30px !important;
@@ -246,7 +316,7 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
   align-items: center;
   display: inline-flex;
   flex-flow: row nowrap;
-  gap: 8px;
+  gap: 2px;
   justify-content: flex-end;
   max-width: 100%;
   white-space: nowrap;
@@ -292,6 +362,14 @@ const sortHintIcon = arrow(['m21 16-4 4-4-4', 'M17 20V4', 'm3 8 4-4 4 4', 'M7 4v
 
 .ui-data-table :deep(tbody tr:hover .ui-col-sticky-end) {
   background: #faf8ff !important;
+}
+
+.ui-data-table--cell-copy :deep(tbody td.ui-table-cell-copy) {
+  cursor: pointer;
+}
+
+.ui-data-table--cell-copy :deep(tbody td.ui-table-cell-copy:hover) {
+  color: #3512bc;
 }
 
 @media (max-width: 1280px) {
