@@ -198,15 +198,15 @@ watch(
 }
 
 .shelf-policy__seg--fresh {
-  background: #22a06b;
+  background: var(--stock-fresh);
 }
 
 .shelf-policy__seg--good {
-  background: #e8a317;
+  background: var(--stock-aged);
 }
 
 .shelf-policy__seg--expired {
-  background: #d14343;
+  background: var(--stock-expired);
 }
 
 .shelf-policy__scale {

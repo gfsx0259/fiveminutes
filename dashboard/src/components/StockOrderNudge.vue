@@ -543,21 +543,21 @@ defineExpose({
 }
 
 .stock-offer-card--fresh .stock-offer-card__icon {
-  background: #e8f8f0;
-  box-shadow: 0 0 0 3px rgb(34 160 107 / 12%);
-  color: #1a7a52;
+  background: color-mix(in srgb, var(--stock-fresh) 12%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--stock-fresh) 14%, transparent);
+  color: color-mix(in srgb, var(--stock-fresh) 78%, black);
 }
 
 .stock-offer-card--good .stock-offer-card__icon {
-  background: #fff6e6;
-  box-shadow: 0 0 0 3px rgb(232 163 23 / 15%);
-  color: #9a6a08;
+  background: color-mix(in srgb, var(--stock-aged) 14%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--stock-aged) 18%, transparent);
+  color: color-mix(in srgb, var(--stock-aged) 55%, black);
 }
 
 .stock-offer-card--expired .stock-offer-card__icon {
-  background: #fcecec;
-  box-shadow: 0 0 0 3px rgb(209 67 67 / 12%);
-  color: #b33a3a;
+  background: color-mix(in srgb, var(--stock-expired) 12%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--stock-expired) 14%, transparent);
+  color: color-mix(in srgb, var(--stock-expired) 70%, black);
 }
 
 .stock-offer-card--live .stock-offer-card__icon {
@@ -634,7 +634,7 @@ defineExpose({
 }
 
 .stock-offer-card--fresh .stock-offer-card__stat-value {
-  color: #1a7a52;
+  color: color-mix(in srgb, var(--stock-fresh) 78%, black);
 }
 
 .stock-offer-card__stat-value--price {
@@ -800,18 +800,18 @@ defineExpose({
 }
 
 .stock-order-nudge__zone--fresh {
-  background: rgb(34 160 107 / 12%);
-  border: 1px solid rgb(34 160 107 / 35%);
+  background: color-mix(in srgb, var(--stock-fresh) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--stock-fresh) 35%, transparent);
 }
 
 .stock-order-nudge__zone--good {
-  background: rgb(232 163 23 / 14%);
-  border: 1px solid rgb(232 163 23 / 40%);
+  background: color-mix(in srgb, var(--stock-aged) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--stock-aged) 40%, transparent);
 }
 
 .stock-order-nudge__zone--expired {
-  background: rgb(209 67 67 / 10%);
-  border: 1px solid rgb(209 67 67 / 32%);
+  background: color-mix(in srgb, var(--stock-expired) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--stock-expired) 32%, transparent);
 }
 
 .stock-order-nudge__zone-qty {

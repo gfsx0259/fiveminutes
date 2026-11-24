@@ -1,5 +1,12 @@
 import type { StockFreshness } from '@/stores/market'
 
+/** Aligned with dashboard outcome chips — see `purchases.ts` (approved / rejected). */
+export const STOCK_FRESHNESS_COLORS = {
+  fresh: '#2f9e5b',
+  good: '#e3b14f',
+  expired: '#e0607e',
+} as const
+
 export type StockFreshnessPercents = {
   fresh: number
   good: number

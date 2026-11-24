@@ -16,6 +16,10 @@
   --lm-font-body: 14px;
   --lm-font-table: 13px;
   --lm-sidebar-width: 256px;
+  /* Stock freshness — green/red match dashboard outcome chips (purchases.ts) */
+  --stock-fresh: #2f9e5b;
+  --stock-aged: #e3b14f;
+  --stock-expired: #e0607e;
   --v-font-body: "Inter", sans-serif;
   --v-font-heading: "Inter", sans-serif;
 

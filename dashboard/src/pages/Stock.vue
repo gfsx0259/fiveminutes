@@ -1278,14 +1278,14 @@ onMounted(async () => {
 }
 
 .stock-freshness-hint__dot--fresh {
-  background: #22a06b;
+  background: var(--stock-fresh);
 }
 
 .stock-freshness-hint__dot--good {
-  background: #e8a317;
+  background: var(--stock-aged);
 }
 
 .stock-freshness-hint__dot--expired {
-  background: #d14343;
+  background: var(--stock-expired);
 }
 </style>

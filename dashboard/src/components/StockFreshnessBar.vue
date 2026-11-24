@@ -74,15 +74,15 @@ const ariaLabel = computed(() => tooltip.value.replace(/\n/g, '. '))
 }
 
 .stock-freshness__seg--fresh {
-  background: #22a06b;
+  background: var(--stock-fresh);
 }
 
 .stock-freshness__seg--good {
-  background: #e8a317;
+  background: var(--stock-aged);
 }
 
 .stock-freshness__seg--expired {
-  background: #d14343;
+  background: var(--stock-expired);
 }
 
 .stock-freshness__tip {
