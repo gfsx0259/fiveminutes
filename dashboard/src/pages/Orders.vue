@@ -122,12 +122,14 @@
 
     <UiTableCard title="Orders">
       <template #actions>
-        <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="refresh()">
-          Refresh
-        </UiButton>
-        <UiButton variant="outline" icon="mdi-download" :disabled="filteredOrders.length === 0" @click="exportCsv">
-          Export
-        </UiButton>
+        <TableCardToolbar
+          :refresh-loading="market.loading"
+          :export-disabled="filteredOrders.length === 0"
+          :share-disabled="!canShareTableView"
+          @refresh="refresh()"
+          @export="exportCsv"
+          @share="copyShareLink"
+        />
       </template>
       <UiDataTable
         v-model:page="page"
@@ -295,7 +297,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
@@ -309,6 +311,7 @@ import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import TableCardToolbar from '@/components/ui/TableCardToolbar.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import { countryName } from '@/countries'
@@ -331,11 +334,22 @@ import {
 import { dollars, wholeDollars } from '@/money'
 import { showToast } from '@/composables/useToast'
 import { matchesOrderDisplayId, orderDisplayId, orderWhenDay } from '@/orderDisplay'
+import {
+  applyOrdersTableShareFromQuery,
+  buildTableShareUrl,
+  ORDERS_TABLE_SHARE_QUERY_KEYS,
+  ordersTableShareToQuery,
+  shouldDeferTableShareAssist,
+  tableViewShareAssist,
+} from '@/tableViewShare'
 import { useMarketStore, type OrderRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 
+const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
+
+const canShareTableView = computed(() => Boolean(tableViewShareAssist(session.payload?.user)))
 const market = useMarketStore()
 const isPartner = computed(() => session.payload?.user?.role === 'partner')
 const isAdmin = computed(() => session.payload?.user?.role === 'admin')
@@ -447,6 +461,20 @@ watch(filteredOrders, () => {
   }
 })
 
+function clearTableViewShareQuery(): void {
+  const query = { ...route.query }
+  let dirty = false
+  for (const key of ORDERS_TABLE_SHARE_QUERY_KEYS) {
+    if (query[key] != null) {
+      delete query[key]
+      dirty = true
+    }
+  }
+  if (dirty) {
+    void router.replace({ path: route.path, query })
+  }
+}
+
 function resetFilters(): void {
   filterOrderId.value = ''
   filterScope.value = 'active'
@@ -457,7 +485,71 @@ function resetFilters(): void {
   filterOrderType.value = null
   filterServiceOn.value = ''
   advancedOpen.value = false
+  clearTableViewShareQuery()
 }
+
+async function copyShareLink(): Promise<void> {
+  const assist = tableViewShareAssist(session.payload?.user)
+  if (!assist) {
+    return
+  }
+  const filterQuery = ordersTableShareToQuery({
+    orderId: filterOrderId.value,
+    scope: filterScope.value,
+    verticals: filterVerticals.value,
+    countries: filterCountries.value,
+    traffics: filterTraffics.value,
+    paymentModel: filterPaymentModel.value,
+    orderType: filterOrderType.value,
+    serviceOn: filterServiceOn.value,
+  })
+  const url = buildTableShareUrl(window.location.origin, route.path, filterQuery, assist)
+  try {
+    await navigator.clipboard.writeText(url)
+    showToast('Link copied')
+  } catch {
+    showToast('Copy unavailable')
+  }
+}
+
+function applyOrdersTableShareLink(): void {
+  if (shouldDeferTableShareAssist(session.payload?.user, route.query)) {
+    return
+  }
+  const state = {
+    orderId: '',
+    scope: 'active' as OrderListScope,
+    verticals: [] as string[],
+    countries: [] as string[],
+    traffics: [] as string[],
+    paymentModel: null as string | null,
+    orderType: null as 'live' | 'stock' | null,
+    serviceOn: '',
+  }
+  if (!applyOrdersTableShareFromQuery(route.query, state)) {
+    return
+  }
+  filterOrderId.value = state.orderId
+  filterScope.value = state.scope
+  filterVerticals.value = state.verticals
+  filterCountries.value = state.countries
+  filterTraffics.value = state.traffics
+  filterPaymentModel.value = state.paymentModel
+  filterOrderType.value = state.orderType
+  filterServiceOn.value = state.serviceOn
+  page.value = 1
+}
+
+watch(
+  () => [route.query, session.loading, session.payload?.user?.id] as const,
+  () => {
+    if (session.loading) {
+      return
+    }
+    applyOrdersTableShareLink()
+  },
+  { immediate: true },
+)
 
 function orderTypeLabel(item: OrderRow): string {
   return item.stock ? 'Stock' : 'Live'

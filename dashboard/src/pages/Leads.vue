@@ -231,10 +231,14 @@
 
     <UiTableCard v-if="showJournal" :title="pageTitle">
       <template #actions>
-        <UiButton variant="outline" icon="mdi-refresh" :loading="leadStore.loading" @click="leadStore.load()">
-          Refresh
-        </UiButton>
-        <UiButton variant="outline" icon="mdi-download" :disabled="filtered.length === 0" @click="exportCsv">Export</UiButton>
+        <TableCardToolbar
+          :refresh-loading="leadStore.loading"
+          :export-disabled="filtered.length === 0"
+          :share-disabled="!canShareTableView"
+          @refresh="leadStore.load()"
+          @export="exportCsv"
+          @share="copyShareLink"
+        />
       </template>
       <UiDataTable
         v-model:page="page"
@@ -450,6 +454,7 @@ import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import TableCardToolbar from '@/components/ui/TableCardToolbar.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import { countFilledFilters } from '@/filterCount'
@@ -477,6 +482,15 @@ import {
   orderDisplayId,
   verticalFromAffSub,
 } from '@/orderDisplay'
+import {
+  applyLeadsTableShareFromQuery,
+  buildTableShareUrl,
+  isTableViewShareQuery,
+  LEADS_TABLE_SHARE_QUERY_KEYS,
+  leadsTableShareToQuery,
+  shouldDeferTableShareAssist,
+  tableViewShareAssist,
+} from '@/tableViewShare'
 import { useLeadStore, type CabinetLead } from '@/stores/leads'
 import { useMarketStore, type OrderRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
@@ -490,6 +504,7 @@ const leadStore = useLeadStore()
 const market = useMarketStore()
 const isBuyer = computed(() => session.payload?.user?.role === 'buyer')
 const isPartner = computed(() => session.payload?.user?.role === 'partner')
+const canShareTableView = computed(() => Boolean(tableViewShareAssist(session.payload?.user)))
 const compactTableActions = useCompactTableActions()
 const tab = ref<'journal' | 'send'>('journal')
 const showJournal = computed(() => !isBuyer.value || tab.value === 'journal')
@@ -580,7 +595,95 @@ function syncOrderFromRoute(): void {
   }
 }
 
-watch(() => route.query.order, syncOrderFromRoute, { immediate: true })
+function clearTableViewShareQuery(): void {
+  const query = { ...route.query }
+  let dirty = false
+  for (const key of LEADS_TABLE_SHARE_QUERY_KEYS) {
+    if (query[key] != null) {
+      delete query[key]
+      dirty = true
+    }
+  }
+  if (dirty) {
+    void router.replace({ path: route.path, query })
+  }
+}
+
+async function copyShareLink(): Promise<void> {
+  const assist = tableViewShareAssist(session.payload?.user)
+  if (!assist) {
+    return
+  }
+  const filterQuery = leadsTableShareToQuery({
+    orderFilter: routeOrderFilter.value,
+    leadId: filterLeadId.value,
+    verticals: filterVerticals.value,
+    countries: filterCountries.value,
+    traffics: filterTraffics.value,
+    phone: filterPhone.value,
+    email: filterEmail.value,
+    clientStatus: filterClientStatus.value,
+    deposit: filterDeposit.value,
+    gender: filterGender.value,
+    age: filterAge.value,
+  })
+  const url = buildTableShareUrl(window.location.origin, route.path, filterQuery, assist)
+  try {
+    await navigator.clipboard.writeText(url)
+    showToast('Link copied')
+  } catch {
+    showToast('Copy unavailable')
+  }
+}
+
+function applyLeadsTableShareLink(): void {
+  if (shouldDeferTableShareAssist(session.payload?.user, route.query)) {
+    return
+  }
+  const state = {
+    orderFilter: '',
+    leadId: '',
+    verticals: [] as string[],
+    countries: [] as string[],
+    traffics: [] as string[],
+    phone: '',
+    email: '',
+    clientStatus: '',
+    deposit: null as 'yes' | 'no' | null,
+    gender: null as string | null,
+    age: '',
+  }
+  if (!applyLeadsTableShareFromQuery(route.query, state)) {
+    return
+  }
+  routeOrderFilter.value = state.orderFilter
+  filterLeadId.value = state.leadId
+  filterVerticals.value = state.verticals
+  filterCountries.value = state.countries
+  filterTraffics.value = state.traffics
+  filterPhone.value = state.phone
+  filterEmail.value = state.email
+  filterClientStatus.value = state.clientStatus
+  filterDeposit.value = state.deposit
+  filterGender.value = state.gender
+  filterAge.value = state.age
+  page.value = 1
+}
+
+watch(
+  () => [route.query, session.loading, session.payload?.user?.id] as const,
+  () => {
+    if (session.loading) {
+      return
+    }
+    if (isTableViewShareQuery(route.query)) {
+      applyLeadsTableShareLink()
+      return
+    }
+    syncOrderFromRoute()
+  },
+  { immediate: true },
+)
 const apiKey = ref('')
 const keyBusy = ref(false)
 const keyError = ref('')
@@ -785,11 +888,7 @@ function resetFilters(): void {
   filterGender.value = null
   filterAge.value = ''
   advancedOpen.value = false
-  if (route.query.order) {
-    const query = { ...route.query }
-    delete query.order
-    void router.replace({ path: route.path, query })
-  }
+  clearTableViewShareQuery()
 }
 
 const example = computed(() => {

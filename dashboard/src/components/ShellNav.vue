@@ -27,14 +27,7 @@
       </button>
     </div>
 
-    <div v-if="light && (email || showWallet)" class="lm-mobile-nav__header">
-      <div v-if="email" class="lm-account lm-mobile-nav__panel">
-        <span class="lm-account__avatar">{{ initials }}</span>
-        <span class="lm-account__text">
-          <strong>{{ email }}</strong>
-          <small>{{ accountLine }}</small>
-        </span>
-      </div>
+    <div v-if="light && showWallet" class="lm-mobile-nav__header">
       <div v-if="showWallet" class="lm-mobile-nav__wallet lm-mobile-nav__panel">
         <div class="lm-mobile-nav__label">
           <v-icon icon="mdi-wallet-outline" size="16" />

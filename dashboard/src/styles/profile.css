@@ -261,6 +261,12 @@
 
 }
 
+@media (max-width: 767px) {
+  .profile-summary {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .profile-sessions-table thead {
     display: none;

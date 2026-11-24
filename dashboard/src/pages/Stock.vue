@@ -94,12 +94,14 @@
       :subtitle="viewTab === 'stock' ? 'Instant delivery from the warehouse shelf' : 'Schedule a day order from a preset'"
     >
       <template #actions>
-        <UiButton variant="outline" icon="mdi-refresh" :loading="market.loading" @click="refresh()">
-          Refresh
-        </UiButton>
-        <UiButton variant="outline" icon="mdi-download" :disabled="filtered.length === 0" @click="exportCsv">
-          Export
-        </UiButton>
+        <TableCardToolbar
+          :refresh-loading="market.loading"
+          :export-disabled="filtered.length === 0"
+          :share-disabled="!canShareTableView"
+          @refresh="refresh()"
+          @export="exportCsv"
+          @share="copyShareLink"
+        />
       </template>
       <UiDataTable
       v-model:page="page"
@@ -333,6 +335,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiLabeledField from '@/components/ui/UiLabeledField.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import TableCardToolbar from '@/components/ui/TableCardToolbar.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import {
@@ -349,6 +352,15 @@ import {
 } from '@/marketOptions'
 import { dollars, wholeDollars } from '@/money'
 import { parseStockModalIntent, STOCK_MODAL_QUERY_KEYS, STOCK_SHARE_ASSIST_KEYS } from '@/stockModalIntent'
+import {
+  applyStockTableShareFromQuery,
+  buildTableShareUrl,
+  shouldDeferTableShareAssist,
+  STOCK_TABLE_SHARE_QUERY_KEYS,
+  stockTableShareToQuery,
+  tableViewShareAssist,
+} from '@/tableViewShare'
+import { useSessionStore } from '@/stores/session'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { countryName } from '@/countries'
 import { stockFreshnessTooltip } from '@/stockFreshness'
@@ -360,7 +372,10 @@ import { useMarketStore, type StockOfferRow } from '@/stores/market'
 
 const route = useRoute()
 const router = useRouter()
+const session = useSessionStore()
 const market = useMarketStore()
+
+const canShareTableView = computed(() => Boolean(tableViewShareAssist(session.payload?.user)))
 
 const filterVerticals = ref<string[]>([])
 const filterCountries = ref<string[]>([])
@@ -559,6 +574,20 @@ function selectVerticalChip(value: string): void {
   filterVerticals.value = [value]
 }
 
+function clearTableViewShareQuery(): void {
+  const query = { ...route.query }
+  let dirty = false
+  for (const key of STOCK_TABLE_SHARE_QUERY_KEYS) {
+    if (query[key] != null) {
+      delete query[key]
+      dirty = true
+    }
+  }
+  if (dirty) {
+    void router.replace({ path: route.path, query })
+  }
+}
+
 function resetFilters(): void {
   filterVerticals.value = []
   filterCountries.value = []
@@ -566,6 +595,56 @@ function resetFilters(): void {
   filterModel.value = null
   filterCr.value = null
   filterAvailability.value = null
+  page.value = 1
+  clearTableViewShareQuery()
+}
+
+async function copyShareLink(): Promise<void> {
+  const assist = tableViewShareAssist(session.payload?.user)
+  if (!assist) {
+    return
+  }
+  const filterQuery = stockTableShareToQuery({
+    tab: viewTab.value,
+    verticals: filterVerticals.value,
+    countries: filterCountries.value,
+    traffics: filterTraffics.value,
+    model: filterModel.value,
+    cr: filterCr.value,
+    availability: filterAvailability.value,
+  })
+  const url = buildTableShareUrl(window.location.origin, route.path, filterQuery, assist)
+  try {
+    await navigator.clipboard.writeText(url)
+    showToast('Link copied')
+  } catch {
+    showToast('Copy unavailable')
+  }
+}
+
+function applyStockTableShareLink(): void {
+  if (shouldDeferTableShareAssist(session.payload?.user, route.query)) {
+    return
+  }
+  const state = {
+    tab: viewTab.value,
+    verticals: [] as string[],
+    countries: [] as string[],
+    traffics: [] as string[],
+    model: null as string | null,
+    cr: null as string | null,
+    availability: null as string | null,
+  }
+  if (!applyStockTableShareFromQuery(route.query, state)) {
+    return
+  }
+  viewTab.value = state.tab
+  filterVerticals.value = state.verticals
+  filterCountries.value = state.countries
+  filterTraffics.value = state.traffics
+  filterModel.value = state.model
+  filterCr.value = state.cr
+  filterAvailability.value = state.availability
   page.value = 1
 }
 
@@ -642,10 +721,15 @@ async function applyStockModalLink(): Promise<void> {
 }
 
 watch(
-  () => route.query,
+  () => [route.query, session.loading, session.payload?.user?.id] as const,
   () => {
+    if (session.loading) {
+      return
+    }
+    applyStockTableShareLink()
     void applyStockModalLink()
   },
+  { immediate: true },
 )
 
 watch([buyOpen, orderOpen], ([buy, order]) => {

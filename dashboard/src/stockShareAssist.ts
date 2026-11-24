@@ -1,5 +1,9 @@
-import type { RouteLocationNormalizedLoaded } from 'vue-router'
+import type { RouteLocationNormalizedLoaded, Router } from 'vue-router'
 import { cabinetOrigin } from '@/host'
+import {
+  isTableViewShareQuery,
+  queryWithoutShareAssist,
+} from '@/tableViewShare'
 import {
   parseStockModalIntent,
   parseStockShareAssist,
@@ -12,6 +16,7 @@ type SessionStore = ReturnType<typeof useSessionStore>
 export async function maybeResolveAdminStockShare(
   session: SessionStore,
   route: RouteLocationNormalizedLoaded,
+  router?: Router,
 ): Promise<boolean> {
   if (session.loading || session.missing || !session.payload?.user) {
     return false
@@ -19,7 +24,11 @@ export async function maybeResolveAdminStockShare(
 
   const intent = parseStockModalIntent(route.query)
   const assist = parseStockShareAssist(route.query)
-  if (!intent || !assist) {
+  if (!assist) {
+    return false
+  }
+  const tableShare = isTableViewShareQuery(route.query)
+  if (!intent && !tableShare) {
     return false
   }
 
@@ -31,13 +40,25 @@ export async function maybeResolveAdminStockShare(
   }
 
   if (session.payload.user.id === assist.asUserId && session.payload.user.role === assist.forRole) {
-    return redirectToRoleCabinetIfNeeded(session, route, assist.forRole)
+    const redirected = redirectToRoleCabinetIfNeeded(session, route, assist.forRole)
+    if (!redirected && router && (route.query.as != null || route.query.for != null)) {
+      const carry = intent
+        ? stockModalQueryWithoutAssist(route.query)
+        : queryWithoutShareAssist(route.query)
+      await router.replace({ path: route.path, query: carry })
+      return true
+    }
+    return redirected
   }
 
   await session.startImpersonation(assist.asUserId, assist.forRole, { redirect: false })
-  const params = new URLSearchParams(stockModalQueryWithoutAssist(route.query))
+  const carry = intent
+    ? stockModalQueryWithoutAssist(route.query)
+    : queryWithoutShareAssist(route.query)
+  const params = new URLSearchParams(carry)
   const path = route.path.startsWith('/') ? route.path : `/${route.path}`
-  const target = `${cabinetOrigin(window.location.hostname, assist.forRole)}${path}?${params.toString()}`
+  const qs = params.toString()
+  const target = `${cabinetOrigin(window.location.hostname, assist.forRole)}${path}${qs ? `?${qs}` : ''}`
   window.location.href = target
   return true
 }
@@ -52,8 +73,13 @@ function redirectToRoleCabinetIfNeeded(
     return false
   }
 
-  const params = new URLSearchParams(stockModalQueryWithoutAssist(route.query))
+  const intent = parseStockModalIntent(route.query)
+  const carry = intent
+    ? stockModalQueryWithoutAssist(route.query)
+    : queryWithoutShareAssist(route.query)
+  const params = new URLSearchParams(carry)
   const path = route.path.startsWith('/') ? route.path : `/${route.path}`
-  window.location.href = `${expected}${path}?${params.toString()}`
+  const qs = params.toString()
+  window.location.href = `${expected}${path}${qs ? `?${qs}` : ''}`
   return true
 }
