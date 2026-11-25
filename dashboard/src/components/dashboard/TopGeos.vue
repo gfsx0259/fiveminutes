@@ -2,21 +2,28 @@
   <div class="top-geos">
     <div class="top-geos__row top-geos__row--head">
       <span>Country</span>
-      <span>Share of spend</span>
-      <span class="top-geos__num">Leads</span>
-      <span class="top-geos__num">CR</span>
-      <span class="top-geos__num">Spent</span>
+      <span>{{ status ? 'Approved share' : 'Share of spend' }}</span>
+      <span class="top-geos__num">{{ status ? 'Approved' : 'Leads' }}</span>
+      <span class="top-geos__num">{{ status ? 'With status' : 'Avg cost' }}</span>
+      <span class="top-geos__num">{{ status ? 'CR' : 'Spent' }}</span>
     </div>
-    <p v-if="rows.length === 0" class="top-geos__empty">No purchases for the period</p>
+    <p v-if="rows.length === 0" class="top-geos__empty">{{ status ? 'No statuses for the period' : 'No purchases for the period' }}</p>
     <div v-for="row in rows" :key="row.country" class="top-geos__row">
       <span class="top-geos__country">
         <CountryPick :code="row.country" />
         <span class="top-geos__name">{{ countryName(row.country) }}</span>
       </span>
-      <span class="top-geos__bar"><i :style="{ width: `${row.spent / maxSpent * 100}%` }" /></span>
-      <span class="top-geos__num">{{ row.leads.toLocaleString('en-US') }}</span>
-      <span class="top-geos__num">{{ percent(row.approvalRate) }}</span>
-      <span class="top-geos__num"><b>{{ wholeDollars(row.spent) }}</b></span>
+      <span class="top-geos__bar" :data-tone="status ? 'own' : 'market'"><i :style="{ width: `${row.share * 100}%` }" /></span>
+      <template v-if="status">
+        <span class="top-geos__num">{{ row.approved.toLocaleString('en-US') }}</span>
+        <span class="top-geos__num">{{ (row.approved + row.rejected + row.pending).toLocaleString('en-US') }}</span>
+        <span class="top-geos__num"><b>{{ percent(row.approvalRate) }}</b></span>
+      </template>
+      <template v-else>
+        <span class="top-geos__num">{{ row.leads.toLocaleString('en-US') }}</span>
+        <span class="top-geos__num">{{ dollars(row.averageCost) }}</span>
+        <span class="top-geos__num"><b>{{ wholeDollars(row.spent) }}</b></span>
+      </template>
     </div>
   </div>
 </template>
@@ -25,26 +32,32 @@
 import { computed } from 'vue'
 import CountryPick from '@/components/CountryPick.vue'
 import { countryName } from '@/countries'
-import { wholeDollars } from '@/money'
-import { percent, totalsOf, type Purchase } from '@/purchases'
+import { dollars, wholeDollars } from '@/money'
+import { percent, type Purchase } from '@/purchases'
+import { reportTree } from '@/reportFields'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   purchases: Purchase[]
-}>()
-
-const rows = computed(() => {
-  const groups = new Map<string, Purchase[]>()
-  for (const purchase of props.purchases) {
-    const country = purchase.lead.country || '—'
-    groups.set(country, [...(groups.get(country) ?? []), purchase])
-  }
-  return [...groups.entries()]
-    .map(([country, list]) => ({ country, ...totalsOf(list) }))
-    .sort((left, right) => right.spent - left.spent)
-    .slice(0, 6)
+  mode?: 'spend' | 'status'
+}>(), {
+  mode: 'spend',
 })
 
-const maxSpent = computed(() => Math.max(1, ...rows.value.map((row) => row.spent)))
+const status = computed(() => props.mode === 'status')
+
+const rows = computed(() => {
+  const all = reportTree(props.purchases, ['country']).map((node) => ({ country: node.value || '—', ...node.totals }))
+  if (status.value) {
+    return all
+      .filter((row) => row.approved + row.rejected + row.pending > 0)
+      .sort((left, right) => right.approvalRate - left.approvalRate || right.approved - left.approved)
+      .slice(0, 6)
+      .map((row) => ({ ...row, share: row.approvalRate }))
+  }
+  const top = all.sort((left, right) => right.spent - left.spent).slice(0, 6)
+  const maxSpent = Math.max(1, ...top.map((row) => row.spent))
+  return top.map((row) => ({ ...row, share: row.spent / maxSpent }))
+})
 </script>
 
 <style scoped>
@@ -59,7 +72,7 @@ const maxSpent = computed(() => Math.max(1, ...rows.value.map((row) => row.spent
   display: grid;
   font-size: 13px;
   gap: 12px;
-  grid-template-columns: minmax(120px, 1.2fr) minmax(0, 2fr) 56px 64px 92px;
+  grid-template-columns: minmax(170px, 1.6fr) minmax(0, 1.4fr) 64px 84px 84px;
   min-height: 42px;
   padding: 0 12px;
 }
@@ -85,6 +98,11 @@ const maxSpent = computed(() => Math.max(1, ...rows.value.map((row) => row.spent
   min-width: 0;
 }
 
+.top-geos__country > .country-pick {
+  flex: none;
+  width: auto;
+}
+
 .top-geos__name {
   color: var(--lm-muted);
   font-weight: 400;
@@ -105,6 +123,14 @@ const maxSpent = computed(() => Math.max(1, ...rows.value.map((row) => row.spent
   border-radius: 999px;
   display: block;
   height: 100%;
+}
+
+.top-geos__bar[data-tone='own'] {
+  background: #e7f6ec;
+}
+
+.top-geos__bar[data-tone='own'] i {
+  background: linear-gradient(90deg, #7fd3a0, #2f9e5b);
 }
 
 .top-geos__num {

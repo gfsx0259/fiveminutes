@@ -35,6 +35,10 @@
         </button>
       </div>
     </div>
+    <router-link v-if="hidden > 0" class="active-orders__more" to="/orders">
+      +{{ hidden }} more {{ hidden === 1 ? 'order' : 'orders' }}
+      <v-icon icon="mdi-arrow-right" size="14" />
+    </router-link>
     <p v-if="error" class="active-orders__error">{{ error }}</p>
   </div>
 </template>
@@ -52,10 +56,13 @@ import { useMarketStore, type OrderRow } from '@/stores/market'
 
 type OrderState = 'in_progress' | 'paused' | 'scheduled'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   orders: OrderRow[]
   now: number
-}>()
+  limit?: number
+}>(), {
+  limit: 5,
+})
 
 const market = useMarketStore()
 const acting = ref('')
@@ -64,13 +71,21 @@ const error = ref('')
 const stateLabels: Record<OrderState, string> = { in_progress: 'Running', paused: 'Paused', scheduled: 'Scheduled' }
 const stateTones: Record<OrderState, string> = { in_progress: 'primary', paused: 'warning', scheduled: 'lavender' }
 
-const rows = computed(() => openOrdersOf(props.orders)
+const stateRank: Record<OrderState, number> = { in_progress: 0, paused: 1, scheduled: 2 }
+
+const ordered = computed(() => openOrdersOf(props.orders)
   .map((order) => {
     const state: OrderState = order.status === 'paused' ? 'paused' : isScheduled(order, props.now) ? 'scheduled' : 'in_progress'
     const share = order.volume ? order.supplied / order.volume * 100 : 0
     return { order, state, share: order.supplied ? Math.max(share, 2) : 0, day: dayOf(order) }
   })
-  .sort((left, right) => `${left.order.serviceOn}${left.order.opensAt}`.localeCompare(`${right.order.serviceOn}${right.order.opensAt}`)))
+  .sort((left, right) => stateRank[left.state] - stateRank[right.state]
+    || (left.state === 'scheduled'
+      ? `${left.order.serviceOn}${left.order.opensAt}`.localeCompare(`${right.order.serviceOn}${right.order.opensAt}`)
+      : `${left.order.serviceOn}${left.order.closesAt}`.localeCompare(`${right.order.serviceOn}${right.order.closesAt}`))))
+
+const rows = computed(() => ordered.value.slice(0, props.limit))
+const hidden = computed(() => ordered.value.length - rows.value.length)
 
 function dayOf(order: OrderRow): string {
   if (order.serviceOn === localDay(props.now)) return 'Today'
@@ -114,7 +129,9 @@ async function act(order: OrderRow): Promise<void> {
 .active-orders__title {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
   font-weight: 600;
   gap: 8px;
 }
@@ -194,6 +211,22 @@ async function act(order: OrderRow): Promise<void> {
 }
 
 .active-orders__empty,
+.active-orders__more {
+  align-items: center;
+  align-self: flex-start;
+  color: var(--lm-primary-deep);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 2px;
+  margin: 10px 0 0 12px;
+  text-decoration: none;
+}
+
+.active-orders__more:hover {
+  text-decoration: underline;
+}
+
 .active-orders__error {
   color: var(--lm-muted);
   font-size: 13px;

@@ -65,13 +65,13 @@ const cents = computed(() => dollars(balance.value).split('.')[1] ?? '00')
 
 const dailySpend = computed(() => {
   const today = startOfDay(props.now)
-  return totalsOf(between(props.purchases, today - 7 * DAY, today)).spent / 7
+  return totalsOf(between(props.purchases, today - 6 * DAY, props.now + 1)).spent / 7
 })
 
 const days = computed(() => (dailySpend.value > 0 ? balance.value / dailySpend.value : Infinity))
 const low = computed(() => days.value < 2)
 const runway = computed(() => (Number.isFinite(days.value)
-  ? `Covers ≈ ${days.value.toFixed(1)} days at your 7-day average spend (${wholeDollars(dailySpend.value)}/day)`
+  ? `Enough for ≈ ${days.value.toFixed(1)} days at your average spend of the last 7 days (${wholeDollars(dailySpend.value)}/day)`
   : 'No spend in the last 7 days'))
 
 const chargedToday = computed(() => {
