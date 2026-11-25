@@ -703,13 +703,13 @@ onMounted(() => {
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;
-  min-width: 1020px;
+  min-width: 1050px;
   table-layout: fixed;
   width: 100%;
 }
 
 .demands-table th:nth-child(2) {
-  width: 110px;
+  width: 140px;
 }
 
 .demands-table th:nth-child(2),
