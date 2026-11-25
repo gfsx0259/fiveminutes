@@ -70,6 +70,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { monthGrid, monthTitle, shiftMonth, weekdays } from '@/calendar'
 
 const props = withDefaults(defineProps<{
   label?: string
@@ -82,7 +83,6 @@ const props = withDefaults(defineProps<{
 
 const model = defineModel<string>({ default: '' })
 
-const weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 const rootEl = ref<HTMLElement | null>(null)
 let host: HTMLElement | null = null
 const calendarEl = ref<HTMLElement | null>(null)
@@ -128,31 +128,12 @@ function showMonth(iso: string): void {
   cursor.value = { year: Number(source.slice(0, 4)), month: Number(source.slice(5, 7)) - 1 }
 }
 
-const monthLabel = computed(() => new Intl.DateTimeFormat('en-US', {
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-}).format(new Date(Date.UTC(cursor.value.year, cursor.value.month, 1))))
+const monthLabel = computed(() => monthTitle(cursor.value.year, cursor.value.month))
 
-const days = computed(() => {
-  const first = new Date(Date.UTC(cursor.value.year, cursor.value.month, 1))
-  const offset = (first.getUTCDay() + 6) % 7
-  const start = new Date(first)
-  start.setUTCDate(1 - offset)
-  return Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(start)
-    date.setUTCDate(start.getUTCDate() + index)
-    return {
-      iso: date.toISOString().slice(0, 10),
-      number: date.getUTCDate(),
-      outside: date.getUTCMonth() !== cursor.value.month,
-    }
-  })
-})
+const days = computed(() => monthGrid(cursor.value.year, cursor.value.month))
 
 function shift(delta: number): void {
-  const next = new Date(Date.UTC(cursor.value.year, cursor.value.month + delta, 1))
-  cursor.value = { year: next.getUTCFullYear(), month: next.getUTCMonth() }
+  cursor.value = shiftMonth(cursor.value.year, cursor.value.month, delta)
 }
 
 function toggle(event: MouseEvent): void {

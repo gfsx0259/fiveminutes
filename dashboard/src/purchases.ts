@@ -56,10 +56,10 @@ export interface OutcomeView {
 }
 
 export const outcomes: OutcomeView[] = [
-  { value: 'approved', label: 'Approved', color: '#2f9e5b', tone: 'success', note: 'Deposit confirmed by the partner' },
-  { value: 'rejected', label: 'Rejected', color: '#e0607e', tone: 'error', note: 'Invalid, not interested or unreachable' },
-  { value: 'delivered', label: 'Delivered', color: '#7ea6f5', tone: 'success', note: 'CPL lead delivered and paid' },
-  { value: 'pending', label: 'In work', color: '#c7bffc', tone: 'primary', note: 'Waiting for the partner decision' },
+  { value: 'approved', label: 'Approved', color: '#2f9e5b', tone: 'success', note: 'You confirmed the deposit' },
+  { value: 'rejected', label: 'Rejected', color: '#e0607e', tone: 'error', note: 'You marked it invalid, not interested or unreachable' },
+  { value: 'delivered', label: 'Delivered', color: '#7ea6f5', tone: 'success', note: 'CPL lead, paid on delivery, no status needed' },
+  { value: 'pending', label: 'Waiting for status', color: '#c7bffc', tone: 'primary', note: 'Waiting for your status' },
 ]
 
 export function outcomeView(outcome: Outcome): OutcomeView {
@@ -135,38 +135,6 @@ export function totalsOf(list: Purchase[]): PurchaseTotals {
   }
 }
 
-export type BreakdownGroup = 'country' | 'vertical' | 'traffic' | 'model' | 'time'
-
-export interface BreakdownRow extends PurchaseTotals {
-  key: string
-  order: string | number
-  share: number
-}
-
-export function breakdownOf(list: Purchase[], group: BreakdownGroup, unit: Period['unit']): BreakdownRow[] {
-  const groups = new Map<string, { order: string | number, items: Purchase[] }>()
-  for (const purchase of list) {
-    const [key, order] = groupKey(purchase, group, unit)
-    const entry = groups.get(key) ?? { order, items: [] }
-    entry.items.push(purchase)
-    groups.set(key, entry)
-  }
-  const spent = totalsOf(list).spent
-  return [...groups.entries()].map(([key, entry]) => {
-    const totals = totalsOf(entry.items)
-    return { key, order: entry.order, ...totals, share: spent ? totals.spent / spent : 0 }
-  })
-}
-
-function groupKey(purchase: Purchase, group: BreakdownGroup, unit: Period['unit']): [string, string | number] {
-  if (group === 'country') return [purchase.lead.country, purchase.lead.country]
-  if (group === 'vertical') return [purchase.vertical, purchase.vertical]
-  if (group === 'traffic') return [purchase.lead.trafficSource, purchase.lead.trafficSource]
-  if (group === 'model') return [purchase.model, purchase.model]
-  const start = unit === 'hour' ? Math.floor(purchase.at / HOUR) * HOUR : startOfDay(purchase.at)
-  return [String(start), start]
-}
-
 export function between(list: Purchase[], from: number, to: number): Purchase[] {
   return list.filter((purchase) => purchase.at >= from && purchase.at < to)
 }
@@ -195,6 +163,38 @@ export function periodOf(key: PeriodKey, now: number): Period {
   const days = Number(key)
   const from = today - (days - 1) * DAY
   return { from, to: end, previousFrom: from - days * DAY, previousTo: from, unit: 'day', title: `Last ${days} days`, versus: `vs previous ${days} days` }
+}
+
+function dayOf(iso: string): number {
+  const [year, month, day] = iso.split('-').map(Number)
+  return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1).getTime()
+}
+
+export function rangeOf(fromIso: string, toIso: string): Period {
+  const [first, last] = fromIso <= toIso ? [fromIso, toIso] : [toIso, fromIso]
+  const from = dayOf(first)
+  const to = nextDay(dayOf(last))
+  const days = Math.round((to - from) / DAY)
+  const label = (at: number) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return {
+    from,
+    to,
+    previousFrom: from - (to - from),
+    previousTo: from,
+    unit: days === 1 ? 'hour' : 'day',
+    title: days === 1 ? label(from) : `${label(from)} – ${label(to - 1)}`,
+    versus: days === 1 ? 'vs the day before' : `vs previous ${days} days`,
+  }
+}
+
+export interface PeriodChoice {
+  key: PeriodKey | 'custom'
+  from: string
+  to: string
+}
+
+export function choicePeriodOf(choice: PeriodChoice, now: number): Period {
+  return choice.key === 'custom' ? rangeOf(choice.from, choice.to) : periodOf(choice.key, now)
 }
 
 export function bucketsOf(period: Period): Bucket[] {

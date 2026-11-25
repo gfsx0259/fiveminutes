@@ -3,304 +3,240 @@
     <div class="page-head">
       <div>
         <h1>Reports</h1>
-        <p>Leads you purchased, partner outcomes and what they cost.</p>
+        <p>Group and filter your leads. LeadMarket numbers and the numbers from your statuses are shown apart.</p>
       </div>
-      <UiButton variant="outline" icon="mdi-download" :disabled="rows.length === 0" @click="exportCsv">Export CSV</UiButton>
+      <div class="reports__head-actions">
+        <PeriodPicker v-model="choice" :now="now" />
+        <UiButton variant="outline" icon="mdi-download" :disabled="tree.length === 0" @click="exportCsv">Export CSV</UiButton>
+      </div>
     </div>
 
-    <v-alert v-if="problem" type="error" variant="tonal" class="mb-4">{{ problem }}</v-alert>
+    <section class="ui-filter-panel reports__settings">
+      <div class="reports__setting">
+        <span class="reports__setting-title">Presets</span>
+        <ReportPresets :groups="groups" :conditions="conditions" :columns="columns" @apply="applyPreset" />
+      </div>
 
-    <section class="ui-filter-panel reports__filters">
-      <UiField label="Period" icon="mdi-calendar-range">
-        <UiSelect v-model="periodKey" :items="periodItems" />
-      </UiField>
-      <UiField label="Vertical">
-        <UiSelect
-          v-model="vertical"
-          :items="verticalItems"
-          placeholder="All verticals"
-          empty-label="All verticals"
-          clearable
-        >
-          <template #value="{ items }">
-            <span v-if="items.length === 0" class="stock-select__placeholder">All verticals</span>
-            <span v-else class="stock-select-pick">
-              <v-icon :icon="verticalIcon(String(items[0].value))" :color="verticalColor(String(items[0].value))" size="16" />
-              <span>{{ items[0].title }}</span>
-            </span>
-          </template>
-          <template #option="{ item }">
-            <v-icon :icon="verticalIcon(String(item.value))" :color="verticalColor(String(item.value))" size="16" />
-            <span>{{ item.title }}</span>
-          </template>
-        </UiSelect>
-      </UiField>
-      <UiField label="Country">
-        <UiSelect
-          v-model="country"
-          :items="countryItems"
-          placeholder="All countries"
-          empty-label="All countries"
-          searchable
-          search-placeholder="Search country"
-          clearable
-        >
-          <template #value="{ items }">
-            <span v-if="items.length === 0" class="stock-select__placeholder">All countries</span>
-            <span v-else class="stock-select-pick">
-              <CountryFlag :code="String(items[0].value)" :size="16" />
-              <span>{{ items[0].title }}</span>
-            </span>
-          </template>
-          <template #option="{ item }">
-            <CountryFlag :code="String(item.value)" :size="16" />
-            <span>{{ item.title }}</span>
-          </template>
-        </UiSelect>
-      </UiField>
-      <UiField label="Traffic source">
-        <UiSelect
-          v-model="traffic"
-          :items="trafficSources"
-          placeholder="All sources"
-          empty-label="All sources"
-          clearable
-        >
-          <template #value="{ items }">
-            <span v-if="items.length === 0" class="stock-select__placeholder">All sources</span>
-            <span v-else class="stock-select-pick">
-              <v-icon :icon="trafficIcon(String(items[0].value))" :color="trafficColor(String(items[0].value))" size="16" />
-              <span>{{ items[0].title }}</span>
-            </span>
-          </template>
-          <template #option="{ item }">
-            <v-icon :icon="trafficIcon(String(item.value))" :color="trafficColor(String(item.value))" size="16" />
-            <span>{{ item.title }}</span>
-          </template>
-        </UiSelect>
-      </UiField>
-      <UiField label="Payment model">
-        <UiSelect v-model="model" :items="paymentModels" placeholder="All models" empty-label="All models" clearable />
-      </UiField>
-      <div class="reports__filters-reset">
-        <UiButton variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
+      <div class="reports__setting">
+        <span class="reports__setting-title">Group by</span>
+        <GroupLevels v-model="groups" />
+      </div>
+
+      <div class="reports__setting">
+        <span class="reports__setting-title">Conditions</span>
+        <div class="reports__conditions">
+          <ReportConditionRow
+            v-for="(condition, index) in conditions"
+            :key="index"
+            :condition="condition"
+            :first="index === 0"
+            :value-items="valuesOf(inPeriodAll, condition.field)"
+            @update="conditions[index] = $event"
+            @remove="conditions.splice(index, 1)"
+          />
+          <div class="reports__condition-actions">
+            <UiButton variant="ghost" icon="mdi-plus" @click="addCondition">Add condition</UiButton>
+            <UiButton v-if="conditions.length" variant="ghost" icon="mdi-delete-sweep-outline" class="reports__clear" @click="conditions = []">Clear</UiButton>
+            <span v-if="!conditions.length" class="reports__hint">No conditions, all your leads are counted</span>
+          </div>
+        </div>
       </div>
     </section>
 
-    <div class="reports__totals">
-      <div v-for="tile in tiles" :key="tile.label" class="reports__total">
-        <span class="reports__total-label">{{ tile.label }}</span>
-        <strong>{{ tile.value }}</strong>
-        <DeltaChip v-bind="tile.delta" />
-      </div>
+    <div class="reports__summary">
+      <section v-for="block in summary" :key="block.key" class="reports__block" :data-block="block.key">
+        <header>
+          <strong>{{ block.label }}</strong>
+          <span>{{ block.hint }}</span>
+        </header>
+        <div class="reports__tiles">
+          <div v-for="tile in block.tiles" :key="tile.label" class="reports__tile" :title="tile.hint">
+            <span class="reports__tile-label">{{ tile.label }}</span>
+            <strong>{{ tile.value }}</strong>
+            <DeltaChip v-bind="tile.delta" />
+          </div>
+        </div>
+      </section>
     </div>
 
-    <UiCard title="Outcomes over time" :subtitle="chartSubtitle">
-      <template #actions>
-        <ChartLegend :items="legend" />
-      </template>
-      <ComboChart
-        :labels="buckets.map((bucket) => bucket.label)"
-        :ticks="buckets.map((bucket) => bucket.tick)"
-        :bars="outcomes.map((item) => ({ label: item.label, color: item.color, values: trend.map((totals) => totals[item.value]) }))"
-        :line="{ label: 'CR', color: '#3412b9', values: trend.map((totals) => totals.approvalRate) }"
-        :line-max="rateMax"
-        :left-format="(value) => String(Math.round(value))"
-        :right-format="(value) => `${Math.round(value * 100)}%`"
-        :tooltip="outcomeTooltip"
-      />
-    </UiCard>
-
-    <UiCard class="reports__breakdown" title="Breakdown" subtitle="Click a column to sort">
-      <template #actions>
-        <UiButton variant="outline" icon="mdi-download" :disabled="rows.length === 0" @click="exportCsv">
-          Export
-        </UiButton>
-        <UiSegmented v-model="group" :items="groupItems" />
-      </template>
-      <BreakdownTable :rows="rows" :totals="current" :group="group as BreakdownGroup" :unit="period.unit" />
+    <UiCard class="reports__table" title="Performance report" :subtitle="`${period.title} · open a row to see the next level, click a column to sort`">
+      <ReportTable v-model:columns="columns" :tree="tree" :totals="current" :groups="groups" />
     </UiCard>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import ChartLegend from '@/components/charts/ChartLegend.vue'
-import ComboChart from '@/components/charts/ComboChart.vue'
-import CountryFlag from '@/components/CountryFlag.vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import DeltaChip from '@/components/DeltaChip.vue'
-import BreakdownTable from '@/components/reports/BreakdownTable.vue'
+import PeriodPicker from '@/components/PeriodPicker.vue'
+import GroupLevels from '@/components/reports/GroupLevels.vue'
+import ReportConditionRow from '@/components/reports/ReportConditionRow.vue'
+import ReportPresets from '@/components/reports/ReportPresets.vue'
+import ReportTable from '@/components/reports/ReportTable.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiCard from '@/components/ui/UiCard.vue'
-import UiField from '@/components/ui/UiField.vue'
-import UiSegmented from '@/components/ui/UiSegmented.vue'
-import UiSelect from '@/components/ui/UiSelect.vue'
-import type { TooltipRow } from '@/charts'
-import { countryName } from '@/countries'
 import { downloadCsv } from '@/csv'
-import {
-  modelLabel,
-  paymentModels,
-  trafficColor,
-  trafficIcon,
-  trafficLabel,
-  trafficSources,
-  verticalColor,
-  verticalIcon,
-  verticalLabel,
-} from '@/marketOptions'
 import { dollars, wholeDollars } from '@/money'
 import {
   between,
-  breakdownOf,
-  bucketsOf,
-  outcomes,
+  choicePeriodOf,
   percent,
-  periodItems,
-  periodOf,
   purchasesOf,
   totalsOf,
-  type BreakdownGroup,
-  type PeriodKey,
+  type PeriodChoice,
 } from '@/purchases'
+import {
+  blocks,
+  dimensionLabel,
+  dimensions,
+  matches,
+  metrics,
+  reportTree,
+  valuesOf,
+  type PresetState,
+  type ReportCondition,
+  type ReportDimension,
+  type ReportNode,
+} from '@/reportFields'
 import { useLeadStore } from '@/stores/leads'
 import { useMarketStore } from '@/stores/market'
+
+const COLUMNS_KEY = 'rider:reports:columns'
+const STATE_KEY = 'rider:reports:state'
 
 const leadStore = useLeadStore()
 const market = useMarketStore()
 
-const periodKey = ref<string>('7')
-const vertical = ref<string | null>(null)
-const country = ref<string | null>(null)
-const traffic = ref<string | null>(null)
-const model = ref<string | null>(null)
-const group = ref<string>('country')
+const choice = ref<PeriodChoice>({ key: '7', from: '', to: '' })
+const saved = savedState()
+const groups = ref<ReportDimension[]>(saved.groups)
+const conditions = ref<ReportCondition[]>(saved.conditions)
+const columns = ref<string[]>(savedColumns())
 const now = ref(Date.now())
 
-const legend = [
-  ...outcomes.map((item) => ({ label: item.label, color: item.color })),
-  { label: 'CR', color: '#3412b9', line: true },
-]
+watch(columns, (value) => keep(COLUMNS_KEY, value))
+watch([groups, conditions], () => keep(STATE_KEY, { groups: groups.value, conditions: conditions.value }), { deep: true })
+
+function keep(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    return
+  }
+}
 
 const purchases = computed(() => purchasesOf(leadStore.leads, market.orders, market.presets))
-const period = computed(() => periodOf(periodKey.value as PeriodKey, now.value))
-
-const verticalItems = computed(() => [...new Set(purchases.value.map((purchase) => purchase.vertical).filter(Boolean))]
-  .map((code) => ({ title: verticalLabel(code), value: code }))
-  .sort((left, right) => left.title.localeCompare(right.title)))
-
-const countryItems = computed(() => [...new Set(purchases.value.map((purchase) => purchase.lead.country).filter(Boolean))]
-  .map((code) => ({ title: countryName(code), value: code }))
-  .sort((left, right) => left.title.localeCompare(right.title)))
-
-const matching = computed(() => purchases.value.filter((purchase) => {
-  if (vertical.value && purchase.vertical !== vertical.value) {
-    return false
-  }
-  if (country.value && purchase.lead.country !== country.value) {
-    return false
-  }
-  if (traffic.value && purchase.lead.trafficSource !== traffic.value) {
-    return false
-  }
-  if (model.value && purchase.model !== model.value) {
-    return false
-  }
-  return true
-}))
-
+const period = computed(() => choicePeriodOf(choice.value, now.value))
+const inPeriodAll = computed(() => between(purchases.value, period.value.from, period.value.to))
+const matching = computed(() => purchases.value.filter((purchase) => matches(purchase, conditions.value)))
 const inPeriod = computed(() => between(matching.value, period.value.from, period.value.to))
 const current = computed(() => totalsOf(inPeriod.value))
 const previous = computed(() => totalsOf(between(matching.value, period.value.previousFrom, period.value.previousTo)))
-const buckets = computed(() => bucketsOf(period.value))
-const trend = computed(() => buckets.value.map((bucket) => totalsOf(between(inPeriod.value, bucket.from, bucket.to))))
-const rateMax = computed(() => Math.min(1, Math.max(0.2, Math.ceil(Math.max(0, ...trend.value.map((totals) => totals.approvalRate)) * 10) / 10)))
-const rows = computed(() => breakdownOf(inPeriod.value, group.value as BreakdownGroup, period.value.unit))
+const tree = computed(() => reportTree(inPeriod.value, groups.value))
 
-const groupItems = computed(() => [
-  { title: 'Country', value: 'country' },
-  { title: 'Vertical', value: 'vertical' },
-  { title: 'Traffic source', value: 'traffic' },
-  { title: 'Payment model', value: 'model' },
-  { title: period.value.unit === 'hour' ? 'Hour' : 'Day', value: 'time' },
-])
-
-const chartSubtitle = computed(() => `${period.value.title}, ${period.value.unit === 'hour' ? 'by hour' : 'by day'} · deltas ${period.value.versus}`)
-
-const tiles = computed(() => {
+const summary = computed(() => {
   const shown = current.value
   const before = previous.value
-  return [
-    { label: 'Leads', value: count(shown.leads), delta: { current: shown.leads, previous: before.leads } },
-    { label: 'Delivered', value: count(shown.delivered), delta: { current: shown.delivered, previous: before.delivered, good: 'none' as const } },
-    { label: 'In work', value: count(shown.pending), delta: { current: shown.pending, previous: before.pending, good: 'none' as const } },
-    { label: 'Approved', value: count(shown.approved), delta: { current: shown.approved, previous: before.approved } },
-    { label: 'Rejected', value: count(shown.rejected), delta: { current: shown.rejected, previous: before.rejected, good: 'down' as const } },
-    { label: 'Approval rate', value: percent(shown.approvalRate), delta: { current: shown.approvalRate, previous: before.approvalRate, points: true } },
-    { label: 'Spent', value: wholeDollars(shown.spent), delta: { current: shown.spent, previous: before.spent, good: 'none' as const } },
-    { label: 'Avg cost / lead', value: dollars(shown.averageCost), delta: { current: shown.averageCost, previous: before.averageCost, good: 'down' as const } },
-    {
-      label: 'Cost / approved',
-      value: shown.approved ? wholeDollars(shown.costPerApproved) : '—',
-      delta: shown.approved && before.approved
-        ? { current: shown.costPerApproved, previous: before.costPerApproved, good: 'down' as const }
-        : { current: 0, previous: 0 },
-    },
-  ]
+  const tiles = {
+    market: [
+      { label: 'Leads', hint: 'Leads delivered to your orders', value: count(shown.leads), delta: { current: shown.leads, previous: before.leads } },
+      { label: 'Spent', hint: 'What you paid for these leads', value: wholeDollars(shown.spent), delta: { current: shown.spent, previous: before.spent, good: 'none' as const } },
+      { label: 'Avg cost / lead', hint: 'Spent ÷ leads', value: dollars(shown.averageCost), delta: { current: shown.averageCost, previous: before.averageCost, good: 'down' as const } },
+    ],
+    own: [
+      { label: 'CR', hint: 'Approved ÷ CPA leads', value: percent(shown.approvalRate), delta: { current: shown.approvalRate, previous: before.approvalRate, points: true } },
+      { label: 'Approved', hint: 'You confirmed the deposit', value: count(shown.approved), delta: { current: shown.approved, previous: before.approved } },
+      { label: 'Rejected', hint: 'You marked the lead as bad', value: count(shown.rejected), delta: { current: shown.rejected, previous: before.rejected, good: 'down' as const } },
+      { label: 'Waiting', hint: 'CPA leads without your status', value: count(shown.pending), delta: { current: shown.pending, previous: before.pending, good: 'none' as const } },
+      {
+        label: 'Cost / approved',
+        hint: 'Spent ÷ approved',
+        value: shown.approved ? wholeDollars(shown.costPerApproved) : '—',
+        delta: shown.approved && before.approved
+          ? { current: shown.costPerApproved, previous: before.costPerApproved, good: 'down' as const }
+          : { current: 0, previous: 0 },
+      },
+    ],
+  }
+  return blocks.map((block) => ({ ...block, tiles: tiles[block.key] }))
 })
 
 const problem = computed(() => leadStore.error || market.error)
+
+function savedState(): { groups: ReportDimension[], conditions: ReportCondition[] } {
+  const fallback = { groups: ['country' as const], conditions: [] }
+  try {
+    const state = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null') as { groups?: unknown, conditions?: unknown } | null
+    const known = new Set(dimensions.map((item) => item.key))
+    const groupsOk = Array.isArray(state?.groups) && state.groups.length > 0 && state.groups.every((group) => known.has(group as ReportDimension))
+    const conditionsOk = Array.isArray(state?.conditions) && state.conditions.every((condition) => {
+      const value = condition as Partial<ReportCondition>
+      return known.has(value.field as ReportDimension) && (value.operator === 'in' || value.operator === 'not_in') && Array.isArray(value.values)
+    })
+    if (groupsOk && conditionsOk) return { groups: state.groups as ReportDimension[], conditions: state.conditions as ReportCondition[] }
+  } catch {
+    return fallback
+  }
+  return fallback
+}
+
+function savedColumns(): string[] {
+  const fallback = metrics.filter((metric) => metric.visible).map((metric) => metric.key)
+  try {
+    const saved = JSON.parse(localStorage.getItem(COLUMNS_KEY) ?? 'null') as unknown
+    if (Array.isArray(saved) && saved.every((key) => metrics.some((metric) => metric.key === key))) {
+      return saved as string[]
+    }
+  } catch {
+    return fallback
+  }
+  return fallback
+}
+
+function applyPreset(preset: PresetState): void {
+  groups.value = preset.groups
+  conditions.value = preset.conditions
+  if (preset.columns) columns.value = preset.columns
+}
+
+function addCondition(): void {
+  const used = new Set(conditions.value.map((condition) => condition.field))
+  const field = dimensions.find((item) => item.filterable && !used.has(item.key))?.key ?? 'country'
+  conditions.value = [...conditions.value, { field, operator: 'in', values: [] }]
+}
 
 function count(value: number): string {
   return value.toLocaleString('en-US')
 }
 
-function outcomeTooltip(index: number): TooltipRow[] {
-  const totals = trend.value[index]
-  if (!totals) return []
-  return [
-    ...outcomes.map((item) => ({ label: item.label, value: count(totals[item.value]), color: item.color })),
-    { label: 'CR', value: percent(totals.approvalRate), color: '#3412b9' },
-    { label: 'Spent', value: dollars(totals.spent) },
-  ]
-}
-
-function resetFilters(): void {
-  periodKey.value = '7'
-  vertical.value = null
-  country.value = null
-  traffic.value = null
-  model.value = null
-}
-
 function exportCsv(): void {
-  const header = ['Group', 'Leads', 'Delivered', 'In work', 'Approved', 'Rejected', 'Approval rate %', 'Spent', 'Avg cost / lead', 'Cost / approved', 'Share of spend %']
-  const label = (key: string, order: string | number): string => {
-    if (group.value === 'country') return countryName(key)
-    if (group.value === 'vertical') return key ? verticalLabel(key) : '—'
-    if (group.value === 'traffic') return trafficLabel(key)
-    if (group.value === 'model') return modelLabel(key)
-    return new Date(Number(order)).toISOString()
+  const shown = metrics.filter((metric) => columns.value.includes(metric.key))
+  const header = [...groups.value.map(dimensionLabel), ...shown.map((metric) => metric.label)]
+  const lines: string[][] = []
+  const walk = (nodes: ReportNode[], path: string[]): void => {
+    for (const node of nodes) {
+      const names = [...path, node.name]
+      lines.push([
+        ...groups.value.map((_, index) => names[index] ?? ''),
+        ...shown.map((metric) => {
+          const value = metric.value(node.totals, node.share)
+          return value === null ? '' : String(Math.round(value * 10000) / 10000)
+        }),
+      ])
+      walk(node.children, names)
+    }
   }
-  downloadCsv(`reports-${group.value}.csv`, [header, ...rows.value.map((row) => [
-    label(row.key, row.order),
-    String(row.leads),
-    String(row.delivered),
-    String(row.pending),
-    String(row.approved),
-    String(row.rejected),
-    (row.approvalRate * 100).toFixed(2),
-    row.spent.toFixed(2),
-    row.averageCost.toFixed(2),
-    row.approved ? row.costPerApproved.toFixed(2) : '',
-    (row.share * 100).toFixed(1),
-  ])])
+  walk(tree.value, [])
+  downloadCsv(`reports-${groups.value.join('-')}.csv`, [header, ...lines])
 }
 
 async function refresh(): Promise<void> {
   now.value = Date.now()
   await Promise.all([leadStore.load(), market.loadOrders(), market.loadPresets()])
 }
+
+useLoadErrorToast(problem, () => { void refresh() })
 
 onMounted(() => {
   void refresh()
@@ -318,93 +254,153 @@ onMounted(() => {
   margin-top: 3px;
 }
 
-.reports__filters {
-  align-items: end;
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
-  padding-top: 18px;
-}
-
-.reports__filters-reset {
-  align-self: end;
+.reports__head-actions {
+  align-items: center;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: flex-end;
-  padding-bottom: 1px;
 }
 
-.reports__filters-reset :deep(.ui-btn--ghost) {
-  font-size: 14px;
-  height: auto !important;
-  min-height: var(--lm-control-height) !important;
-  padding: 0 12px !important;
+.reports__settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.reports__filters-reset :deep(.ui-btn--ghost .v-btn__prepend .v-icon) {
-  font-size: 18px !important;
-  height: 18px !important;
-  margin-top: 0 !important;
-  width: 18px !important;
-}
-
-.reports__filters-reset :deep(.ui-btn--ghost .v-btn__content) {
-  line-height: 1;
-}
-
-.reports__totals {
+.reports__setting {
+  align-items: flex-start;
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-columns: 110px minmax(0, 1fr);
+}
+
+.reports__setting-title {
+  color: var(--lm-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 36px;
+  text-transform: uppercase;
+}
+
+.reports__clear {
+  color: #c2405f !important;
+}
+
+.reports__conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reports__condition-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.reports__hint {
+  color: var(--lm-muted);
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.reports__summary {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 5fr);
   margin-bottom: 12px;
 }
 
-.reports__total {
+.reports__block {
+  --block-accent: #5b45e8;
+  --block-soft: #f1eeff;
   background: #fff;
   border: 1px solid var(--lm-border);
   border-radius: var(--lm-radius);
+  border-top: 3px solid var(--block-accent);
   box-shadow: var(--lm-shadow);
   min-width: 0;
-  padding: 14px 16px;
+  padding: 12px 14px 14px;
 }
 
-.reports__total-label {
+.reports__block[data-block='own'] {
+  --block-accent: #2f9e5b;
+  --block-soft: #e7f6ec;
+}
+
+.reports__block header {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 10px;
+}
+
+.reports__block header strong {
+  color: var(--block-accent);
+  font-size: 13px;
+}
+
+.reports__block header span {
+  color: var(--lm-muted);
+  font-size: 12px;
+}
+
+.reports__tiles {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+
+.reports__tile {
+  background: var(--block-soft);
+  border-radius: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.reports__tile-label {
   color: var(--lm-muted);
   display: block;
   font-size: 12px;
   font-weight: 600;
-  white-space: nowrap;
 }
 
-.reports__total strong {
+.reports__tile strong {
   display: block;
-  font-size: 22px;
+  font-size: clamp(17px, 1.5vw, 22px);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.4px;
-  margin: 4px 0 6px;
-  white-space: nowrap;
+  margin: 3px 0 6px;
+  overflow-wrap: anywhere;
 }
 
-.reports__breakdown {
-  margin-top: 12px;
-}
-
-@media (max-width: 1500px) {
-  .reports__totals {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+.reports__table {
+  margin-top: 0;
 }
 
 @media (max-width: 1100px) {
-  .reports__filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .reports__summary {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 767px) {
-  .reports__filters,
-  .reports__totals {
+  .reports__setting {
     grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .reports__setting-title {
+    line-height: 1.4;
+  }
+
+  .reports__head-actions {
+    justify-content: stretch;
+    width: 100%;
   }
 }
 </style>

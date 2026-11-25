@@ -8,6 +8,7 @@ export interface WalletTransaction {
   kind: string
   direction: 'credit' | 'debit'
   amountCents: number
+  balanceAfterCents?: number
   leadUuid: string | null
   orderId: string | null
   createdAt: string
