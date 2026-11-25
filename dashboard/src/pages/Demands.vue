@@ -1,5 +1,5 @@
 <template>
-  <div class="demands-page">
+  <div class="demands-page" :class="tableListLayoutClass">
     <div class="page-head">
       <div>
         <h1>Demands</h1>
@@ -27,7 +27,7 @@
         @click="setTab('available')"
       >
         Available Demands
-        <span>{{ availableRows.length }}</span>
+        <span>{{ availableScoped.length }}</span>
       </button>
       <button
         type="button"
@@ -36,7 +36,7 @@
         @click="setTab('accepted')"
       >
         My Accepted
-        <span>{{ acceptedRows.length }}</span>
+        <span>{{ acceptedScoped.length }}</span>
       </button>
     </div>
 
@@ -46,6 +46,7 @@
           <UiButton variant="ghost" icon="mdi-refresh" @click="clearFilters">Reset</UiButton>
         </template>
       <div class="demands-filters">
+        <UiSelect v-model="filterScope" :items="scopeItems" aria-label="Date scope" />
         <UiSelect
           v-model="filterVertical"
           :items="verticalItems"
@@ -130,7 +131,8 @@
               </td>
               <td>
                 <div class="demands-actions">
-                  <UiButton v-if="row.kind === 'cap'" icon="mdi-check" @click="openAccept(row)">Accept</UiButton>
+                  <StatusChip v-if="row.kind === 'cap' && row.expired" status="expired" label="Expired" tone="default" />
+                  <UiButton v-else-if="row.kind === 'cap'" icon="mdi-check" @click="openAccept(row)">Accept</UiButton>
                   <span v-else class="demands-status-help">
                     <StatusChip :status="row.status" :label="statusLabel(row.status)" :tone="statusTone(row.status)" />
                     <v-tooltip location="top" max-width="280">
@@ -253,7 +255,7 @@
           >
             Accept
           </UiButton>
-          <UiButton v-else-if="selected.kind === 'cap'" icon="mdi-check" @click="openAccept(selected)">Accept Demand</UiButton>
+          <UiButton v-else-if="selected.kind === 'cap' && !selected.expired" icon="mdi-check" @click="openAccept(selected)">Accept Demand</UiButton>
         </div>
       </v-card>
     </v-dialog>
@@ -271,12 +273,14 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
+import { useTableListLayout } from '@/composables/useTableListLayout'
 import { showToast } from '@/composables/useToast'
 import { copyText } from '@/copyText'
 import { countFilledFilters } from '@/filterCount'
 import { countryName } from '@/countries'
 import { copyTextFromExportCell, isTableCellCopyTarget } from '@/tableCellCopy'
 import { dollars } from '@/money'
+import { useViewport } from '@/viewport'
 import { offerDisplayId } from '@/orderDisplay'
 import {
   genderLabel,
@@ -306,6 +310,7 @@ interface DemandRow {
   volume: number
   supplied: number
   serviceOn: string | null
+  expired: boolean
   age: string
   gender: string
   status: DemandStatus
@@ -313,7 +318,32 @@ interface DemandRow {
 }
 
 const market = useMarketStore()
+const { mobile } = useViewport()
+// Same as the partner list pages: the page fills the viewport and the table scrolls inside.
+const { tableListLayoutClass } = useTableListLayout(() => !mobile.value)
 const tab = ref<'available' | 'accepted'>('available')
+type DemandScope = 'active' | 'past' | 'all'
+const filterScope = ref<DemandScope>('active')
+const scopeItems = [
+  { title: 'Active', value: 'active' as const },
+  { title: 'Past', value: 'past' as const },
+  { title: 'All', value: 'all' as const },
+]
+
+/** UTC day: the API accepts offers only for UTC today or tomorrow. */
+function utcToday(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function isExpired(serviceOn: string | null): boolean {
+  return serviceOn !== null && serviceOn.slice(0, 10) < utcToday()
+}
+
+function inScope(row: DemandRow): boolean {
+  if (filterScope.value === 'active') return !row.expired
+  if (filterScope.value === 'past') return row.expired
+  return true
+}
 const filterSource = ref<string | null>(null)
 const filterVertical = ref<string | null>(null)
 const filterGeo = ref<string[]>([])
@@ -361,6 +391,7 @@ function rowFromCap(cap: CapRow): DemandRow {
     volume: cap.volume,
     supplied: cap.supplied,
     serviceOn: cap.serviceOn,
+    expired: isExpired(cap.serviceOn),
     age: cap.age,
     gender: cap.gender,
     status: 'available',
@@ -386,6 +417,7 @@ function rowFromOffer(offer: OfferRow): DemandRow {
     volume: cap?.volume ?? offer.volume,
     supplied: cap?.supplied ?? offer.supplied,
     serviceOn: offer.serviceOn,
+    expired: isExpired(offer.serviceOn),
     age: offer.age || preset?.age || '',
     gender: offer.gender || preset?.gender || '',
     status,
@@ -399,6 +431,10 @@ const availableRows = computed(() => market.caps
 
 const acceptedRows = computed(() => market.offers.map(rowFromOffer))
 
+const availableScoped = computed(() => availableRows.value.filter(inScope))
+const acceptedScoped = computed(() => acceptedRows.value.filter(inScope))
+const availableActiveCount = computed(() => availableRows.value.filter((row) => !row.expired).length)
+
 const sourceItems = trafficSources.map((item) => ({ title: item.title, value: item.value }))
 const verticalItems = computed(() => verticals.map((item) => ({ title: item.title, value: item.value })))
 const capItems = [
@@ -409,7 +445,7 @@ const capItems = [
   { title: 'Up to 100% remaining', value: '100' },
 ]
 
-const currentRows = computed(() => (tab.value === 'available' ? availableRows.value : acceptedRows.value))
+const currentRows = computed(() => (tab.value === 'available' ? availableScoped.value : acceptedScoped.value))
 
 const filtered = computed(() => currentRows.value.filter((row) => {
   if (filterSource.value && row.trafficSource !== filterSource.value) return false
@@ -436,14 +472,14 @@ const kpis = computed(() => {
     return sum + offer.volume * price
   }, 0)
   return [
-    { label: 'Available Demands', value: availableRows.value.length.toLocaleString('en-US'), icon: 'mdi-format-list-bulleted' },
+    { label: 'Available Demands', value: availableActiveCount.value.toLocaleString('en-US'), icon: 'mdi-format-list-bulleted' },
     { label: 'In Progress', value: inProgress.toLocaleString('en-US'), icon: 'mdi-lightning-bolt-outline' },
     { label: 'Accepted', value: accepted.length.toLocaleString('en-US'), icon: 'mdi-check' },
     { label: 'Accepted value', value: dollars(acceptedValue / 100), icon: 'mdi-cash-multiple' },
   ]
 })
 
-watch([filterSource, filterVertical, filterGeo, filterCap, tab, pageSize], () => {
+watch([filterScope, filterSource, filterVertical, filterGeo, filterCap, tab, pageSize], () => {
   page.value = 1
 })
 
@@ -555,6 +591,7 @@ async function copyCell(event: MouseEvent, value: string): Promise<void> {
 }
 
 const activeFilterCount = computed(() => countFilledFilters({
+  scope: filterScope.value === 'active' ? '' : filterScope.value,
   vertical: filterVertical.value,
   geo: filterGeo.value,
   source: filterSource.value,
@@ -562,6 +599,7 @@ const activeFilterCount = computed(() => countFilledFilters({
 }))
 
 function clearFilters(): void {
+  filterScope.value = 'active'
   filterSource.value = null
   filterVertical.value = null
   filterGeo.value = []
@@ -699,10 +737,34 @@ onMounted(() => {
   padding: 14px;
 }
 
+/* Fill layout (desktop): cards stay fixed, the table scrolls inside the remaining height. */
+.demands-page.cabinet-page--fill {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.demands-page.cabinet-page--fill > .demands-card {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.demands-page.cabinet-page--fill > .demands-card > * {
+  flex: 0 0 auto;
+}
+
+.demands-page.cabinet-page--fill > .demands-card > .demands-table-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .demands-filters {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-bottom: 14px;
 }
 
