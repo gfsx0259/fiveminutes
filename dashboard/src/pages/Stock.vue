@@ -233,7 +233,7 @@
             :disabled="item.available < 1"
             @click="openBuy(item)"
           >
-            Buy stock
+            Buy
           </UiButton>
           <UiButton
             v-else
@@ -242,7 +242,7 @@
             icon="mdi-calendar-plus"
             @click="openOrder(item)"
           >
-            Make order
+            Order
           </UiButton>
           <v-menu v-if="compactTableActions" location="bottom end" content-class="stock-row-menu">
             <template #activator="{ props: menuProps }">
@@ -265,7 +265,7 @@
                 @click="openBuy(item)"
               >
                 <v-icon icon="mdi-cart-outline" size="16" />
-                Buy stock
+                Buy
               </button>
               <button
                 v-else
@@ -274,7 +274,7 @@
                 @click="openOrder(item)"
               >
                 <v-icon icon="mdi-calendar-plus" size="16" />
-                Make order
+                Order
               </button>
               <button type="button" @click="copyPresetId(item.presetId)">
                 <v-icon icon="mdi-content-copy" size="16" />
