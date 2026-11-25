@@ -12,6 +12,7 @@ export function routePageTitle(path: string, role?: string): string | null {
     '/leads': role === 'admin' ? 'Leads' : 'My leads',
     '/performance': 'Performance',
     '/presets': 'Presets',
+    '/rotation': 'Rotation',
     '/offers': 'Offers',
     '/demands': 'Demands',
     '/caps': 'Demands',

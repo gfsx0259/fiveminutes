@@ -7,6 +7,7 @@ namespace App\Context\Market;
 use App\Context\Lead\Lead;
 use App\Value\AgeBracket;
 use Doctrine\Common\Collections\Collection;
+use ValueError;
 
 final readonly class PresetMatch
 {
@@ -18,6 +19,7 @@ final readonly class PresetMatch
             $lead->getCountry() === ''
             || $lead->getTrafficSource() === ''
             || $lead->getAge() === ''
+            || $this->vertical($lead) === ''
         ) {
             return null;
         }
@@ -67,6 +69,9 @@ final readonly class PresetMatch
 
     private function matches(Preset $preset, Lead $lead, string $gender): bool
     {
+        if (strcasecmp($preset->getVertical(), $this->vertical($lead)) !== 0) {
+            return false;
+        }
         if ($preset->getCountry() !== $lead->getCountry()) {
             return false;
         }
@@ -81,5 +86,19 @@ final readonly class PresetMatch
         }
 
         return true;
+    }
+
+    /** Vertical rides on aff_sub as aff-crypto, the same mark mined leads already use. */
+    private function vertical(Lead $lead): string
+    {
+        $affSub = strtolower(trim($lead->getAffSub()));
+        if (!str_starts_with($affSub, 'aff-')) {
+            return '';
+        }
+        try {
+            return Vertical::from(substr($affSub, 4))->value;
+        } catch (ValueError) {
+            return '';
+        }
     }
 }

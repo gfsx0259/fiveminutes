@@ -51,6 +51,8 @@ return [
         Route::get('/organization/shelf-age-policy')->action([OrganizationController::class, 'shelfAgePolicy'])->name('organization-shelf-age-policy'),
         Route::post('/organization/shelf-age-policy')->action([OrganizationController::class, 'setShelfAgePolicy'])->name('organization-shelf-age-policy-set'),
         Route::patch('/organization/shelf-age-policy')->action([OrganizationController::class, 'setShelfAgePolicy'])->name('organization-shelf-age-policy-patch'),
+        Route::get('/organization/rotation')->action([OrganizationController::class, 'rotation'])->name('organization-rotation'),
+        Route::post('/organization/rotation')->action([OrganizationController::class, 'setRotation'])->name('organization-rotation-set'),
         Route::get('/wallet/transactions')->action([WalletController::class, 'transactions'])->name('wallet-transactions'),
         Route::post('/wallet/deposit')->action([WalletController::class, 'deposit'])->name('wallet-deposit'),
         Route::post('/wallet/withdraw')->action([WalletController::class, 'withdraw'])->name('wallet-withdraw'),

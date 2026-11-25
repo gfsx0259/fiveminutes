@@ -418,6 +418,7 @@ final readonly class LeadRepository
         $sql = 'organization_id = :organization_id
                AND status = :status
                AND country = :country
+               AND lower(aff_sub) = :vertical_aff
                AND ' . $this->trafficClause() . '
                AND ' . $age['sql'] . '
                AND ' . $this->genderFilter();
@@ -425,6 +426,7 @@ final readonly class LeadRepository
             'organization_id' => $organizationId,
             'status' => LeadStatus::InStock->value,
             'country' => $preset->getCountry(),
+            'vertical_aff' => 'aff-' . $preset->getVertical(),
             'traffic_source' => $preset->getTrafficSource(),
             'gender' => $preset->getGender(),
             ...$age['params'],
