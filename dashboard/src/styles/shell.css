@@ -873,6 +873,59 @@ html:has(.lm-nav-dialog) {
   color: inherit;
 }
 
+.cabinet-page--page-scroll .ui-filter-panel .ui-input,
+.cabinet-page--page-scroll .ui-filter-panel .ui-select,
+.cabinet-page--page-scroll .ui-filter-panel .ui-date {
+  background: linear-gradient(180deg, rgb(255 255 255 / 22%), rgb(255 255 255 / 8%));
+  border-color: rgb(255 255 255 / 32%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 48%),
+    inset 0 -1px 0 rgb(255 255 255 / 6%);
+  color: #fff;
+  backdrop-filter: blur(16px);
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-input:hover,
+.cabinet-page--page-scroll .ui-filter-panel .ui-select:hover,
+.cabinet-page--page-scroll .ui-filter-panel .ui-date:hover {
+  background: linear-gradient(180deg, rgb(255 255 255 / 28%), rgb(255 255 255 / 12%));
+  border-color: rgb(255 255 255 / 44%);
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-input::placeholder,
+.cabinet-page--page-scroll .ui-filter-panel .ui-select__value--placeholder,
+.cabinet-page--page-scroll .ui-filter-panel .stock-select__placeholder,
+.cabinet-page--page-scroll .ui-filter-panel .ui-date input::placeholder {
+  color: rgb(255 255 255 / 62%);
+  opacity: 1;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-select__chevron,
+.cabinet-page--page-scroll .ui-filter-panel .ui-select__clear,
+.cabinet-page--page-scroll .ui-filter-panel .ui-field__icon,
+.cabinet-page--page-scroll .ui-filter-panel .ui-date,
+.cabinet-page--page-scroll .ui-filter-panel .ui-date > button,
+.cabinet-page--page-scroll .ui-filter-panel .ui-date input {
+  color: #fff;
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-date > button:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+.cabinet-page--page-scroll .ui-filter-panel .ui-input:focus,
+.cabinet-page--page-scroll .ui-filter-panel .ui-input:focus-visible,
+.cabinet-page--page-scroll .ui-filter-panel .ui-select[aria-expanded='true'],
+.cabinet-page--page-scroll .ui-filter-panel .ui-select:focus-visible,
+.cabinet-page--page-scroll .ui-filter-panel .ui-date--open,
+.cabinet-page--page-scroll .ui-filter-panel .ui-date:focus-within {
+  background: linear-gradient(180deg, rgb(255 255 255 / 30%), rgb(255 255 255 / 14%));
+  border-color: rgb(210 198 255 / 85%);
+  box-shadow:
+    0 0 0 3px rgb(148 134 255 / 28%),
+    inset 0 1px 0 rgb(255 255 255 / 50%);
+}
+
 .cabinet-page--page-scroll .ui-data-table-shell .ui-data-table,
 .cabinet-page--page-scroll .ui-data-table-shell .v-table {
   height: auto !important;
