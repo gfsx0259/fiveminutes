@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Market;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 
 final readonly class CallWindow
@@ -44,16 +45,49 @@ final readonly class CallWindow
         return $this->closes->format('H:i');
     }
 
-    public function availabilityUtc(): string
+    public function availabilityUtc(string $timezone = 'UTC', ?\DateTimeInterface $on = null): string
     {
-        $start = ((int) $this->opens->format('G')) * 60 + (int) $this->opens->format('i');
-        $end = ((int) $this->closes->format('G')) * 60 + (int) $this->closes->format('i');
+        $ranges = $this->utcRanges($timezone, $on);
         $parts = [];
         for ($day = 1; $day <= 7; $day++) {
-            $parts[] = $day . ':' . $start . '-' . $end;
+            foreach ($ranges as [$shift, $start, $end]) {
+                $dow = (($day - 1 + $shift) % 7) + 1;
+                $parts[] = $dow . ':' . $start . '-' . $end;
+            }
         }
 
         return implode(',', $parts);
+    }
+
+    /**
+     * Local hours shifted into UTC minutes. A window that crosses midnight
+     * becomes the evening of this weekday and the morning of the next.
+     *
+     * @return list<array{0: int, 1: int, 2: int}>
+     */
+    private function utcRanges(string $timezone, ?\DateTimeInterface $on): array
+    {
+        try {
+            $zone = new DateTimeZone($timezone);
+        } catch (\Exception) {
+            $zone = new DateTimeZone('UTC');
+        }
+        $utc = new DateTimeZone('UTC');
+        $day = $on === null
+            ? (new DateTimeImmutable('now', $zone))->format('Y-m-d')
+            : DateTimeImmutable::createFromInterface($on)->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d');
+        $open = (new DateTimeImmutable($day . ' ' . $this->opens() . ':00', $zone))->setTimezone($utc);
+        $close = (new DateTimeImmutable($day . ' ' . $this->closes() . ':00', $zone))->setTimezone($utc);
+        $start = ((int) $open->format('G')) * 60 + (int) $open->format('i');
+        $end = ((int) $close->format('G')) * 60 + (int) $close->format('i');
+        if ($open->format('Y-m-d') === $close->format('Y-m-d')) {
+            return [[0, $start, $end]];
+        }
+
+        return [
+            [0, $start, 24 * 60],
+            [1, 0, $end],
+        ];
     }
 
     private function clock(string $value): string

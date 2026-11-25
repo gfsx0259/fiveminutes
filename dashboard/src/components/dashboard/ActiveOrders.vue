@@ -10,7 +10,7 @@
           <ModelTag :model="row.order.paymentModel" />
         </div>
         <div class="active-orders__meta">
-          #{{ row.order.id.slice(0, 8) }} · {{ row.day }} {{ row.order.opensAt }}–{{ row.order.closesAt }} · {{ dollars(row.order.partnerPriceCents / 100) }} per lead
+          #{{ row.order.id.slice(0, 8) }} · {{ row.day }} {{ row.order.opensAt }}–{{ row.order.closesAt }} {{ row.order.timezone || 'UTC' }} · {{ dollars(row.order.partnerPriceCents / 100) }} per lead
         </div>
       </div>
       <div>

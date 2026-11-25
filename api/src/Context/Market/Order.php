@@ -72,6 +72,8 @@ class Order
         DateTimeInterface $updatedAt,
         ?string $stockPickPriority = null,
         ?string $stockPickZone = null,
+        #[Column(type: 'string', name: 'timezone')]
+        private readonly string $timezone = 'UTC',
     ) {
         if ($this->stock === ($this->serviceOn !== null)) {
             throw new InvalidArgumentException('A day order has a date and a stock order does not');
@@ -93,6 +95,14 @@ class Order
             throw new InvalidArgumentException('Supplied count must sit inside the volume');
         }
         $window = new CallWindow($opensAt, $closesAt);
+        try {
+            $zone = new \DateTimeZone($this->timezone);
+        } catch (\Exception) {
+            throw new InvalidArgumentException('Timezone is not recognized');
+        }
+        if ($zone->getName() !== $this->timezone) {
+            throw new InvalidArgumentException('Timezone is not recognized');
+        }
         $this->geo = (new Geo($geo))->toString();
         $this->opensAt = $window->opensAt();
         $this->closesAt = $window->closesAt();
@@ -179,6 +189,11 @@ class Order
     public function getClosesAt(): string
     {
         return $this->closesAt->format('H:i');
+    }
+
+    public function getTimezone(): string
+    {
+        return $this->timezone;
     }
 
     public function getStatus(): OrderStatus

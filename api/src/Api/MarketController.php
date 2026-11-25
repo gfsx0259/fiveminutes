@@ -100,6 +100,7 @@ final readonly class MarketController
                 $form->closesAt(),
                 $form->stockLeadGender(),
                 $form->stockPickPreference(),
+                $form->timezone(),
             );
         } catch (Throwable $exception) {
             return $this->failure($exception);

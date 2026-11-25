@@ -39,7 +39,7 @@ final readonly class OrderPool
             'partner_id' => $order->getPartnerId(),
             'preset_id' => $order->getPresetId(),
             'rate' => (string) $order->getPriceCents(),
-            'availability_utc' => $window->availabilityUtc(),
+            'availability_utc' => $window->availabilityUtc($order->getTimezone(), $order->getServiceOn()),
             'capacity' => (string) $order->getVolume(),
             'geo' => $order->getGeo(),
             'date' => $serviceOn === null ? '' : $serviceOn->format('Y-m-d'),

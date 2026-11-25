@@ -53,6 +53,7 @@ final class OrderForm extends AbstractInput
         public readonly string $service_on = '',
         public readonly string $opens_at = '',
         public readonly string $closes_at = '',
+        public readonly string $timezone = '',
         public readonly string $stock_gender = '',
         public readonly string $pick_priority = '',
         public readonly string $pick_zone = '',
@@ -78,6 +79,9 @@ final class OrderForm extends AbstractInput
         }
         if ($result->isValid() && $this->opens_at >= $this->closes_at) {
             $result->addError('Call center must close after it opens', valuePath: ['closes_at']);
+        }
+        if (!in_array($this->timezone, timezone_identifiers_list(), true)) {
+            $result->addError('Choose a timezone', valuePath: ['timezone']);
         }
 
         return $result;
@@ -158,6 +162,15 @@ final class OrderForm extends AbstractInput
         }
 
         return $this->closes_at;
+    }
+
+    public function timezone(): string
+    {
+        if ($this->stock()) {
+            return 'UTC';
+        }
+
+        return $this->timezone;
     }
 
     public function stockLeadGender(): ?string

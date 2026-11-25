@@ -54,6 +54,7 @@ final readonly class OrderDesk
         string $closesAt,
         ?string $stockLeadGender = null,
         ?StockPickPreference $stockPick = null,
+        string $timezone = 'UTC',
     ): Order {
         $stockPick ??= StockPickPreference::default();
         if ($partner->getRole() !== UserRole::Partner) {
@@ -120,6 +121,7 @@ final readonly class OrderDesk
             $this->clock->now(),
             $stock ? $stockPick->priority->value : null,
             $stock ? $stockPick->zoneId : null,
+            $stock ? 'UTC' : $timezone,
         );
         $this->save($order);
         if ($stock) {

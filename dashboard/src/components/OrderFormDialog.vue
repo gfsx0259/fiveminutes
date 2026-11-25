@@ -143,6 +143,15 @@
         <UiTimeField v-model="closesAt" label="Closes" :minute-step="15" :extra-minutes="[59]" />
       </UiField>
     </div>
+    <UiField label="Timezone" icon="mdi-earth" :error="fieldErrors.timezone">
+      <UiSelect
+        v-model="timezone"
+        :items="zoneItems"
+        searchable
+        search-placeholder="Search timezone"
+        placeholder="Timezone"
+      />
+    </UiField>
 
     <OrderCheckoutSummary
       v-if="showCheckoutSummary"
@@ -170,6 +179,7 @@ import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTimeField from '@/components/ui/UiTimeField.vue'
 import { showToast } from '@/composables/useToast'
 import { defaultOpensForServiceDate } from '@/timeDefaults'
+import { browserTimeZone, timeZoneOptions } from '@/timezones'
 import { ISO2_COUNTRIES } from '@/countries'
 import {
   trafficColor,
@@ -218,12 +228,14 @@ const country = ref<string | null>(null)
 const trafficSource = ref<string | null>(null)
 const volume = ref('10')
 const price = ref('')
+const timezone = ref(browserTimeZone())
 const serviceOn = ref(utcDay(0))
 const serviceQuick = ref('today')
 const opensAt = ref(defaultOpensForServiceDate(utcDay(0), utcDay(0)))
 const closesAt = ref('23:59')
 
 const earliestServiceDay = computed(() => utcDay(0))
+const zoneItems = computed(() => timeZoneOptions(timezone.value))
 
 const serviceQuickItems = [
   { title: 'Today', value: 'today' },
@@ -371,6 +383,7 @@ async function syncFormToInitialPreset(): Promise<void> {
     trafficSource.value = initial.trafficSource
     volume.value = '10'
     price.value = presetPriceInput(initial, props.initialBasePriceCents ?? undefined)
+    timezone.value = browserTimeZone()
     serviceOn.value = utcDay(0)
     serviceQuick.value = 'today'
     opensAt.value = defaultOpensForServiceDate(utcDay(0), utcDay(0))
@@ -380,6 +393,7 @@ async function syncFormToInitialPreset(): Promise<void> {
   }
   volume.value = '10'
   price.value = ''
+  timezone.value = browserTimeZone()
   serviceOn.value = utcDay(0)
   serviceQuick.value = 'today'
   opensAt.value = defaultOpensForServiceDate(utcDay(0), utcDay(0))
@@ -603,10 +617,25 @@ watch(matchedPreset, (preset, previous) => {
 })
 
 function utcDay(offset: number): string {
-  const date = new Date()
-  date.setUTCDate(date.getUTCDate() + offset)
-  return date.toISOString().slice(0, 10)
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone.value || 'UTC',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const year = Number(parts.find((part) => part.type === 'year')?.value)
+  const month = Number(parts.find((part) => part.type === 'month')?.value)
+  const day = Number(parts.find((part) => part.type === 'day')?.value)
+  return new Date(Date.UTC(year, month - 1, day + offset)).toISOString().slice(0, 10)
 }
+
+watch(timezone, () => {
+  if (serviceQuick.value === 'today') {
+    serviceOn.value = utcDay(0)
+  } else if (serviceQuick.value === 'tomorrow') {
+    serviceOn.value = utcDay(1)
+  }
+})
 
 function clearFieldError(key: string): void {
   if (!(key in fieldErrors.value)) {
@@ -665,6 +694,10 @@ function validateForm(): PresetRow | null {
     }
   }
 
+  if (!timezone.value) {
+    errors.timezone = 'Choose a timezone'
+  }
+
   if (!serviceOn.value) {
     errors.serviceOn = 'Choose service date'
   } else if (serviceOn.value < utcDay(0)) {
@@ -699,6 +732,7 @@ async function create(): Promise<void> {
       service_on: serviceOn.value,
       opens_at: opensAt.value,
       closes_at: closesAt.value,
+      timezone: timezone.value,
     })
     const countryName =
       ISO2_COUNTRIES.find((c) => c.code === preset.country)?.name ?? preset.country

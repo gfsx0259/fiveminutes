@@ -33,6 +33,7 @@ export interface OrderRow {
   serviceOn: string | null
   opensAt: string
   closesAt: string
+  timezone?: string
   status: string
   partnerId: string
   partnerEmail: string

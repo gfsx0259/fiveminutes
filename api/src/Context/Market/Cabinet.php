@@ -89,6 +89,7 @@ final readonly class Cabinet
                 'serviceOn' => $serviceOn?->format('Y-m-d'),
                 'opensAt' => $order->getOpensAt(),
                 'closesAt' => $order->getClosesAt(),
+                'timezone' => $order->getTimezone(),
                 'status' => $order->getStatus()->value,
                 'partnerId' => $order->getPartnerId(),
                 'partnerEmail' => $emails[$order->getPartnerId()] ?? '',
