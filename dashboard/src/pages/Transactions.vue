@@ -94,7 +94,6 @@
         <TableCardToolbar
           :refresh-loading="wallet.loading"
           :export-disabled="filtered.length === 0"
-          share-disabled
           @refresh="refresh()"
           @export="exportCsv"
         />

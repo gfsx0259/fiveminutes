@@ -10,26 +10,22 @@
     :max-width="680"
     :cluster-max-width="1240"
     :aside-open="showStockNudge && Boolean(stockNudge)"
-    :shareable="shareable"
     @update:model-value="open = $event"
     @submit="create"
-    @share="copyShareLink"
     @aside-dismiss="stockNudgeDismissed = true"
   >
     <template v-if="showStockNudge && stockNudge" #aside>
       <StockOrderNudge
         ref="stockNudgeRef"
-        panel="side"
-        :preset-id="stockNudge.presetId"
         :available="stockNudge.available"
-        :requested-qty="volumeQty"
-        :vertical="stockNudge.vertical"
-        :country="stockNudge.country"
-        :traffic-source="stockNudge.trafficSource"
-        :compare-price-cents="stockComparePriceCents"
-        :buy-loading="stockBuyBusy"
-        @buy="purchaseStockFromNudge"
-        @dismiss="stockNudgeDismissed = true"
+        :fresh="stockNudge.fresh"
+        :aged="stockNudge.aged"
+        :expired="stockNudge.expired"
+        :conversion="stockNudge.conversion"
+        :price-cents="stockNudge.priceCents"
+        :zone-prices="stockNudge.zonePrices"
+        :zone-ages="stockNudge.zoneAges"
+        @buy="openStockBuy"
       />
     </template>
     <PresetOfferSummary
@@ -165,7 +161,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import { stockPickApiFields, type StockPickZoneId } from '@/stockPick'
+import { useRoute, useRouter } from 'vue-router'
 import CountryFlag from '@/components/CountryFlag.vue'
 import FormDialog from '@/components/FormDialog.vue'
 import OrderCheckoutSummary from '@/components/OrderCheckoutSummary.vue'
@@ -191,34 +187,40 @@ import {
   verticals,
 } from '@/marketOptions'
 import { dollars } from '@/money'
+import type { StockBuyZone } from '@/stockModalIntent'
 import { orderDisplayId, presetDisplayId } from '@/orderDisplay'
-import { stockModalShareUrl } from '@/stockModalIntent'
 import { useMarketStore, type PresetRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   initialPresetId?: string | null
   /** When opening from Buy Leads, use the row price (store presets can lag behind warehouse). */
   initialBasePriceCents?: number | null
   initialVolume?: number | null
   initialPriceDollars?: number | null
   initialServiceOn?: string | null
-  /** Enable Share link (stock page deep links). */
-  shareable?: boolean
-}>(), {
-  shareable: false,
-})
+}>()
+
+export type OrderFormDraft = {
+  presetId: string
+  qty: number
+  price: number
+  day: string
+}
 
 const open = defineModel<boolean>({ default: false })
 const emit = defineEmits<{
   created: []
   stockPurchased: []
+  draft: [value: OrderFormDraft | null]
+  buyStock: [value: { presetId: string; qty: number; zone: StockBuyZone }]
 }>()
 
 const market = useMarketStore()
 const session = useSessionStore()
+const route = useRoute()
+const router = useRouter()
 const busy = ref(false)
-const stockBuyBusy = ref(false)
 const stockNudgeRef = ref<InstanceType<typeof StockOrderNudge> | null>(null)
 const stockNudgeDismissed = ref(false)
 const formError = ref('')
@@ -406,31 +408,6 @@ async function syncFormToInitialPreset(): Promise<void> {
   applyLinkedFields()
 }
 
-async function copyShareLink(): Promise<void> {
-  const preset = matchedPreset.value
-  if (!preset || !props.shareable) {
-    return
-  }
-  const priceNum = Number(price.value)
-  const sharer = session.payload?.user
-  const assist = sharer
-    ? { asUserId: sharer.id, forRole: 'partner' as const }
-    : undefined
-  const url = stockModalShareUrl(window.location.origin, window.location.pathname, {
-    action: 'order',
-    presetId: preset.id,
-    qty: volumeQty.value > 0 ? volumeQty.value : undefined,
-    price: Number.isFinite(priceNum) && priceNum > 0 ? priceNum : undefined,
-    day: serviceOn.value || undefined,
-  }, assist)
-  try {
-    await navigator.clipboard.writeText(url)
-    showToast('Link copied')
-  } catch {
-    showToast('Copy unavailable')
-  }
-}
-
 const balanceCents = computed(() => session.payload?.user?.balanceCents ?? 0)
 
 const volumeQty = computed(() => {
@@ -453,68 +430,67 @@ const stockNudge = computed(() => {
   return {
     presetId: preset.id,
     available: row.available,
-    vertical: preset.vertical,
-    country: preset.country,
-    trafficSource: preset.trafficSource,
+    fresh: row.stockFreshness?.fresh ?? 0,
+    aged: row.stockFreshness?.good ?? 0,
+    expired: row.stockFreshness?.expired ?? 0,
+    conversion: preset.cr,
+    priceCents: props.initialBasePriceCents ?? preset.basePriceCents,
+    zonePrices: {
+      fresh: shelfZoneUnitCents('fresh', props.initialBasePriceCents ?? preset.basePriceCents),
+      good: shelfZoneUnitCents('good', props.initialBasePriceCents ?? preset.basePriceCents),
+      expired: shelfZoneUnitCents('expired', props.initialBasePriceCents ?? preset.basePriceCents),
+    },
+    zoneAges: {
+      fresh: shelfZoneAge('fresh'),
+      good: shelfZoneAge('good'),
+      expired: shelfZoneAge('expired'),
+    },
   }
 })
 
+function shelfZoneAge(zoneId: string): { startMinutes: number; endMinutes: number | null } | undefined {
+  const zone = market.shelfAgePolicy?.zones.find((row) => row.id === zoneId)
+  if (!zone) {
+    return undefined
+  }
+  return { startMinutes: zone.startMinutes, endMinutes: zone.endMinutes }
+}
+
+function shelfZoneUnitCents(zoneId: string, baseCents: number): number {
+  if (baseCents < 1) {
+    return 0
+  }
+  const zone = market.shelfAgePolicy?.zones.find((row) => row.id === zoneId)
+  if (!zone) {
+    return baseCents
+  }
+  const discount = Math.max(0, Math.min(100, zone.discountPercent))
+  return Math.round((baseCents * (100 - discount)) / 100)
+}
+
 const showStockNudge = computed(() => Boolean(stockNudge.value) && !stockNudgeDismissed.value)
 
-async function purchaseStockFromNudge(): Promise<void> {
+function openStockBuy(zone: StockBuyZone): void {
   const preset = matchedPreset.value
-  const nudge = stockNudge.value
-  const panel = stockNudgeRef.value
-  if (!preset || !nudge || stockBuyBusy.value) {
+  if (!preset) {
     return
   }
-
-  const qty = volumeQty.value < 1 ? 0 : Math.min(volumeQty.value, nudge.available)
-  if (qty < 1) {
-    showToast('Enter quantity in the order form')
+  const cap = stockNudgeRef.value?.volumeOf(zone) ?? stockNudge.value?.available ?? 0
+  const qty = volumeQty.value > 0 ? Math.min(volumeQty.value, Math.max(cap, 1)) : 0
+  emit('buyStock', { presetId: preset.id, qty, zone })
+  if (route.path === '/stock') {
     return
   }
-
-  const snapshot = panel?.checkoutSnapshot()
-  const pickZone: StockPickZoneId = snapshot?.pickZone ?? ''
-  let totalCents = snapshot?.quoteTotalCents ?? 0
-  if (totalCents < 1) {
-    try {
-      const quote = await market.fetchStockQuote(preset.id, qty, '', { pickZone })
-      totalCents = quote.totalCents
-    } catch {
-      showToast('Stock quote unavailable')
-      return
-    }
+  const query: Record<string, string> = {
+    action: 'buy',
+    preset: preset.id,
+    zone,
   }
-
-  if (totalCents > balanceCents.value) {
-    showToast('Your balance is not enough for this order')
-    return
+  if (qty > 0) {
+    query.qty = String(qty)
   }
-
-  const baseCents = props.initialBasePriceCents ?? preset.basePriceCents
-  stockBuyBusy.value = true
-  try {
-    const result = await market.createStockOrder({
-      preset_id: preset.id,
-      geo: preset.country,
-      volume: qty,
-      price: Math.round(baseCents / 100),
-      payment_model: preset.paymentModel,
-      kind: 'stock',
-      ...stockPickApiFields(pickZone),
-    })
-    const supplied = result.supplied ?? qty
-    showToast(`Stock order created · ${supplied} leads · ${dollars(totalCents / 100)}`)
-    open.value = false
-    emit('stockPurchased')
-    await session.load()
-  } catch (error) {
-    showToast(error instanceof Error ? error.message : 'The stock order was not created')
-  } finally {
-    stockBuyBusy.value = false
-  }
+  open.value = false
+  void router.push({ path: '/stock', query })
 }
 
 const priceCents = computed(() => {
@@ -525,18 +501,37 @@ const priceCents = computed(() => {
   return Math.round(p * 100)
 })
 
-const stockComparePriceCents = computed(() => {
-  if (priceCents.value > 0) {
-    return priceCents.value
-  }
-  const preset = matchedPreset.value
-  if (!preset) {
+const showCheckoutSummary = computed(() => Boolean(matchedPreset.value) && volumeQty.value > 0 && priceCents.value > 0)
+
+function positiveNumber(raw: string): number {
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
     return 0
   }
-  return props.initialBasePriceCents ?? preset.basePriceCents
-})
+  return parsed
+}
 
-const showCheckoutSummary = computed(() => Boolean(matchedPreset.value) && volumeQty.value > 0 && priceCents.value > 0)
+watch(
+  [open, volume, price, serviceOn, () => matchedPreset.value?.id ?? ''],
+  () => {
+    if (!open.value) {
+      emit('draft', null)
+      return
+    }
+    const preset = matchedPreset.value
+    if (!preset) {
+      emit('draft', null)
+      return
+    }
+    const qty = positiveNumber(volume.value)
+    emit('draft', {
+      presetId: preset.id,
+      qty: qty > 0 ? Math.floor(qty) : 0,
+      price: positiveNumber(price.value),
+      day: serviceOn.value,
+    })
+  },
+)
 
 watch(open, (value) => {
   if (!value) {

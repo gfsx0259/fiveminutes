@@ -108,10 +108,6 @@
   min-width: 0;
 }
 
-.profile-settings-tabs {
-  margin: -4px 0 0;
-}
-
 .profile-settings__panels {
   display: grid;
   gap: 20px;
@@ -165,13 +161,6 @@
   flex: 1;
   max-width: 520px;
   min-width: 200px;
-}
-
-.profile-display-hint {
-  color: var(--lm-muted);
-  font-size: 13px;
-  line-height: 1.5;
-  margin: 12px 0 0;
 }
 
 .profile-form-row__actions {

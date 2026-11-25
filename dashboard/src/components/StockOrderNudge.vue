@@ -1,902 +1,452 @@
 <template>
-  <!-- Side panel: “second modal” beside Create order -->
-  <div v-if="panel === 'side'" class="stock-side" role="complementary" aria-label="Buy from stock">
-    <header class="stock-side__offer">
-      <h2 class="stock-side__title">Buy leads from stock</h2>
-      <p class="stock-side__subtitle">Ready-to-buy leads at stock prices. Instant delivery — no service day.</p>
-      <p class="stock-side__context">
-        <strong>{{ available }}</strong> in stock
-        <template v-if="requestedQty > 0">
-          <span class="stock-side__context-sep">·</span>
-          your order <strong>{{ requestedQty }}</strong>
-          <template v-if="instantQty >= requestedQty">— fully covered</template>
-          <template v-else>— up to <strong>{{ instantQty }}</strong> from stock</template>
-        </template>
-      </p>
+  <div class="stock-banner" role="complementary" aria-label="Buy from stock">
+    <header class="stock-banner__head">
+      <h2 class="stock-banner__title">Buy Leads from Stock</h2>
+      <p class="stock-banner__subtitle">Ready-to-buy leads at special conditions.</p>
     </header>
 
-    <div class="stock-side__main">
-      <StockPickControls v-model:pick-zone="pickZone" hide-label class="stock-side__pick" />
-
-      <section class="stock-side__zones" aria-labelledby="stock-zones-heading">
-        <h3 id="stock-zones-heading" class="stock-side__zones-title">Zones for your quantity</h3>
-
-        <div class="stock-side__zone-scroll">
-          <p v-if="quoteQty < 1" class="stock-side__empty">
-            Enter quantity in the order form to see zone breakdown.
-          </p>
-          <p v-else-if="quoteLoading" class="stock-side__loading">
-            <v-progress-circular indeterminate color="primary" size="20" width="2" />
-            Calculating zone mix…
-          </p>
-
-          <div
-            v-else-if="quoteError"
-            class="ui-notice ui-notice--warning stock-side__zone-alert"
-            role="status"
-          >
-            {{ quoteErrorText }}
-          </div>
-
-          <div v-else-if="quoteReady" class="stock-side__zone-list">
-            <article
-              v-for="line in sortedLines"
-              :key="line.zoneId"
-              class="stock-offer-card"
-              :class="`stock-offer-card--${line.zoneId}`"
-            >
-          <div class="stock-offer-card__intro">
-            <span class="stock-offer-card__icon" aria-hidden="true">
-              <v-icon :icon="zoneIcon(line.zoneId)" size="22" />
+    <div class="stock-banner__list">
+      <article
+        v-for="zone in zones"
+        :key="zone.id"
+        class="stock-zone"
+        :class="`stock-zone--${zone.id}`"
+      >
+        <div class="stock-zone__top">
+          <div class="stock-zone__head">
+            <span class="stock-zone__icon" aria-hidden="true">
+              <v-icon :icon="zone.icon" size="24" />
             </span>
-            <div class="stock-offer-card__intro-text">
-              <div class="stock-offer-card__name-row">
-                <h4 class="stock-offer-card__name">{{ line.label }} leads</h4>
-                <span v-if="line.zoneId === 'fresh'" class="stock-offer-card__pill">Hot</span>
+            <h3 class="stock-zone__name">{{ zone.title }}</h3>
+            <span v-if="zone.hot" class="stock-zone__hot">Hot</span>
+          </div>
+          <p class="stock-zone__desc">{{ zone.description }}</p>
+
+          <div class="stock-zone__stats">
+            <div class="stock-zone__stat">
+              <v-icon icon="mdi-lightning-bolt-outline" size="20" class="stock-zone__stat-icon stock-zone__stat-icon--cr" />
+              <div class="stock-zone__stat-text">
+                <span class="stock-zone__stat-label">CR</span>
+                <span class="stock-zone__stat-value stock-zone__stat-value--cr">{{ crLabel }}</span>
               </div>
-              <p class="stock-offer-card__desc">{{ zoneBlurb(line.zoneId) }}</p>
             </div>
-          </div>
-
-          <div class="stock-offer-card__stats" role="group" aria-label="Zone metrics">
-            <div class="stock-offer-card__stat">
-              <v-icon icon="mdi-cube-outline" size="18" class="stock-offer-card__stat-icon" />
-              <span class="stock-offer-card__stat-label">Qty</span>
-              <span class="stock-offer-card__stat-value">{{ line.count }}</span>
+            <div class="stock-zone__stat">
+              <v-icon icon="mdi-layers-outline" size="20" class="stock-zone__stat-icon stock-zone__stat-icon--quality" />
+              <div class="stock-zone__stat-text">
+                <span class="stock-zone__stat-label">Quality</span>
+                <span class="stock-zone__stat-value stock-zone__stat-value--quality">{{ zone.quality }}</span>
+              </div>
             </div>
-            <div class="stock-offer-card__stat">
-              <v-icon icon="mdi-sale" size="18" class="stock-offer-card__stat-icon" />
-              <span class="stock-offer-card__stat-label">Discount</span>
-              <span class="stock-offer-card__stat-value">
-                {{ line.discountPercent > 0 ? `−${line.discountPercent}%` : '—' }}
-              </span>
+            <div class="stock-zone__stat">
+              <v-icon icon="mdi-cube-outline" size="20" class="stock-zone__stat-icon stock-zone__stat-icon--volume" />
+              <div class="stock-zone__stat-text">
+                <span class="stock-zone__stat-label">Volume</span>
+                <span class="stock-zone__stat-value">{{ zone.volume.toLocaleString('en-US') }}</span>
+              </div>
             </div>
-            <div class="stock-offer-card__stat">
-              <v-icon icon="mdi-currency-usd" size="18" class="stock-offer-card__stat-icon" />
-              <span class="stock-offer-card__stat-label">Per lead</span>
-              <span class="stock-offer-card__stat-value stock-offer-card__stat-value--price">
-                {{ dollars(line.unitPriceCents / 100) }}
-              </span>
-            </div>
-          </div>
-
-          <footer class="stock-offer-card__foot">
-            <span class="stock-offer-card__foot-label">Line total</span>
-            <span class="stock-offer-card__foot-price">{{ dollars(line.lineTotalCents / 100) }}</span>
-          </footer>
-            </article>
           </div>
         </div>
-      </section>
+
+        <footer class="stock-zone__foot">
+          <span class="stock-zone__price-label">Price per lead</span>
+          <span class="stock-zone__price">{{ dollars(zone.priceCents / 100) }}</span>
+          <UiButton
+            class="stock-zone__buy"
+            variant="primary"
+            icon="mdi-cart-outline"
+            @click="emit('buy', zone.id)"
+          >
+            Buy now
+          </UiButton>
+        </footer>
+      </article>
     </div>
 
-    <div class="stock-side__dock">
-      <section
-        v-if="quoteReady && quoteQty > 0"
-        class="stock-side__economy"
-        aria-labelledby="stock-economy-heading"
-      >
-      <h3 id="stock-economy-heading" class="stock-side__economy-title">Savings vs day order</h3>
-      <dl class="stock-side__economy-rows">
-        <div class="stock-side__economy-row">
-          <dt>Day order ({{ quoteQty }} leads)</dt>
-          <dd>{{ dollars(compareTotalCents / 100) }}</dd>
-        </div>
-        <div class="stock-side__economy-row">
-          <dt>From stock</dt>
-          <dd>{{ dollars(stockTotalCents / 100) }}</dd>
-        </div>
-        <div v-if="savingsCents > 0" class="stock-side__economy-row stock-side__economy-row--save">
-          <dt>
-            <v-icon icon="mdi-piggy-bank-outline" size="18" />
-            You save
-          </dt>
-          <dd>{{ dollars(savingsCents / 100) }}</dd>
-        </div>
-      </dl>
-      </section>
-
-      <footer class="stock-side__foot">
-        <UiButton
-          variant="primary"
-          icon="mdi-cart"
-          class="stock-side__buy"
-          :loading="buyLoading"
-          :disabled="buyDisabled"
-          @click="emit('buy')"
-        >
-          Buy from stock
-        </UiButton>
-      </footer>
-    </div>
+    <p class="stock-banner__note">
+      <v-icon icon="mdi-information-outline" size="20" class="stock-banner__note-icon" />
+      Stock is limited and updated in real time.
+    </p>
   </div>
-
-  <!-- Compact inline (legacy / narrow contexts) -->
-  <aside v-else class="stock-order-nudge" role="note" aria-label="Stock available">
-    <div class="stock-order-nudge__icon-wrap" aria-hidden="true">
-      <v-icon icon="mdi-warehouse" size="22" />
-    </div>
-    <div class="stock-order-nudge__body">
-      <p class="stock-order-nudge__title">Stock available now</p>
-      <p class="stock-order-nudge__text">
-        <strong>{{ available }}</strong>
-        {{ available === 1 ? 'lead is' : 'leads are' }} in stock for
-        <strong>{{ verticalLabel(vertical) }}</strong> · <strong>{{ countryName(country) }}</strong> ·
-        <strong>{{ trafficLabel(trafficSource) }}</strong> — instant delivery, no service day.
-      </p>
-      <p v-if="requestedQty > 0" class="stock-order-nudge__hint">
-        You asked for <strong>{{ requestedQty }}</strong>.
-        <template v-if="instantQty >= requestedQty">
-          All of them can be fulfilled from stock right now.
-        </template>
-        <template v-else>
-          Up to <strong>{{ instantQty }}</strong> can be bought from stock immediately.
-        </template>
-      </p>
-
-      <StockPickControls
-        v-if="quoteQty > 0"
-        v-model:pick-zone="pickZone"
-        class="stock-order-nudge__pick"
-      />
-
-      <div v-if="quoteQty > 0" class="stock-order-nudge__breakdown">
-        <p v-if="quoteLoading" class="stock-order-nudge__breakdown-lead stock-order-nudge__muted">
-          Calculating zone mix…
-        </p>
-        <p v-else-if="quoteError" class="stock-order-nudge__breakdown-lead stock-order-nudge__muted">
-          {{ quoteErrorText }}
-        </p>
-        <template v-else-if="quoteReady">
-          <p class="stock-order-nudge__breakdown-lead">
-            From your order of <strong>{{ requestedQty }}</strong>, buy
-            <strong>{{ quoteQty }}</strong> from stock now:
-          </p>
-          <ul class="stock-order-nudge__zones">
-            <li
-              v-for="line in sortedLines"
-              :key="line.zoneId"
-              class="stock-order-nudge__zone"
-              :class="`stock-order-nudge__zone--${line.zoneId}`"
-            >
-              <span class="stock-order-nudge__zone-qty">{{ line.count }}×</span>
-              <span class="stock-order-nudge__zone-label">{{ line.label }}</span>
-              <span class="stock-order-nudge__zone-price">{{ dollars(line.unitPriceCents / 100) }}/lead</span>
-              <span v-if="line.discountPercent > 0" class="stock-order-nudge__zone-off">−{{ line.discountPercent }}%</span>
-            </li>
-          </ul>
-          <div v-if="savingsCents > 0" class="stock-order-nudge__savings">
-            <p class="stock-order-nudge__savings-title">
-              Save {{ dollars(savingsCents / 100) }} on stock vs your day-order price
-            </p>
-          </div>
-        </template>
-      </div>
-    </div>
-    <div class="stock-order-nudge__actions">
-      <UiButton
-        variant="primary"
-        icon="mdi-cart"
-        :loading="buyLoading"
-        :disabled="buyDisabled"
-        @click="emit('buy')"
-      >
-        Buy from stock
-      </UiButton>
-      <button type="button" class="stock-order-nudge__dismiss" @click="emit('dismiss')">
-        Continue with day order
-      </button>
-    </div>
-  </aside>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watchEffect } from 'vue'
-import type { StockQuoteLine } from '@/stores/market'
-import CountryFlag from '@/components/CountryFlag.vue'
-import StockPickControls from '@/components/StockPickControls.vue'
+import { computed } from 'vue'
 import UiButton from '@/components/ui/UiButton.vue'
-import { defaultStockPickZone, formatStockQuoteError, type StockPickZoneId } from '@/stockPick'
-import { countryName } from '@/countries'
-import {
-  trafficColor,
-  trafficIcon,
-  trafficLabel,
-  verticalColor,
-  verticalIcon,
-  verticalLabel,
-} from '@/marketOptions'
 import { dollars } from '@/money'
-import { useMarketStore } from '@/stores/market'
+import type { StockBuyZone } from '@/stockModalIntent'
 
-const ZONE_ORDER = ['fresh', 'good', 'expired', 'live'] as const
+type ZoneAge = { startMinutes: number; endMinutes: number | null }
 
-const ZONE_BLURB: Record<string, string> = {
-  fresh: 'Fresh — newest leads, best age mix',
-  good: 'Aged leads — balanced price',
-  expired: 'Expired — deepest discount',
-  live: 'Live pool — available now',
-}
-
-const props = withDefaults(defineProps<{
-  presetId: string
+const props = defineProps<{
   available: number
-  requestedQty: number
-  vertical: string
-  country: string
-  trafficSource: string
-  comparePriceCents?: number
-  panel?: 'inline' | 'side'
-  buyLoading?: boolean
-}>(), {
-  comparePriceCents: 0,
-  panel: 'inline',
-  buyLoading: false,
-})
-
-const emit = defineEmits<{
-  buy: []
-  dismiss: []
+  fresh?: number
+  aged?: number
+  expired?: number
+  conversion?: number | null
+  /** Catalog price. Each card uses its shelf-zone unit price when that zone has one. */
+  priceCents: number
+  zonePrices?: Partial<Record<StockBuyZone, number>>
+  /** Shelf-age window of each zone; turns the card description into the real lead age. */
+  zoneAges?: Partial<Record<StockBuyZone, ZoneAge>>
 }>()
 
-const market = useMarketStore()
-const quoteLines = ref<StockQuoteLine[]>([])
-const quoteTotalCents = ref(0)
-const quoteBaseCents = ref(0)
-const quoteLoading = ref(false)
-const quoteError = ref('')
-const pickZone = ref<StockPickZoneId>(defaultStockPickZone())
+const emit = defineEmits<{
+  buy: [zone: StockBuyZone]
+}>()
 
-function zoneBlurb(zoneId: string): string {
-  return ZONE_BLURB[zoneId] ?? 'Stock age zone'
+const crLabel = computed(() => {
+  const value = props.conversion
+  if (value == null || value <= 0) {
+    return '—'
+  }
+  return `${value}%`
+})
+
+type ZoneCard = {
+  id: StockBuyZone
+  title: string
+  description: string
+  quality: string
+  icon: string
+  hot: boolean
+  volume: number
+  priceCents: number
 }
 
-const ZONE_ICON: Record<string, string> = {
-  fresh: 'mdi-sprout',
-  good: 'mdi-star-circle-outline',
-  expired: 'mdi-clock-alert-outline',
-  live: 'mdi-flash',
+function zonePrice(id: StockBuyZone): number {
+  const priced = props.zonePrices?.[id]
+  if (priced != null && priced > 0) {
+    return priced
+  }
+  return props.priceCents
 }
 
-function zoneIcon(zoneId: string): string {
-  return ZONE_ICON[zoneId] ?? 'mdi-package-variant'
+function ageLabel(minutes: number): string {
+  if (minutes >= 1440 && minutes % 1440 === 0) {
+    const days = minutes / 1440
+    return `${days} ${days === 1 ? 'day' : 'days'}`
+  }
+  if (minutes >= 60) {
+    const hours = Math.round((minutes / 60) * 10) / 10
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'}`
+  }
+  return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`
 }
 
-const instantQty = computed(() => {
-  if (props.requestedQty < 1) {
-    return props.available
+function zoneDescription(id: StockBuyZone, fallback: string): string {
+  const age = props.zoneAges?.[id]
+  if (!age) {
+    return fallback
   }
-  return Math.min(props.available, props.requestedQty)
-})
-
-const quoteQty = computed(() => (props.requestedQty > 0 ? instantQty.value : 0))
-
-const quoteReady = computed(() => quoteTotalCents.value > 0 && quoteLines.value.length > 0)
-
-const quoteErrorText = computed(() => {
-  if (!quoteError.value.trim()) {
-    return ''
+  if (id === 'fresh') {
+    return age.endMinutes != null && age.endMinutes > 0
+      ? `Leads generated within the last ${ageLabel(age.endMinutes)}.`
+      : fallback
   }
-  return formatStockQuoteError(quoteError.value, pickZone.value)
-})
-
-const buyDisabled = computed(() => props.buyLoading || quoteQty.value < 1 || quoteLoading.value || !quoteReady.value)
-
-const sortedLines = computed(() => {
-  const rank = (id: string) => {
-    const idx = ZONE_ORDER.indexOf(id as (typeof ZONE_ORDER)[number])
-    return idx === -1 ? 99 : idx
+  if (id === 'expired' || age.endMinutes == null) {
+    return age.startMinutes > 0 ? `Leads older than ${ageLabel(age.startMinutes)}.` : fallback
   }
-  return [...quoteLines.value].sort((a, b) => rank(a.zoneId) - rank(b.zoneId))
-})
+  return age.startMinutes > 0
+    ? `Leads from ${ageLabel(age.startMinutes)} to ${ageLabel(age.endMinutes)} old.`
+    : fallback
+}
 
-const stockTotalCents = computed(() => quoteTotalCents.value)
-
-const unitCompareCents = computed(() => {
-  if (props.comparePriceCents != null && props.comparePriceCents > 0) {
-    return props.comparePriceCents
+const zones = computed<ZoneCard[]>(() => {
+  const known = (props.fresh ?? 0) + (props.aged ?? 0) + (props.expired ?? 0)
+  const fresh = known > 0 ? (props.fresh ?? 0) : props.available
+  const aged = props.aged ?? 0
+  const expired = props.expired ?? 0
+  const cards: ZoneCard[] = []
+  if (fresh > 0) {
+    cards.push({
+      id: 'fresh',
+      title: 'Fresh Leads',
+      description: zoneDescription('fresh', 'Newest leads on the shelf.'),
+      quality: 'High',
+      icon: 'mdi-lightning-bolt-outline',
+      hot: true,
+      volume: fresh,
+      priceCents: zonePrice('fresh'),
+    })
   }
-  if (quoteBaseCents.value > 0) {
-    return quoteBaseCents.value
+  if (aged > 0) {
+    cards.push({
+      id: 'good',
+      title: 'Aged Leads',
+      description: zoneDescription('good', 'Leads past the fresh window.'),
+      quality: 'Medium',
+      icon: 'mdi-calendar-month-outline',
+      hot: false,
+      volume: aged,
+      priceCents: zonePrice('good'),
+    })
   }
-  return 0
-})
-
-const compareTotalCents = computed(() => {
-  if (quoteQty.value < 1 || unitCompareCents.value < 1) {
-    return 0
+  if (expired > 0) {
+    cards.push({
+      id: 'expired',
+      title: 'Expired Leads',
+      description: zoneDescription('expired', 'Oldest leads still on the shelf.'),
+      quality: 'Low',
+      icon: 'mdi-clock-outline',
+      hot: false,
+      volume: expired,
+      priceCents: zonePrice('expired'),
+    })
   }
-  return quoteQty.value * unitCompareCents.value
-})
-
-const savingsCents = computed(() => {
-  if (!quoteReady.value || compareTotalCents.value < 1) {
-    return 0
-  }
-  return Math.max(0, compareTotalCents.value - stockTotalCents.value)
-})
-
-watchEffect((onCleanup) => {
-  const qty = quoteQty.value
-  const presetId = props.presetId
-  const pick = { pickZone: pickZone.value }
-  if (!presetId || qty < 1) {
-    quoteLines.value = []
-    quoteTotalCents.value = 0
-    quoteBaseCents.value = 0
-    quoteError.value = ''
-    return
-  }
-  let cancelled = false
-  onCleanup(() => {
-    cancelled = true
-  })
-  quoteLoading.value = true
-  quoteError.value = ''
-  void market.fetchStockQuote(presetId, qty, '', pick).then((quote) => {
-    if (cancelled) {
-      return
-    }
-    if (!quote.lines?.length || quote.totalCents < 1) {
-      quoteLines.value = []
-      quoteTotalCents.value = 0
-      quoteBaseCents.value = quote.basePriceCents ?? 0
-      quoteError.value = 'Not enough leads'
-      return
-    }
-    quoteLines.value = quote.lines
-    quoteTotalCents.value = quote.totalCents
-    quoteBaseCents.value = quote.basePriceCents
-    quoteError.value = ''
-  }).catch((error: unknown) => {
-    if (!cancelled) {
-      quoteLines.value = []
-      quoteTotalCents.value = 0
-      quoteBaseCents.value = 0
-      quoteError.value = error instanceof Error ? error.message : 'request failed'
-    }
-  }).finally(() => {
-    if (!cancelled) {
-      quoteLoading.value = false
-    }
-  })
+  return cards
 })
 
 defineExpose({
-  checkoutSnapshot(): { pickZone: StockPickZoneId; quoteTotalCents: number; quoteQty: number } {
-    return {
-      pickZone: pickZone.value,
-      quoteTotalCents: quoteTotalCents.value,
-      quoteQty: quoteQty.value,
-    }
+  volumeOf(zone: StockBuyZone): number {
+    return zones.value.find((card) => card.id === zone)?.volume ?? 0
   },
 })
 </script>
 
 <style scoped>
-/* —— Side panel (business mock) —— */
-.stock-side {
+/* Fills the banner panel: header and note stay put, the zone list scrolls. */
+.stock-banner {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: 18px;
-  height: 100%;
-  margin: 0;
   min-height: 0;
   min-width: 0;
 }
 
-.stock-side__main {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 0;
-  min-height: 0;
-  overflow: hidden;
+.stock-banner__head {
+  flex: 0 0 auto;
+  padding: 0 44px 18px 2px;
 }
 
-.stock-side__pick {
+.stock-banner__title {
+  color: #070916;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
   margin: 0;
 }
 
-.stock-side__zones {
+.stock-banner__subtitle {
+  color: #464d78;
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
+.stock-banner__list {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  gap: 14px;
+  margin: 0 -8px;
   min-height: 0;
-}
-
-.stock-side__zone-scroll {
-  flex: 1 1 auto;
-  margin: 0 -4px;
-  min-height: 80px;
-  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 4px 2px;
-  scrollbar-gutter: stable;
+  padding: 2px 8px 14px;
 }
 
-.stock-side__dock {
+.stock-zone {
   background: #fff;
-  border-top: 1px solid #f0eef6;
-  display: flex;
+  border: 1px solid #ebe9f7;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgb(30 25 51 / 7%);
   flex: 0 0 auto;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: auto;
-  padding-top: 10px;
-}
-
-.stock-side__offer {
-  margin: 0;
-  padding-right: 36px;
-}
-
-.stock-side__title {
-  color: #1e1933;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.25;
-  margin: 0 0 6px;
-}
-
-.stock-side__subtitle {
-  color: #6d6a88;
-  font-size: 13px;
-  line-height: 1.4;
-  margin: 0 0 8px;
-}
-
-.stock-side__context {
-  color: #5c6078;
-  font-size: 13px;
-  line-height: 1.45;
-  margin: 0;
-}
-
-.stock-side__context-sep {
-  margin: 0 4px;
-}
-
-.stock-side__zones-title {
-  color: #303861;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  margin: 14px 0 8px;
-  text-transform: uppercase;
-}
-
-.stock-side__economy-title {
-  color: #303861;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  margin: 0 0 8px;
-  text-transform: uppercase;
-}
-
-.stock-side__empty,
-.stock-side__loading {
-  align-items: center;
-  color: #8b90a8;
-  display: flex;
-  font-size: 13px;
-  gap: 10px;
-  margin: 0;
-}
-
-.stock-side__zone-alert {
-  font-size: 13px;
-  margin: 0;
-}
-
-.stock-side__zone-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.stock-offer-card {
-  background: #fff;
-  border: 1px solid #e8e6f0;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgb(30 25 51 / 5%);
-  flex-shrink: 0;
   overflow: hidden;
 }
 
-.stock-offer-card__intro {
-  display: flex;
-  gap: 10px;
-  padding: 12px 12px 10px;
+.stock-zone__top {
+  padding: 16px 18px 16px;
 }
 
-.stock-offer-card__icon {
+.stock-zone--fresh .stock-zone__top {
+  background: linear-gradient(180deg, #e6f8ee 0%, #f5fcf8 100%);
+}
+
+.stock-zone--good .stock-zone__top {
+  background: linear-gradient(180deg, #edeafd 0%, #f8f7fe 100%);
+}
+
+.stock-zone--expired .stock-zone__top {
+  background: linear-gradient(180deg, #fdebef 0%, #fef8f9 100%);
+}
+
+.stock-zone__head {
   align-items: center;
-  border-radius: 50%;
   display: flex;
-  flex-shrink: 0;
-  height: 40px;
+  gap: 12px;
+}
+
+.stock-zone__icon {
+  align-items: center;
+  border-radius: 12px;
+  display: flex;
+  flex: 0 0 auto;
+  height: 42px;
   justify-content: center;
-  width: 40px;
+  width: 42px;
 }
 
-.stock-offer-card--fresh .stock-offer-card__icon {
-  background: color-mix(in srgb, var(--stock-fresh) 12%, white);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--stock-fresh) 14%, transparent);
-  color: color-mix(in srgb, var(--stock-fresh) 78%, black);
+.stock-zone--fresh .stock-zone__icon {
+  background: #cdf3dc;
+  color: #17a34a;
 }
 
-.stock-offer-card--good .stock-offer-card__icon {
-  background: color-mix(in srgb, var(--stock-aged) 14%, white);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--stock-aged) 18%, transparent);
-  color: color-mix(in srgb, var(--stock-aged) 55%, black);
-}
-
-.stock-offer-card--expired .stock-offer-card__icon {
-  background: color-mix(in srgb, var(--stock-expired) 12%, white);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--stock-expired) 14%, transparent);
-  color: color-mix(in srgb, var(--stock-expired) 70%, black);
-}
-
-.stock-offer-card--live .stock-offer-card__icon {
-  background: #f0ecff;
-  box-shadow: 0 0 0 3px rgb(91 69 232 / 12%);
+.stock-zone--good .stock-zone__icon {
+  background: #ddd7fb;
   color: #5b45e8;
 }
 
-.stock-offer-card__intro-text {
+.stock-zone--expired .stock-zone__icon {
+  background: #fbd9e0;
+  color: #d03a5c;
+}
+
+.stock-zone__name {
+  color: #10132d;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.stock-zone__hot {
+  background: #2fca73;
+  border-radius: 999px;
+  color: #06361c;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 10px;
+}
+
+.stock-zone__desc {
+  color: #464d78;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 10px 0 0;
+}
+
+.stock-zone__stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.stock-zone__stat {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
   min-width: 0;
 }
 
-.stock-offer-card__name-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 4px;
+.stock-zone__stat-icon {
+  flex: 0 0 auto;
+  margin-top: 1px;
 }
 
-.stock-offer-card__name {
-  color: #1e1933;
-  font-size: 15px;
-  font-weight: 700;
-  margin: 0;
+.stock-zone__stat-icon--cr {
+  color: #ef4444;
 }
 
-.stock-offer-card__pill {
-  background: #e8f8f0;
-  border-radius: 999px;
-  color: #1a7a52;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  text-transform: uppercase;
-}
-
-.stock-offer-card__desc {
-  color: #8b90a8;
-  font-size: 12px;
-  line-height: 1.35;
-  margin: 0;
-}
-
-.stock-offer-card__stats {
-  border-top: 1px solid #f0eef6;
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 10px 12px;
-}
-
-.stock-offer-card__stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stock-offer-card__stat-icon {
-  color: #8b90a8;
-  margin-bottom: 2px;
-}
-
-.stock-offer-card__stat-label {
-  color: #8b90a8;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.stock-offer-card__stat-value {
-  color: #303861;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.stock-offer-card--fresh .stock-offer-card__stat-value {
-  color: color-mix(in srgb, var(--stock-fresh) 78%, black);
-}
-
-.stock-offer-card__stat-value--price {
+.stock-zone__stat-icon--volume {
   color: #5b45e8;
 }
 
-.stock-offer-card__foot {
-  align-items: center;
-  background: #faf9fc;
-  border-top: 1px solid #f0eef6;
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 12px;
-}
-
-.stock-offer-card__foot-label {
-  color: #6d6a88;
-  font-size: 12px;
-}
-
-.stock-offer-card__foot-price {
-  color: #5b45e8;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.stock-side__economy {
-  background: linear-gradient(135deg, #f4f0ff 0%, #eef8ff 100%);
-  border: 1px solid #c8baff;
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
-.stock-side__economy-rows {
+.stock-zone__stat-text {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 0;
+  gap: 3px;
+  min-width: 0;
 }
 
-.stock-side__economy-row {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-}
-
-.stock-side__economy-row dt {
-  align-items: center;
-  color: #5c6078;
-  display: flex;
+.stock-zone__stat-label {
+  color: #10132d;
   font-size: 13px;
-  font-weight: 500;
-  gap: 6px;
-}
-
-.stock-side__economy-row dd {
-  color: #303861;
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.stock-side__economy-row--save dt,
-.stock-side__economy-row--save dd {
-  color: #2a1578;
-  font-size: 15px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
-.stock-side__foot {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 0;
-  padding-top: 0;
+.stock-zone__stat-value {
+  color: #10132d;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
-.stock-side__buy {
-  width: 100%;
+/* Fresh: green CR and quality. Aged: orange quality. Expired: rose quality. */
+.stock-zone--fresh .stock-zone__stat-value--cr,
+.stock-zone--fresh .stock-zone__stat-value--quality,
+.stock-zone--fresh .stock-zone__stat-icon--quality {
+  color: #17a34a;
 }
 
-/* —— Inline —— */
-.stock-order-nudge {
-  background: linear-gradient(135deg, #f4f0ff 0%, #eef8ff 100%);
-  border: 1px solid #c8baff;
-  border-radius: 14px;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: auto 1fr;
-  margin: 0 0 16px;
-  padding: 14px 16px;
+.stock-zone--good .stock-zone__stat-value--quality,
+.stock-zone--good .stock-zone__stat-icon--quality {
+  color: #f59e0b;
 }
 
-.stock-order-nudge__icon-wrap {
+.stock-zone--expired .stock-zone__stat-value--quality,
+.stock-zone--expired .stock-zone__stat-icon--quality {
+  color: #d03a5c;
+}
+
+.stock-zone__foot {
   align-items: center;
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgb(91 69 232 / 10%);
-  color: #5b45e8;
+  border-top: 1px solid #efedf8;
   display: flex;
+  gap: 16px;
+  padding: 12px 14px 12px 18px;
+}
+
+.stock-zone__price-label {
+  color: #10132d;
+  font-size: 13px;
+  font-weight: 700;
+  margin-right: auto;
+}
+
+.stock-zone__price {
+  color: #4a2fe0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
+.stock-zone__foot .stock-zone__buy {
+  flex: 0 0 auto;
+  font-size: 14px;
   height: 44px;
-  justify-content: center;
-  width: 44px;
+  min-width: 148px;
 }
 
-.stock-order-nudge__body {
-  min-width: 0;
-}
-
-.stock-order-nudge__title {
-  color: #2a1578;
-  font-size: 14px;
-  font-weight: 700;
-  margin: 0 0 6px;
-}
-
-.stock-order-nudge__text,
-.stock-order-nudge__hint {
-  color: #4a4668;
-  font-size: 13px;
-  line-height: 1.45;
-  margin: 0;
-}
-
-.stock-order-nudge__hint {
-  margin-top: 8px;
-}
-
-.stock-order-nudge__muted {
-  color: #8b90a8;
-}
-
-.stock-order-nudge__breakdown {
-  margin-top: 12px;
-}
-
-.stock-order-nudge__breakdown-lead {
-  color: #303861;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  margin: 0 0 8px;
-}
-
-.stock-order-nudge__zones {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.stock-order-nudge__zone {
+.stock-banner__note {
   align-items: center;
-  border-radius: 8px;
+  border-top: 1px solid #efedf8;
+  color: #10132d;
   display: flex;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
   font-size: 13px;
-  gap: 6px 10px;
-  line-height: 1.3;
-  padding: 8px 10px;
-}
-
-.stock-order-nudge__zone--fresh {
-  background: color-mix(in srgb, var(--stock-fresh) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--stock-fresh) 35%, transparent);
-}
-
-.stock-order-nudge__zone--good {
-  background: color-mix(in srgb, var(--stock-aged) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--stock-aged) 40%, transparent);
-}
-
-.stock-order-nudge__zone--expired {
-  background: color-mix(in srgb, var(--stock-expired) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--stock-expired) 32%, transparent);
-}
-
-.stock-order-nudge__zone-qty {
-  font-weight: 700;
-}
-
-.stock-order-nudge__zone-label {
-  font-weight: 600;
-}
-
-.stock-order-nudge__zone-price {
-  color: #4a4668;
-}
-
-.stock-order-nudge__zone-off {
-  color: #2e9b6a;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.stock-order-nudge__savings {
-  background: linear-gradient(135deg, #fff8e8 0%, #e8fff3 100%);
-  border: 1px solid #f0d48a;
-  border-radius: 10px;
-  margin-top: 10px;
-  padding: 10px 12px;
-}
-
-.stock-order-nudge__savings-title {
-  color: #1a7a52;
-  font-size: 14px;
-  font-weight: 700;
+  gap: 10px;
   margin: 0;
+  padding: 16px 2px 0;
 }
 
-.stock-order-nudge__actions {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  grid-column: 1 / -1;
-  justify-content: center;
+.stock-banner__note-icon {
+  color: #5b45e8;
 }
 
-.stock-order-nudge__dismiss {
-  background: none;
-  border: 0;
-  color: #6d6a88;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 4px 0;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.stock-order-nudge__dismiss:hover {
-  color: #3512bc;
-}
-
-@media (max-width: 767px) {
-  .stock-side {
-    gap: 10px;
-    min-height: 0;
+@media (max-width: 420px) {
+  .stock-zone__foot {
+    flex-wrap: wrap;
   }
 
-  .stock-side__title {
-    font-size: 17px;
-    padding-right: 44px;
-  }
-
-  .stock-side__subtitle,
-  .stock-side__context {
-    font-size: 12px;
-  }
-
-  .stock-side__dock {
-    gap: 10px;
-  }
-
-  .stock-side__buy {
-    width: 100%;
-  }
-
-  .stock-offer-card__stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .stock-zone__foot .stock-zone__buy {
+    flex: 1 1 100%;
   }
 }
 </style>

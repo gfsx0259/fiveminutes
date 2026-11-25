@@ -24,12 +24,7 @@
       </aside>
 
       <div class="profile-settings">
-        <v-tabs v-model="settingsTab" color="primary" class="profile-settings-tabs">
-          <v-tab value="profile">Profile</v-tab>
-          <v-tab value="ui">UI</v-tab>
-        </v-tabs>
-
-        <div v-show="settingsTab === 'profile'" class="profile-settings__panels">
+        <div class="profile-settings__panels">
         <section id="profile-account" class="profile-card" tabindex="-1">
           <header class="profile-card__header">
             <v-icon icon="mdi-account-outline" size="26" />
@@ -157,29 +152,6 @@
           </template>
         </section>
         </div>
-
-        <div v-show="settingsTab === 'ui'" class="profile-settings__panels">
-          <section id="profile-display" class="profile-card" tabindex="-1">
-            <header class="profile-card__header">
-              <v-icon icon="mdi-table-large" size="26" />
-              <div>
-                <h2>Display</h2>
-                <p>How list tables (Buy leads, Orders, Leads) scroll</p>
-              </div>
-            </header>
-            <UiField label="Table scrolling">
-              <UiSelect
-                v-model="tableScrollMode"
-                :items="tableScrollModeItems"
-                placeholder="Choose layout"
-              />
-            </UiField>
-            <p class="profile-display-hint">
-              <strong>Fixed height</strong> keeps filters visible and scrolls inside the table (current default).
-              <strong>Full page</strong> shows all rows for your page size and scrolls the whole workspace; filters stay pinned at the top.
-            </p>
-          </section>
-        </div>
       </div>
     </div>
 
@@ -202,7 +174,6 @@ import { computed, onMounted, ref } from 'vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
-import UiSelect from '@/components/ui/UiSelect.vue'
 import {
   fetchSettingsFlow,
   listIdentitySessions,
@@ -217,24 +188,10 @@ import {
 import { identityReauthUrl, loginUrl, logout } from '@/host'
 import { showToast } from '@/composables/useToast'
 import { useSessionStore } from '@/stores/session'
-import { useDisplayPreferencesStore, type TableScrollMode } from '@/stores/displayPreferences'
 
 type ConfirmKind = 'session' | 'others'
-type SettingsTab = 'profile' | 'ui'
 
 const session = useSessionStore()
-const settingsTab = ref<SettingsTab>('profile')
-const displayPrefs = useDisplayPreferencesStore()
-
-const tableScrollModeItems = [
-  { title: 'Fixed height (scroll inside table)', value: 'viewport' satisfies TableScrollMode },
-  { title: 'Full page (scroll all rows)', value: 'page' satisfies TableScrollMode },
-]
-
-const tableScrollMode = computed({
-  get: () => displayPrefs.tableScrollMode,
-  set: (mode: TableScrollMode) => displayPrefs.setTableScrollMode(mode),
-})
 
 const flow = ref<SettingsFlow | null>(null)
 const loadError = ref('')

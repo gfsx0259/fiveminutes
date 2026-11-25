@@ -95,10 +95,8 @@
         <TableCardToolbar
           :refresh-loading="market.loading"
           :export-disabled="filtered.length === 0"
-          :share-disabled="!canShareTableView"
           @refresh="refresh()"
           @export="exportCsv"
-          @share="copyShareLink"
         />
       </template>
       <UiDataTable
@@ -302,17 +300,20 @@
       v-model="buyOpen"
       :target="buyTarget"
       :initial-qty="buyInitialQty"
+      :initial-zone="buyInitialZone"
+      @draft="onBuyDraft"
       @bought="onBuyFinished"
     />
     <OrderFormDialog
       v-model="orderOpen"
-      shareable
       :initial-preset-id="orderPresetId"
       :initial-base-price-cents="orderBasePriceCents"
       :initial-volume="orderInitialVolume"
       :initial-price-dollars="orderInitialPrice"
       :initial-service-on="orderInitialDay"
       @created="onOrderCreated"
+      @draft="onOrderDraft"
+      @buy-stock="onBuyStockFromOrder"
       @stock-purchased="onStockPurchasedFromOrder"
     />
 
@@ -327,6 +328,7 @@ import { showToast } from '@/composables/useToast'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
+import type { OrderFormDraft } from '@/components/OrderFormDialog.vue'
 import StockBuyDialog from '@/components/StockBuyDialog.vue'
 import StockFreshnessBar from '@/components/StockFreshnessBar.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
@@ -351,14 +353,14 @@ import {
   verticals,
 } from '@/marketOptions'
 import { dollars, wholeDollars } from '@/money'
-import { parseStockModalIntent, STOCK_MODAL_QUERY_KEYS, STOCK_SHARE_ASSIST_KEYS } from '@/stockModalIntent'
+import { replacePageQuery, sameQuery } from '@/pageQuery'
+import { parseStockModalIntent, type StockBuyZone } from '@/stockModalIntent'
+import type { StockPickZoneId } from '@/stockPick'
 import {
   applyStockTableShareFromQuery,
-  buildTableShareUrl,
+  assistQuery,
   shouldDeferTableShareAssist,
-  STOCK_TABLE_SHARE_QUERY_KEYS,
   stockTableShareToQuery,
-  tableViewShareAssist,
 } from '@/tableViewShare'
 import { useSessionStore } from '@/stores/session'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
@@ -378,8 +380,6 @@ const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
 const market = useMarketStore()
-
-const canShareTableView = computed(() => Boolean(tableViewShareAssist(session.payload?.user)))
 
 const filterVerticals = ref<string[]>([])
 const filterCountries = ref<string[]>([])
@@ -404,13 +404,17 @@ const itemsPerPage = ref(50)
 const buyOpen = ref(false)
 const buyTarget = ref<StockBuyTarget | null>(null)
 const buyInitialQty = ref<number | null>(null)
+const buyInitialZone = ref<StockBuyZone | ''>('')
+const buyDraft = ref<{ qty: number; zone: StockPickZoneId }>({ qty: 0, zone: '' })
 const orderOpen = ref(false)
 const orderPresetId = ref<string | null>(null)
 const orderBasePriceCents = ref<number | null>(null)
 const orderInitialVolume = ref<number | null>(null)
 const orderInitialPrice = ref<number | null>(null)
 const orderInitialDay = ref<string | null>(null)
+const orderDraft = ref<OrderFormDraft | null>(null)
 const applyingModalLink = ref(false)
+const pageReady = ref(false)
 const compactTableActions = useCompactTableActions()
 
 const crItems = [
@@ -580,18 +584,74 @@ function selectVerticalChip(value: string): void {
   filterVerticals.value = [value]
 }
 
-function clearTableViewShareQuery(): void {
-  const query = { ...route.query }
-  let dirty = false
-  for (const key of STOCK_TABLE_SHARE_QUERY_KEYS) {
-    if (query[key] != null) {
-      delete query[key]
-      dirty = true
+const STOCK_FILTER_QUERY_KEYS = ['view', 'tab', 'fv', 'fc', 'ft', 'fm', 'fcr', 'fa'] as const
+
+function filterQuery(): Record<string, string> {
+  return stockTableShareToQuery({
+    tab: viewTab.value,
+    verticals: filterVerticals.value,
+    countries: filterCountries.value,
+    traffics: filterTraffics.value,
+    model: filterModel.value,
+    cr: filterCr.value,
+    availability: filterAvailability.value,
+  })
+}
+
+function modalQuery(): Record<string, string> {
+  if (buyOpen.value && buyTarget.value) {
+    const query: Record<string, string> = {
+      action: 'buy',
+      preset: buyTarget.value.presetId,
     }
+    if (buyDraft.value.qty > 0) {
+      query.qty = String(buyDraft.value.qty)
+    }
+    const zone = buyDraft.value.zone
+    if (zone === 'fresh' || zone === 'good' || zone === 'expired') {
+      query.zone = zone
+    }
+    return query
   }
-  if (dirty) {
-    void router.replace({ path: route.path, query })
+  if (orderOpen.value) {
+    const presetId = orderDraft.value?.presetId || orderPresetId.value
+    if (!presetId) {
+      return {}
+    }
+    const query: Record<string, string> = { action: 'order', preset: presetId }
+    const qty = orderDraft.value?.qty ?? 0
+    const price = orderDraft.value?.price ?? 0
+    const day = orderDraft.value?.day ?? ''
+    if (qty > 0) {
+      query.qty = String(Math.floor(qty))
+    }
+    if (price > 0) {
+      query.price = String(price)
+    }
+    if (day !== '') {
+      query.day = day
+    }
+    return query
   }
+  return {}
+}
+
+function currentPageQuery(): Record<string, string> {
+  return {
+    ...filterQuery(),
+    ...modalQuery(),
+    ...assistQuery(session.payload?.user),
+  }
+}
+
+function publishPageQuery(): void {
+  if (!pageReady.value || session.loading) {
+    return
+  }
+  if (shouldDeferTableShareAssist(session.payload?.user, route.query)) {
+    return
+  }
+  replacePageQuery(router, route, currentPageQuery())
 }
 
 function resetFilters(): void {
@@ -602,30 +662,6 @@ function resetFilters(): void {
   filterCr.value = null
   filterAvailability.value = null
   page.value = 1
-  clearTableViewShareQuery()
-}
-
-async function copyShareLink(): Promise<void> {
-  const assist = tableViewShareAssist(session.payload?.user)
-  if (!assist) {
-    return
-  }
-  const filterQuery = stockTableShareToQuery({
-    tab: viewTab.value,
-    verticals: filterVerticals.value,
-    countries: filterCountries.value,
-    traffics: filterTraffics.value,
-    model: filterModel.value,
-    cr: filterCr.value,
-    availability: filterAvailability.value,
-  })
-  const url = buildTableShareUrl(window.location.origin, route.path, filterQuery, assist)
-  try {
-    await navigator.clipboard.writeText(url)
-    showToast('Link copied')
-  } catch {
-    showToast('Copy unavailable')
-  }
 }
 
 function applyStockTableShareLink(): void {
@@ -654,36 +690,61 @@ function applyStockTableShareLink(): void {
   page.value = 1
 }
 
-function clearStockModalQuery(): void {
-  const keys = [...STOCK_MODAL_QUERY_KEYS, ...STOCK_SHARE_ASSIST_KEYS]
-  if (!keys.some((key) => route.query[key] != null)) {
-    return
+function routeFilterQuery(): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const key of STOCK_FILTER_QUERY_KEYS) {
+    const value = route.query[key]
+    if (typeof value === 'string' && value !== '') {
+      out[key] = value
+    }
   }
-  const query = { ...route.query }
-  for (const key of keys) {
-    delete query[key]
-  }
-  void router.replace({ path: route.path, query })
-}
-
-function resetModalLinkState(): void {
-  buyInitialQty.value = null
-  orderInitialVolume.value = null
-  orderInitialPrice.value = null
-  orderInitialDay.value = null
+  return out
 }
 
 function openBuy(row: StockOfferRow): void {
-  resetModalLinkState()
+  orderOpen.value = false
+  orderDraft.value = null
+  buyInitialQty.value = null
+  buyInitialZone.value = ''
+  buyDraft.value = { qty: 0, zone: '' }
   buyTarget.value = row
   buyOpen.value = true
 }
 
 function openOrder(row: StockOfferRow): void {
-  resetModalLinkState()
+  buyOpen.value = false
+  buyTarget.value = null
+  buyDraft.value = { qty: 0, zone: '' }
+  orderDraft.value = null
+  orderInitialVolume.value = null
+  orderInitialPrice.value = null
+  orderInitialDay.value = null
   orderPresetId.value = row.presetId
   orderBasePriceCents.value = row.basePriceCents
   orderOpen.value = true
+}
+
+function onBuyDraft(draft: { qty: number; zone: StockPickZoneId }): void {
+  buyDraft.value = draft
+}
+
+function onOrderDraft(draft: OrderFormDraft | null): void {
+  orderDraft.value = draft
+}
+
+function onBuyStockFromOrder(payload: { presetId: string; qty: number; zone: StockBuyZone }): void {
+  const row = market.stock.find((offer) => offer.presetId === payload.presetId)
+  if (!row) {
+    return
+  }
+  orderOpen.value = false
+  orderDraft.value = null
+  buyInitialQty.value = payload.qty > 0 ? payload.qty : null
+  buyInitialZone.value = payload.zone
+  buyDraft.value = { qty: payload.qty > 0 ? payload.qty : 0, zone: payload.zone }
+  buyTarget.value = row
+  viewTab.value = 'stock'
+  buyOpen.value = true
 }
 
 function onStockPurchasedFromOrder(): void {
@@ -704,12 +765,13 @@ async function applyStockModalLink(): Promise<void> {
     const row = market.stock.find((offer) => offer.presetId === intent.presetId)
     if (!row) {
       showToast('Offer not found or no longer available')
-      clearStockModalQuery()
       return
     }
     if (intent.action === 'buy') {
       viewTab.value = 'stock'
       buyInitialQty.value = intent.qty ?? null
+      buyInitialZone.value = intent.zone ?? ''
+      buyDraft.value = { qty: intent.qty ?? 0, zone: intent.zone ?? '' }
       buyTarget.value = row
       buyOpen.value = true
       return
@@ -720,6 +782,12 @@ async function applyStockModalLink(): Promise<void> {
     orderInitialVolume.value = intent.qty ?? null
     orderInitialPrice.value = intent.price ?? null
     orderInitialDay.value = intent.day ?? null
+    orderDraft.value = {
+      presetId: row.presetId,
+      qty: intent.qty ?? 0,
+      price: intent.price ?? 0,
+      day: intent.day ?? '',
+    }
     orderOpen.value = true
   } finally {
     applyingModalLink.value = false
@@ -727,23 +795,28 @@ async function applyStockModalLink(): Promise<void> {
 }
 
 watch(
-  () => [route.query, session.loading, session.payload?.user?.id] as const,
+  () => [route.query, session.loading, session.payload?.user?.id, session.payload?.user?.role] as const,
   () => {
-    if (session.loading) {
+    if (session.loading || shouldDeferTableShareAssist(session.payload?.user, route.query)) {
       return
     }
-    applyStockTableShareLink()
-    void applyStockModalLink()
+    if (!sameQuery(routeFilterQuery(), filterQuery())) {
+      applyStockTableShareLink()
+    }
+    void applyStockModalLink().finally(() => {
+      pageReady.value = true
+      publishPageQuery()
+    })
   },
   { immediate: true },
 )
 
-watch([buyOpen, orderOpen], ([buy, order]) => {
-  if (!buy && !order) {
-    clearStockModalQuery()
-    resetModalLinkState()
-  }
-})
+watch(
+  [filterVerticals, filterCountries, filterTraffics, filterModel, filterCr, filterAvailability, viewTab, buyOpen, orderOpen, buyDraft, orderDraft],
+  () => {
+    publishPageQuery()
+  },
+)
 
 async function copyPresetId(presetId: string): Promise<void> {
   try {

@@ -270,6 +270,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    padding: 26px 24px 20px !important;
     position: relative;
   }
 
@@ -279,7 +280,28 @@
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
-    padding-bottom: 4px !important;
+    padding: 0 !important;
+  }
+}
+
+/* Desktop: the stock banner stands left of the form, 80% of its height, centered. */
+@media (min-width: 961px) {
+  .v-dialog > .v-overlay__content > .form-dialog__cluster {
+    position: relative;
+    transition: padding-left 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .v-dialog > .v-overlay__content > .form-dialog__cluster.form-dialog__cluster--aside-shifted,
+  .v-dialog > .v-overlay__content > .form-dialog__cluster.form-dialog__cluster--aside-open {
+    padding-left: 484px;
+  }
+
+  .v-dialog > .v-overlay__content > .form-dialog__cluster > .form-dialog__aside-card {
+    height: 80%;
+    left: 0;
+    position: absolute;
+    top: 10%;
+    width: 460px;
   }
 }
 

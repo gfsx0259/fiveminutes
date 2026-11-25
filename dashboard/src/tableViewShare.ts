@@ -100,11 +100,28 @@ export function stockTableShareToQuery(state: StockTableShareState): Record<stri
   return out
 }
 
+function queryLists(query: Record<string, unknown>, keys: readonly string[]): boolean {
+  return keys.some((key) => {
+    const value = query[key]
+    return typeof value === 'string' && value.trim() !== ''
+  })
+}
+
+export function assistQuery(
+  user: { id: string; role: string } | null | undefined,
+): Record<string, string> {
+  const assist = tableViewShareAssist(user)
+  if (!assist) {
+    return {}
+  }
+  return { as: assist.asUserId, for: assist.forRole }
+}
+
 export function applyStockTableShareFromQuery(
   query: Record<string, unknown>,
   target: StockTableShareState,
 ): boolean {
-  if (!isTableViewShareQuery(query)) {
+  if (!isTableViewShareQuery(query) && !queryLists(query, ['tab', 'fv', 'fc', 'ft', 'fm', 'fcr', 'fa'])) {
     return false
   }
   const tab = readString(query.tab)
@@ -160,7 +177,7 @@ export function applyOrdersTableShareFromQuery(
   query: Record<string, unknown>,
   target: OrdersTableShareState,
 ): boolean {
-  if (!isTableViewShareQuery(query)) {
+  if (!isTableViewShareQuery(query) && !queryLists(query, ['oid', 'scope', 'fv', 'fc', 'ft', 'fpm', 'otyp', 'svc'])) {
     return false
   }
   target.orderId = readString(query.oid)
@@ -223,7 +240,7 @@ export function applyLeadsTableShareFromQuery(
   query: Record<string, unknown>,
   target: LeadsTableShareState,
 ): boolean {
-  if (!isTableViewShareQuery(query)) {
+  if (!isTableViewShareQuery(query) && !queryLists(query, ['order', 'lid', 'fv', 'fc', 'ft', 'fph', 'fem', 'fcs', 'fdp', 'fgen', 'fage'])) {
     return false
   }
   target.orderFilter = readString(query.order)

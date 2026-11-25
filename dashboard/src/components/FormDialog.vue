@@ -20,16 +20,6 @@
       <v-card class="form-dialog__main-card" elevation="8" rounded="lg">
         <v-card-title class="form-dialog__title">
           <span>{{ title }}</span>
-          <UiButton
-            v-if="shareable"
-            variant="ghost"
-            icon="mdi-share-variant"
-            class="form-dialog__share"
-            title="Copy link with current form"
-            @click="emit('share')"
-          >
-            Share
-          </UiButton>
         </v-card-title>
         <v-card-text class="form-dialog__main-body">
           <p v-if="hint" class="form-dialog__hint">{{ hint }}</p>
@@ -82,16 +72,6 @@
     <v-card v-else elevation="12" rounded="lg">
       <v-card-title class="form-dialog__title">
         <span>{{ title }}</span>
-        <UiButton
-          v-if="shareable"
-          variant="ghost"
-          icon="mdi-share-variant"
-          class="form-dialog__share"
-          title="Copy link with current form"
-          @click="emit('share')"
-        >
-          Share
-        </UiButton>
       </v-card-title>
       <v-card-text>
         <p v-if="hint">{{ hint }}</p>
@@ -127,7 +107,6 @@ const props = withDefaults(defineProps<{
   maxWidth?: number
   clusterMaxWidth?: number
   submitIcon?: string
-  shareable?: boolean
   /** Parent toggles split layout (stock panel + form) */
   asideOpen?: boolean
   /** Desktop: wait after open, then shift main to make room (ms). */
@@ -141,7 +120,6 @@ const props = withDefaults(defineProps<{
   maxWidth: 520,
   clusterMaxWidth: 1180,
   submitIcon: '',
-  shareable: false,
   asideOpen: false,
   asideRevealDelayMs: 1100,
   asidePanelDelayMs: 240,
@@ -150,7 +128,6 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   submit: []
-  share: []
   asideDismiss: []
 }>()
 
@@ -315,12 +292,6 @@ watch(() => props.modelValue, (open) => {
   align-items: center;
   display: flex;
   gap: 12px;
-  justify-content: space-between;
-}
-
-.form-dialog__share {
-  flex-shrink: 0;
-  margin-left: auto;
 }
 
 .form-dialog__cluster {
@@ -353,16 +324,15 @@ watch(() => props.modelValue, (open) => {
   margin: 0 0 16px;
 }
 
+/* Desktop placement (left of the form, 80% of its height) lives in app.css. */
 .form-dialog__aside-card {
-  flex: 0 0 440px;
+  flex: 0 0 460px;
   max-width: 460px;
   min-width: 0;
   opacity: 1;
   overflow: hidden;
   transform: translateX(0);
   transition:
-    flex-basis 0.24s cubic-bezier(0.4, 0, 0.2, 1),
-    max-width 0.24s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.2s ease,
     transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -385,45 +355,32 @@ watch(() => props.modelValue, (open) => {
   opacity: 0;
   padding: 0 !important;
   pointer-events: none;
-  transform: translateX(-40px);
+  transform: translateX(24px);
   visibility: hidden;
 }
 
-/* Phase 2: main shifted; empty slot reserved on the right */
+/* Phase 2: form shifted; room for the stock banner reserved on the left */
 .form-dialog__cluster--aside-shifted:not(.form-dialog__cluster--aside-open) {
   align-items: flex-start;
 }
 
 .form-dialog__cluster--aside-shifted:not(.form-dialog__cluster--aside-open) .form-dialog__aside-card {
-  align-self: flex-start;
   border-width: 0;
-  flex: 0 0 440px;
-  margin: 0;
   max-height: 0 !important;
-  max-width: 440px;
   min-height: 0 !important;
   opacity: 0;
-  padding: 0 !important;
   pointer-events: none;
-  transform: translateX(0);
+  transform: translateX(24px);
   visibility: hidden;
 }
 
-/* Phase 3: stock panel visible */
+/* Phase 3: stock banner visible */
 .form-dialog__cluster--aside-open {
   align-items: stretch;
 }
 
 .form-dialog__cluster--aside-open .form-dialog__aside-card {
   visibility: visible;
-}
-
-.form-dialog__aside-card :deep(.form-dialog__aside-body) {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .form-dialog__stock-peek {
@@ -439,15 +396,15 @@ watch(() => props.modelValue, (open) => {
   background: transparent;
   border: none;
   border-radius: 8px;
-  color: #5c5878;
+  color: #10132d;
   cursor: pointer;
   display: flex;
   height: 40px;
   justify-content: center;
-  opacity: 0.85;
+  opacity: 0.9;
   position: absolute;
-  right: 8px;
-  top: 8px;
+  right: 14px;
+  top: 20px;
   width: 40px;
   z-index: 3;
 }

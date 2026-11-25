@@ -98,7 +98,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import ShellNav from '@/components/ShellNav.vue'
 import UiToastHost from '@/components/UiToastHost.vue'
 import TopbarWallet from '@/components/TopbarWallet.vue'
@@ -113,7 +113,6 @@ const COLLAPSE_KEY = 'rider.sidebar.collapsed'
 
 const session = useSessionStore()
 const route = useRoute()
-const router = useRouter()
 
 const impersonation = computed(() => session.payload?.impersonation ?? null)
 const { mobile: overlayNav, tablet: tabletRail } = useViewport()
@@ -169,7 +168,7 @@ async function stopImpersonation(): Promise<void> {
 watch(
   () => [session.loading, route.fullPath] as const,
   () => {
-    void maybeResolveAdminStockShare(session, route, router)
+    void maybeResolveAdminStockShare(session, route)
   },
 )
 

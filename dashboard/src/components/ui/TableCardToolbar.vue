@@ -24,13 +24,11 @@ import UiButton from '@/components/ui/UiButton.vue'
 const props = defineProps<{
   refreshLoading?: boolean
   exportDisabled?: boolean
-  shareDisabled?: boolean
 }>()
 
 const emit = defineEmits<{
   refresh: []
   export: []
-  share: []
 }>()
 
 const menuItems = computed(() => [
@@ -40,21 +38,11 @@ const menuItems = computed(() => [
     icon: 'mdi-download',
     disabled: props.exportDisabled,
   },
-  {
-    id: 'share',
-    title: 'Share',
-    icon: 'mdi-share-variant',
-    disabled: props.shareDisabled,
-  },
 ])
 
 function onMenuSelect(id: string): void {
   if (id === 'export') {
     emit('export')
-    return
-  }
-  if (id === 'share') {
-    emit('share')
   }
 }
 </script>

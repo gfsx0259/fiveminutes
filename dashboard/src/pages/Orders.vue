@@ -121,10 +121,8 @@
         <TableCardToolbar
           :refresh-loading="market.loading"
           :export-disabled="filteredOrders.length === 0"
-          :share-disabled="!canShareTableView"
           @refresh="refresh()"
           @export="exportCsv"
-          @share="copyShareLink"
         />
       </template>
       <UiDataTable
@@ -335,13 +333,12 @@ import { dollars, wholeDollars } from '@/money'
 import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import { showErrorToast, showToast } from '@/composables/useToast'
 import { matchesOrderDisplayId, orderDisplayId, orderWhenDay } from '@/orderDisplay'
+import { replacePageQuery, sameQuery } from '@/pageQuery'
 import {
   applyOrdersTableShareFromQuery,
-  buildTableShareUrl,
-  ORDERS_TABLE_SHARE_QUERY_KEYS,
+  assistQuery,
   ordersTableShareToQuery,
   shouldDeferTableShareAssist,
-  tableViewShareAssist,
 } from '@/tableViewShare'
 import { useMarketStore, type OrderRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
@@ -353,8 +350,8 @@ const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
 
-const canShareTableView = computed(() => Boolean(tableViewShareAssist(session.payload?.user)))
 const market = useMarketStore()
+const pageReady = ref(false)
 const isPartner = computed(() => session.payload?.user?.role === 'partner')
 const isAdmin = computed(() => session.payload?.user?.role === 'admin')
 const compactTableActions = useCompactTableActions()
@@ -474,18 +471,36 @@ watch(filteredOrders, () => {
   }
 })
 
-function clearTableViewShareQuery(): void {
-  const query = { ...route.query }
-  let dirty = false
-  for (const key of ORDERS_TABLE_SHARE_QUERY_KEYS) {
-    if (query[key] != null) {
-      delete query[key]
-      dirty = true
-    }
+const ORDERS_FILTER_QUERY_KEYS = ['view', 'oid', 'scope', 'fv', 'fc', 'ft', 'fpm', 'otyp', 'svc'] as const
+
+function filterQuery(): Record<string, string> {
+  return ordersTableShareToQuery({
+    orderId: filterOrderId.value,
+    scope: filterScope.value,
+    verticals: filterVerticals.value,
+    countries: filterCountries.value,
+    traffics: filterTraffics.value,
+    paymentModel: filterPaymentModel.value,
+    orderType: filterOrderType.value,
+    serviceOn: filterServiceOn.value,
+  })
+}
+
+function currentPageQuery(): Record<string, string> {
+  return {
+    ...filterQuery(),
+    ...assistQuery(session.payload?.user),
   }
-  if (dirty) {
-    void router.replace({ path: route.path, query })
+}
+
+function publishPageQuery(): void {
+  if (!pageReady.value || session.loading) {
+    return
   }
+  if (shouldDeferTableShareAssist(session.payload?.user, route.query)) {
+    return
+  }
+  replacePageQuery(router, route, currentPageQuery())
 }
 
 function resetFilters(): void {
@@ -498,31 +513,6 @@ function resetFilters(): void {
   filterOrderType.value = null
   filterServiceOn.value = ''
   advancedOpen.value = false
-  clearTableViewShareQuery()
-}
-
-async function copyShareLink(): Promise<void> {
-  const assist = tableViewShareAssist(session.payload?.user)
-  if (!assist) {
-    return
-  }
-  const filterQuery = ordersTableShareToQuery({
-    orderId: filterOrderId.value,
-    scope: filterScope.value,
-    verticals: filterVerticals.value,
-    countries: filterCountries.value,
-    traffics: filterTraffics.value,
-    paymentModel: filterPaymentModel.value,
-    orderType: filterOrderType.value,
-    serviceOn: filterServiceOn.value,
-  })
-  const url = buildTableShareUrl(window.location.origin, route.path, filterQuery, assist)
-  try {
-    await navigator.clipboard.writeText(url)
-    showToast('Link copied')
-  } catch {
-    showToast('Copy unavailable')
-  }
 }
 
 function applyOrdersTableShareLink(): void {
@@ -553,15 +543,37 @@ function applyOrdersTableShareLink(): void {
   page.value = 1
 }
 
+function routeFilterQuery(): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const key of ORDERS_FILTER_QUERY_KEYS) {
+    const value = route.query[key]
+    if (typeof value === 'string' && value !== '') {
+      out[key] = value
+    }
+  }
+  return out
+}
+
 watch(
-  () => [route.query, session.loading, session.payload?.user?.id] as const,
+  () => [route.query, session.loading, session.payload?.user?.id, session.payload?.user?.role] as const,
   () => {
-    if (session.loading) {
+    if (session.loading || shouldDeferTableShareAssist(session.payload?.user, route.query)) {
       return
     }
-    applyOrdersTableShareLink()
+    if (!sameQuery(routeFilterQuery(), filterQuery())) {
+      applyOrdersTableShareLink()
+    }
+    pageReady.value = true
+    publishPageQuery()
   },
   { immediate: true },
+)
+
+watch(
+  [filterOrderId, filterScope, filterVerticals, filterCountries, filterTraffics, filterPaymentModel, filterOrderType, filterServiceOn],
+  () => {
+    publishPageQuery()
+  },
 )
 
 function orderTypeLabel(item: OrderRow): string {

@@ -1,7 +1,10 @@
+export type StockBuyZone = 'fresh' | 'good' | 'expired'
+
 export type StockBuyIntent = {
   action: 'buy'
   presetId: string
   qty?: number
+  zone?: StockBuyZone
 }
 
 export type StockOrderIntent = {
@@ -16,7 +19,7 @@ export type StockOrderIntent = {
 
 export type StockModalIntent = StockBuyIntent | StockOrderIntent
 
-export const STOCK_MODAL_QUERY_KEYS = ['action', 'preset', 'qty', 'price', 'day'] as const
+export const STOCK_MODAL_QUERY_KEYS = ['action', 'preset', 'qty', 'price', 'day', 'zone'] as const
 export const STOCK_SHARE_ASSIST_KEYS = ['as', 'for'] as const
 
 export type StockShareAssist = {
@@ -34,6 +37,9 @@ export function stockModalIntentToQuery(
   }
   if (intent.qty != null && intent.qty > 0) {
     query.qty = String(Math.floor(intent.qty))
+  }
+  if (intent.action === 'buy' && intent.zone) {
+    query.zone = intent.zone
   }
   if (intent.action === 'order') {
     if (intent.price != null && intent.price > 0) {
@@ -70,7 +76,9 @@ export function parseStockModalIntent(query: Record<string, unknown>): StockModa
   }
 
   if (action === 'buy') {
-    return { action: 'buy', presetId: preset, qty }
+    const zoneRaw = query.zone
+    const zone = zoneRaw === 'fresh' || zoneRaw === 'good' || zoneRaw === 'expired' ? zoneRaw : undefined
+    return { action: 'buy', presetId: preset, qty, zone }
   }
 
   let price: number | undefined

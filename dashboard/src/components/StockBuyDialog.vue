@@ -8,10 +8,8 @@
     :error="formError"
     :loading="busy"
     :max-width="640"
-    shareable
     @update:model-value="open = $event"
     @submit="buy"
-    @share="copyShareLink"
   >
     <template v-if="target">
       <div class="stock-buy__offer">
@@ -115,11 +113,10 @@ import OrderCheckoutSummary from '@/components/OrderCheckoutSummary.vue'
 import PresetOfferSummary from '@/components/PresetOfferSummary.vue'
 import StockPickControls from '@/components/StockPickControls.vue'
 import { defaultStockPickZone, formatStockQuoteError, stockPickApiFields, type StockPickZoneId } from '@/stockPick'
+import type { StockBuyZone } from '@/stockModalIntent'
 import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
-import { showToast } from '@/composables/useToast'
 import { dollars } from '@/money'
-import { stockModalShareUrl } from '@/stockModalIntent'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
@@ -127,11 +124,13 @@ import { useSessionStore } from '@/stores/session'
 const props = defineProps<{
   target: StockBuyTarget | null
   initialQty?: number | null
+  initialZone?: StockBuyZone | '' | null
 }>()
 
 const open = defineModel<boolean>({ default: false })
 const emit = defineEmits<{
   bought: []
+  draft: [value: { qty: number; zone: StockPickZoneId }]
 }>()
 
 const market = useMarketStore()
@@ -196,30 +195,16 @@ function syncToTarget(): void {
   const fromLink = props.initialQty != null && props.initialQty > 0 ? Math.floor(props.initialQty) : null
   const defaultQty = fromLink ?? Math.min(props.target.available, 1000)
   volume.value = String(Math.max(1, defaultQty))
+  const zone = props.initialZone
+  pickZone.value = zone === 'fresh' || zone === 'good' || zone === 'expired' ? zone : defaultStockPickZone()
 }
 
-async function copyShareLink(): Promise<void> {
-  const target = props.target
-  if (!target) {
-    return
-  }
+function typedQty(): number {
   const raw = Number(volume.value)
-  const qty = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : undefined
-  const sharer = session.payload?.user
-  const assist = sharer
-    ? { asUserId: sharer.id, forRole: 'partner' as const }
-    : undefined
-  const url = stockModalShareUrl(window.location.origin, window.location.pathname, {
-    action: 'buy',
-    presetId: target.presetId,
-    qty,
-  }, assist)
-  try {
-    await navigator.clipboard.writeText(url)
-    showToast('Link copied')
-  } catch {
-    showToast('Copy unavailable')
+  if (!Number.isFinite(raw) || raw < 1) {
+    return 0
   }
+  return Math.floor(raw)
 }
 
 watch(open, (value) => {
@@ -229,8 +214,15 @@ watch(open, (value) => {
   syncToTarget()
 })
 
-watch(() => [props.target?.presetId, props.initialQty] as const, () => {
+watch(() => [props.target?.presetId, props.initialQty, props.initialZone] as const, () => {
   syncToTarget()
+})
+
+watch([open, volume, pickZone], () => {
+  if (!open.value) {
+    return
+  }
+  emit('draft', { qty: typedQty(), zone: pickZone.value })
 })
 
 watch(volume, () => {
