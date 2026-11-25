@@ -41,6 +41,10 @@
     </div>
 
     <section class="demands-card" role="tabpanel">
+      <CollapsibleFilterPanel class="demands-filter-panel" :active-count="activeFilterCount">
+        <template #mobile-actions>
+          <UiButton variant="ghost" icon="mdi-refresh" @click="clearFilters">Reset</UiButton>
+        </template>
       <div class="demands-filters">
         <UiSelect
           v-model="filterVertical"
@@ -93,6 +97,7 @@
           clearable
         />
       </div>
+      </CollapsibleFilterPanel>
 
       <div v-if="market.loading && currentRows.length === 0" class="demands-empty">Loading demands…</div>
       <div v-else class="demands-table-scroll">
@@ -261,12 +266,14 @@ import StatusChip from '@/components/StatusChip.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
+import CollapsibleFilterPanel from '@/components/ui/CollapsibleFilterPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import { showToast } from '@/composables/useToast'
 import { copyText } from '@/copyText'
+import { countFilledFilters } from '@/filterCount'
 import { countryName } from '@/countries'
 import { copyTextFromExportCell, isTableCellCopyTarget } from '@/tableCellCopy'
 import { dollars } from '@/money'
@@ -547,6 +554,13 @@ async function copyCell(event: MouseEvent, value: string): Promise<void> {
   showToast((await copyText(text)) ? 'Copied' : 'Copy unavailable')
 }
 
+const activeFilterCount = computed(() => countFilledFilters({
+  vertical: filterVertical.value,
+  geo: filterGeo.value,
+  source: filterSource.value,
+  cap: filterCap.value,
+}))
+
 function clearFilters(): void {
   filterSource.value = null
   filterVertical.value = null
@@ -692,6 +706,27 @@ onMounted(() => {
   margin-bottom: 14px;
 }
 
+/* The filters live inside the table card, so the shared panel must not draw a second card. */
+.demands-card .demands-filter-panel.ui-filter-panel {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+@media (max-width: 767px) {
+  .demands-card .demands-filter-panel.ui-filter-panel {
+    margin-bottom: 12px;
+    padding: 0;
+  }
+
+  .demands-filters {
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 0;
+  }
+}
+
 .demands-table-scroll {
   max-width: 100%;
   overflow: auto;
@@ -703,7 +738,7 @@ onMounted(() => {
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;
-  min-width: 1050px;
+  min-width: 1090px;
   table-layout: fixed;
   width: 100%;
 }
@@ -769,10 +804,10 @@ onMounted(() => {
 .demands-table td:first-child {
   border-right: 1px solid #efedfb;
   left: 0;
-  min-width: 170px;
+  min-width: 210px;
   position: sticky;
   text-align: left;
-  width: 170px;
+  width: 210px;
 }
 
 .demands-table th:first-child {
@@ -818,6 +853,21 @@ onMounted(() => {
 /* The pagination below draws its own top border; avoid a double line. */
 .demands-table tbody tr:last-child td {
   border-bottom: 0;
+}
+
+/* Mobile: the table scrolls horizontally, the first column scrolls with it. */
+@media (max-width: 767px) {
+  .demands-table th:first-child,
+  .demands-table td:first-child {
+    border-right: 0;
+    left: auto;
+    min-width: 150px;
+    width: 150px;
+  }
+
+  .demands-table td:first-child {
+    position: static;
+  }
 }
 
 .demands-table td.demands-copy {
@@ -1108,10 +1158,6 @@ onMounted(() => {
     gap: 12px;
   }
 
-  .demands-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .demands-tabs > button {
     flex: 1;
     font-size: 12px;
@@ -1131,8 +1177,7 @@ onMounted(() => {
 }
 
 @media (max-width: 380px) {
-  .demands-kpis,
-  .demands-filters {
+  .demands-kpis {
     grid-template-columns: minmax(0, 1fr);
   }
 }
