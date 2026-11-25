@@ -194,10 +194,11 @@
         {{ modelLabel(item.paymentModel) }}
       </template>
       <template #item.conversion="{ item }">
-        <span
-          class="stock-cr"
-          :class="item.conversion >= 8 ? 'stock-cr--high' : 'stock-cr--low'"
-        >{{ item.conversion }}%</span>
+        <StatusChip
+          :status="item.conversion >= 8 ? 'high' : 'low'"
+          :label="`${item.conversion}%`"
+          :tone="item.conversion >= 8 ? 'success' : 'default'"
+        />
       </template>
       <template #item.basePriceCents="{ item }">
         <span class="stock-payout">{{ payoutDollars(item.basePriceCents) }}</span>
@@ -331,6 +332,7 @@ import OrderFormDialog from '@/components/OrderFormDialog.vue'
 import type { OrderFormDraft } from '@/components/OrderFormDialog.vue'
 import StockBuyDialog from '@/components/StockBuyDialog.vue'
 import StockFreshnessBar from '@/components/StockFreshnessBar.vue'
+import StatusChip from '@/components/StatusChip.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
 import CollapsibleFilterPanel from '@/components/ui/CollapsibleFilterPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -959,29 +961,6 @@ onMounted(async () => {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-}
-
-.stock-cr {
-  border-radius: 8px;
-  display: inline-block;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  line-height: 1.2;
-  min-width: 2.75rem;
-  padding: 4px 10px;
-  text-align: center;
-}
-
-.stock-cr--low {
-  background: #eef0f6;
-  color: #3d446e;
-}
-
-.stock-cr--high {
-  background: #e5f6ea;
-  color: #1d7a3a;
-  font-weight: 700;
 }
 
 .stock-payout {

@@ -231,12 +231,13 @@ function copyCell(event: MouseEvent, text: string): void {
 }
 
 .report-table__chip {
-  background: var(--lm-lavender);
-  border-radius: 999px;
-  color: var(--lm-primary-deep);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 10px;
+  background: #eeebff;
+  border-radius: 12px;
+  color: #3412b9;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  padding: 4px 8px;
 }
 
 .report-table__actions {

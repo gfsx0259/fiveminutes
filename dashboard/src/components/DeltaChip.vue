@@ -43,27 +43,28 @@ const tone = computed(() => {
 <style scoped>
 .delta-chip {
   align-items: center;
-  border-radius: 999px;
+  border-radius: 12px;
   display: inline-flex;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   gap: 1px;
-  padding: 2px 7px 2px 4px;
+  line-height: 1.25;
+  padding: 3px 8px 3px 4px;
   white-space: nowrap;
 }
 
 .delta-chip[data-tone='up'] {
-  background: #e5f6ea;
-  color: #1d7a3a;
+  background: #e5f6e9;
+  color: #23743e;
 }
 
 .delta-chip[data-tone='down'] {
-  background: #ffe2e8;
-  color: #c42f50;
+  background: #ffe7eb;
+  color: #b82732;
 }
 
 .delta-chip[data-tone='flat'] {
-  background: var(--lm-lavender);
-  color: #51487b;
+  background: #eeedf8;
+  color: #65648a;
 }
 </style>

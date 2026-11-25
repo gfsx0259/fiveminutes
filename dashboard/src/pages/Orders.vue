@@ -160,9 +160,11 @@
           {{ modelLabel(item.paymentModel) }}
         </template>
         <template #item.orderType="{ item }">
-          <span class="order-type" :class="item.stock ? 'order-type--stock' : 'order-type--live'">
-            {{ orderTypeLabel(item) }}
-          </span>
+          <StatusChip
+            :status="item.stock ? 'stock' : 'live'"
+            :label="orderTypeLabel(item)"
+            :tone="item.stock ? 'default' : 'lavender'"
+          />
         </template>
         <template #item.whenDay="{ item }">
           <span class="order-when">{{ item.whenDay || '—' }}</span>
@@ -1017,24 +1019,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.order-type {
-  border-radius: 8px;
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  padding: 4px 10px;
-}
-
-.order-type--live {
-  background: #efecff;
-  color: #3512bc;
-}
-
-.order-type--stock {
-  background: #eef0f6;
-  color: #3d446e;
-}
 </style>
 
 <style>

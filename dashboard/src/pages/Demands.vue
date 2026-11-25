@@ -111,8 +111,9 @@
           <tbody>
             <tr v-for="row in pageRows" :key="row.key">
               <td class="demands-copy" @click="copyCell($event, verticalLabel(row.vertical))">
-                <span class="demands-badge" :class="`demands-vertical-${row.vertical}`">
-                  {{ row.vertical ? verticalLabel(row.vertical) : '—' }}
+                <span class="demands-entity">
+                  <v-icon :icon="verticalIcon(row.vertical)" :color="verticalColor(row.vertical)" size="18" />
+                  {{ verticalLabel(row.vertical) }}
                 </span>
               </td>
               <td class="demands-copy" @click="copyCell($event, countryName(row.geo))"><span class="demands-geo"><CountryPick :code="row.geo" label="code" /></span></td>
@@ -126,7 +127,7 @@
                 <div class="demands-actions">
                   <UiButton v-if="row.kind === 'cap'" icon="mdi-check" @click="openAccept(row)">Accept</UiButton>
                   <span v-else class="demands-status-help">
-                    <span class="demands-status" :class="`demands-status--${row.status}`">{{ statusLabel(row.status) }}</span>
+                    <StatusChip :status="row.status" :label="statusLabel(row.status)" :tone="statusTone(row.status)" />
                     <v-tooltip location="top" max-width="280">
                       <template #activator="{ props: tipProps }">
                         <span
@@ -197,8 +198,9 @@
           <div>
             <dt>Vertical</dt>
             <dd>
-              <span class="demands-badge" :class="`demands-vertical-${selected.vertical}`">
-                {{ selected.vertical ? verticalLabel(selected.vertical) : '—' }}
+              <span class="demands-entity">
+                <v-icon :icon="verticalIcon(selected.vertical)" :color="verticalColor(selected.vertical)" size="18" />
+                {{ verticalLabel(selected.vertical) }}
               </span>
             </dd>
           </div>
@@ -212,7 +214,7 @@
           <div><dt>Min Price</dt><dd>{{ selected.priceCents > 0 ? dollars(selected.priceCents / 100) : '—' }}</dd></div>
           <div v-if="selected.kind === 'offer'">
             <dt>Status</dt>
-            <dd><span class="demands-status" :class="`demands-status--${selected.status}`">{{ statusLabel(selected.status) }}</span></dd>
+            <dd><StatusChip :status="selected.status" :label="statusLabel(selected.status)" :tone="statusTone(selected.status)" /></dd>
           </div>
           <div class="demands-summary__total"><dt>Total Value</dt><dd>{{ selected.priceCents > 0 ? dollars((selected.volume * selected.priceCents) / 100) : '—' }}</dd></div>
         </dl>
@@ -255,6 +257,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import StatusChip from '@/components/StatusChip.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
@@ -473,6 +476,13 @@ const dailyCapHelp = computed(() => {
   }
   return 'Please specify your planned daily cap.'
 })
+
+function statusTone(status: DemandStatus): string {
+  if (status === 'pending') return 'lavender'
+  if (status === 'approved') return 'primary'
+  if (status === 'rejected') return 'error'
+  return 'default'
+}
 
 function statusLabel(status: DemandStatus): string {
   if (status === 'pending') return 'Under Review'
@@ -693,7 +703,7 @@ onMounted(() => {
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;
-  min-width: 1040px;
+  min-width: 1020px;
   table-layout: fixed;
   width: 100%;
 }
@@ -724,10 +734,20 @@ onMounted(() => {
 .demands-table th:nth-child(6),
 .demands-table td:nth-child(6) {
   padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* Wide screens: keep the cap bar from stretching across the whole column. */
+@media (min-width: 1700px) {
+  .demands-table th:nth-child(6),
+  .demands-table td:nth-child(6) {
+    padding-left: 96px;
+    padding-right: 96px;
+  }
 }
 
 .demands-table th:nth-child(7) {
-  width: 220px;
+  width: 200px;
 }
 
 .demands-table th {
@@ -749,10 +769,10 @@ onMounted(() => {
 .demands-table td:first-child {
   border-right: 1px solid #efedfb;
   left: 0;
-  min-width: 150px;
+  min-width: 170px;
   position: sticky;
   text-align: left;
-  width: 150px;
+  width: 170px;
 }
 
 .demands-table th:first-child {
@@ -830,53 +850,11 @@ onMounted(() => {
   gap: 6px;
 }
 
-.demands-badge,
-.demands-status {
+.demands-entity {
   align-items: center;
-  border-radius: 12px;
   display: inline-flex;
-  font-size: 11px;
-  font-weight: 500;
-  gap: 5px;
-  line-height: 1.25;
-  padding: 4px 8px;
-  white-space: nowrap;
-}
-
-.demands-badge {
-  background: #eeebff;
-  color: #3412b9;
-}
-
-.demands-vertical-finance {
-  background: #ddf5eb;
-  color: #176d4d;
-}
-
-.demands-vertical-forex {
-  background: #fff1d9;
-  color: #a65e00;
-}
-
-.demands-vertical-nutra {
-  background: #e4f8df;
-  color: #237b35;
-}
-
-.demands-vertical-dating {
-  background: #ffe7f3;
-  color: #c52b7a;
-}
-
-.demands-vertical-gambling,
-.demands-vertical-betting {
-  background: #eee5ff;
-  color: #6b31ce;
-}
-
-.demands-vertical-crypto {
-  background: #e6f0ff;
-  color: #2958be;
+  gap: 8px;
+  min-width: 0;
 }
 
 .demands-actions {
@@ -902,21 +880,6 @@ onMounted(() => {
 
 .demands-actions :deep(.ui-btn .v-btn__content) {
   gap: 6px;
-}
-
-.demands-status {
-  background: #eeebff;
-  color: #3412b9;
-}
-
-.demands-status--approved {
-  background: #e8efff;
-  color: #345caa;
-}
-
-.demands-status--rejected {
-  background: #ffe7eb;
-  color: #b82732;
 }
 
 .demands-status-help {

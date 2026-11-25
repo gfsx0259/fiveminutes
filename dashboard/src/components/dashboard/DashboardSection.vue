@@ -82,13 +82,14 @@ withDefaults(defineProps<{
 .dashboard-section__source {
   align-items: center;
   background: var(--section-soft);
-  border-radius: 999px;
+  border-radius: 12px;
   color: var(--section-accent);
   display: inline-flex;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   gap: 5px;
-  padding: 4px 10px;
+  line-height: 1.25;
+  padding: 4px 8px;
   white-space: nowrap;
 }
 

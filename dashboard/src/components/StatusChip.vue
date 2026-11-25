@@ -103,51 +103,51 @@ const label = computed(() => {
 </script>
 
 <style scoped>
+/* Palette and sizing follow the buyer prototype (demands status badges). */
 .status-chip {
   align-items: center;
-  border-radius: 999px;
+  border-radius: 12px;
   box-sizing: border-box;
   display: inline-flex;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.2;
-  min-height: 26px;
-  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  padding: 4px 8px;
   white-space: nowrap;
 }
 
 .status-chip[data-tone='primary'] {
-  background: #e0edff;
-  color: #2549c7;
+  background: #e8efff;
+  color: #345caa;
 }
 
 .status-chip[data-tone='lavender'] {
-  background: var(--lm-lavender);
-  color: #51487b;
+  background: #eeebff;
+  color: #3412b9;
 }
 
 .status-chip[data-tone='orange'] {
-  background: #ffedd9;
-  color: #c45c12;
+  background: #ffeadb;
+  color: #b4501a;
 }
 
 .status-chip[data-tone='success'] {
-  background: #e5f6ea;
-  color: #1d7a3a;
+  background: #e5f6e9;
+  color: #23743e;
 }
 
 .status-chip[data-tone='error'] {
-  background: #ffe2e8;
-  color: #c42f50;
+  background: #ffe7eb;
+  color: #b82732;
 }
 
 .status-chip[data-tone='warning'] {
-  background: #fff1d6;
-  color: #9a6408;
+  background: #fff1d9;
+  color: #a65e00;
 }
 
 .status-chip[data-tone='default'] {
-  background: var(--lm-lavender);
-  color: #5e568a;
+  background: #eeedf8;
+  color: #65648a;
 }
 </style>

@@ -14,22 +14,23 @@ defineProps<{
 <style scoped>
 .model-tag {
   align-items: center;
-  border-radius: 6px;
+  border-radius: 12px;
   display: inline-flex;
-  font-size: 12px;
-  font-weight: 700;
-  height: 22px;
-  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  padding: 4px 8px;
 }
 
+/* Same palette as StatusChip (buyer prototype badges). */
 .model-tag[data-model='cpl'] {
-  background: #e0edff;
-  color: #2549c7;
+  background: #e8efff;
+  color: #345caa;
 }
 
 .model-tag[data-model='cpa'] {
-  background: #f3e8ff;
-  color: #7a2fc4;
+  background: #eeebff;
+  color: #3412b9;
 }
 
 .model-tag--empty {
