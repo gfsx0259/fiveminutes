@@ -6,7 +6,25 @@
       'stock-vol--fraction': showBar && showFraction,
     }"
   >
-    <template v-if="showBar">
+    <template v-if="showBar && showFraction">
+      <div class="stock-vol__row">
+        <span class="stock-vol__fraction">
+          {{ value.toLocaleString('en-US') }}
+          <span class="stock-vol__plan">/ {{ parent?.toLocaleString('en-US') }}</span>
+        </span>
+        <span class="stock-vol__percent">{{ percent }}%</span>
+      </div>
+      <div
+        class="stock-vol__track stock-vol__track--thin"
+        role="progressbar"
+        :aria-valuenow="percent"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        <div class="stock-vol__fill stock-vol__fill--flat" :style="{ width: `${percent}%` }" />
+      </div>
+    </template>
+    <template v-else-if="showBar">
       <div
         class="stock-vol__labels"
         :class="{ 'stock-vol__labels--fraction': showFraction }"
@@ -32,10 +50,8 @@ const props = withDefaults(
     /** When set, label can show share of parent (`value / parent` if partial). */
     parent?: number
     showBar?: boolean
-    /** Stock orders: show a full bar while keeping supplied/volume label. */
-    barFull?: boolean
   }>(),
-  { showBar: true, barFull: false },
+  { showBar: true },
 )
 
 const showFraction = computed(
@@ -49,10 +65,15 @@ const countLabel = computed(() => {
   return String(props.value)
 })
 
-const fill = computed(() => {
-  if (props.barFull && props.max > 0) {
-    return 100
+const percent = computed(() => {
+  const total = props.parent ?? 0
+  if (total <= 0) {
+    return 0
   }
+  return Math.round(Math.max(0, Math.min(100, (props.value / total) * 100)))
+})
+
+const fill = computed(() => {
   if (props.max < 1 || props.value < 1) {
     return 0
   }
@@ -75,7 +96,43 @@ const fill = computed(() => {
 }
 
 .stock-vol--fraction {
-  gap: 7px;
+  gap: 5px;
+}
+
+.stock-vol__row {
+  align-items: baseline;
+  display: flex;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  gap: 8px;
+  justify-content: space-between;
+  line-height: 1.2;
+}
+
+.stock-vol__fraction {
+  color: #10132d;
+  white-space: nowrap;
+}
+
+.stock-vol__plan {
+  color: #464d78;
+}
+
+.stock-vol__percent {
+  color: var(--lm-primary-deep);
+  font-weight: 500;
+}
+
+.stock-vol__track.stock-vol__track--thin {
+  background: #eeebff;
+  border-radius: 4px;
+  height: 4px;
+}
+
+.stock-vol__fill.stock-vol__fill--flat {
+  background: #5b45e8;
+  border-radius: inherit;
+  min-width: 0;
 }
 
 .stock-vol__labels {

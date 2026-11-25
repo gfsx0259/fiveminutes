@@ -38,7 +38,13 @@
           <UiButton variant="ghost" class="lm-mobile-nav__add" icon="mdi-plus" :loading="wallet.busy" @click="onDeposit">
             Add funds
           </UiButton>
-          <UiButton variant="ghost" class="lm-mobile-nav__buy" icon="mdi-cart-outline" @click="onBuyLeads">
+          <UiButton
+            v-if="role !== 'buyer'"
+            variant="ghost"
+            class="lm-mobile-nav__buy"
+            icon="mdi-cart-outline"
+            @click="onBuyLeads"
+          >
             Buy leads
           </UiButton>
         </div>
@@ -152,7 +158,11 @@ interface NavItem {
   sectionAfter?: boolean
 }
 
-const leads: NavItem = { title: 'Leads', to: '/leads', icon: 'mdi-format-list-bulleted' }
+const leads: NavItem = {
+  title: 'Leads',
+  to: '/leads',
+  icon: 'mdi-format-list-bulleted',
+}
 const performance: NavItem = { title: 'Performance', to: '/performance', icon: 'mdi-chart-timeline-variant' }
 const transactions: NavItem = { title: 'Transactions', to: '/transactions', icon: 'mdi-swap-vertical' }
 
@@ -179,9 +189,9 @@ const menu = computed((): NavItem[] => {
     ]
   }
   return [
-    { title: 'Caps', to: '/caps', icon: 'mdi-gauge' },
-    { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline', sectionAfter: true },
-    leads,
+    { title: 'Connections', to: '/connections', icon: 'mdi-key-outline', sectionAfter: true },
+    { title: 'My leads', to: '/leads', icon: 'mdi-account-outline' },
+    { title: 'Demands', to: '/demands', icon: 'mdi-layers-outline', sectionAfter: true },
     performance,
     transactions,
   ]

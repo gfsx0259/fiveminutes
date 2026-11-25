@@ -1,8 +1,9 @@
 import { documentTitle } from '@/pageTitle'
 import { useSessionStore } from '@/stores/session'
 import { createRouter, createWebHistory } from 'vue-router'
-import Caps from '@/pages/Caps.vue'
+import Connections from '@/pages/Connections.vue'
 import Dashboard from '@/pages/Dashboard.vue'
+import Demands from '@/pages/Demands.vue'
 import Home from '@/pages/Home.vue'
 import Leads from '@/pages/Leads.vue'
 import Offers from '@/pages/Offers.vue'
@@ -23,12 +24,22 @@ export const router = createRouter({
     { path: '/reports', component: Reports },
     { path: '/transactions', component: Transactions },
     { path: '/leads', component: Leads },
-    { path: '/send-lead', redirect: '/leads' },
+    { path: '/connections', component: Connections },
+    { path: '/send-lead', redirect: '/connections' },
     { path: '/presets', component: PresetPage },
     { path: '/orders', component: Orders },
     { path: '/stock', component: Stock },
-    { path: '/caps', component: Caps },
-    { path: '/offers', component: Offers },
+    { path: '/demands', component: Demands },
+    { path: '/caps', redirect: '/demands' },
+    {
+      path: '/offers',
+      component: Offers,
+      beforeEnter: () => {
+        if (useSessionStore().payload?.user?.role === 'buyer') {
+          return '/demands'
+        }
+      },
+    },
     { path: '/performance', component: Performance },
     { path: '/users', component: Users },
     { path: '/account', component: Account },

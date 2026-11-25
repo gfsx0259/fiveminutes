@@ -8,5 +8,7 @@ import { useSessionStore } from '@/stores/session'
 
 const session = useSessionStore()
 
-void useRouter().replace(session.payload?.user?.role === 'partner' ? '/dashboard' : '/leads')
+const role = session.payload?.user?.role
+const home = role === 'partner' ? '/dashboard' : role === 'buyer' ? '/demands' : '/leads'
+void useRouter().replace(home)
 </script>

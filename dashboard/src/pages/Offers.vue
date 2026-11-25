@@ -51,7 +51,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import CountryPick from '@/components/CountryPick.vue'
 import OfferFormDialog from '@/components/OfferFormDialog.vue'
 import StatusChip from '@/components/StatusChip.vue'
@@ -66,9 +67,14 @@ import { useSessionStore } from '@/stores/session'
 import { prepareTableHeaders } from '@/tableHeaders'
 
 const session = useSessionStore()
+const router = useRouter()
 const market = useMarketStore()
 const isAdmin = computed(() => session.payload?.user?.role === 'admin')
 const isBuyer = computed(() => session.payload?.user?.role === 'buyer')
+
+watch(isBuyer, (buyer) => {
+  if (buyer) void router.replace('/demands')
+}, { immediate: true })
 const open = ref(false)
 const acting = ref('')
 const actionError = ref('')
@@ -137,6 +143,7 @@ async function moderate(id: string, action: 'approve' | 'reject'): Promise<void>
 }
 
 onMounted(() => {
+  if (isBuyer.value) return
   void refresh()
 })
 </script>

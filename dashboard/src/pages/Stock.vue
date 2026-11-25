@@ -434,7 +434,7 @@ const baseHeaderColumns = [
   { title: 'Traffic Source', key: 'trafficSource', align: 'start' as const },
   { title: 'Payment model', key: 'paymentModel', align: 'center' as const },
   { title: 'Conversion', key: 'conversion', align: 'center' as const },
-  { title: 'Price', key: 'basePriceCents', align: 'end' as const },
+  { title: 'Price', key: 'basePriceCents', align: 'center' as const },
 ]
 
 const stockHeaders = computed(() => prepareTableHeaders(

@@ -172,7 +172,6 @@
             :value="item.supplied"
             :max="item.volume"
             :parent="item.volume"
-            :bar-full="Boolean(item.stock)"
           />
         </template>
         <template #item.orderCostCents="{ item }">
@@ -629,7 +628,7 @@ const partnerLeadColumns = [
   { title: 'Payment model', key: 'paymentModel', align: 'center' as const },
   { title: 'Type', key: 'orderType', align: 'center' as const },
   { title: 'Date', key: 'whenDay', align: 'center' as const },
-  { title: 'Supplied', key: 'supplied', align: 'center' as const, width: '9rem' },
+  { title: 'Supplied', key: 'supplied', align: 'center' as const, width: '13rem' },
   { title: 'Order cost', key: 'orderCostCents', align: 'end' as const },
 ]
 
@@ -641,7 +640,7 @@ const orderColumnMins: Record<string, number> = {
   paymentModel: 112,
   orderType: 88,
   whenDay: 108,
-  supplied: 112,
+  supplied: 168,
   orderCostCents: 108,
   liveInjectScheduled: 108,
   liveInjectNextDueAt: 140,

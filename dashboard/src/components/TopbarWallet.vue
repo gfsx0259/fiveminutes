@@ -23,6 +23,7 @@
       </button>
     </div>
     <UiButton
+      v-if="canBuyLeads"
       variant="primary"
       icon="mdi-cart-outline"
       class="lm-topbar-wallet__buy"
@@ -48,6 +49,9 @@ defineProps<{
 const router = useRouter()
 const session = useSessionStore()
 const wallet = useWalletStore()
+
+// Buyers supply leads, they don't buy them.
+const canBuyLeads = computed(() => session.payload?.user?.role !== 'buyer')
 
 const balance = computed(() => {
   const cents = session.payload?.user?.balanceCents ?? 0
