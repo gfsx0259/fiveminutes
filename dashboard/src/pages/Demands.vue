@@ -163,7 +163,7 @@
         :page-count="pageCount"
         :items-length="filtered.length"
         :items-per-page="pageSize"
-        :items-per-page-options="[10, 25, 50]"
+        :items-per-page-options="[100, 200, 500]"
         @update:page="page = $event"
         @update:items-per-page="pageSize = $event"
       />
@@ -312,7 +312,7 @@ const filterVertical = ref<string | null>(null)
 const filterGeo = ref<string[]>([])
 const filterCap = ref<string | null>(null)
 const page = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(100)
 const dialogOpen = ref(false)
 const dialogMode = ref<'details' | 'accept'>('details')
 const selected = ref<DemandRow | null>(null)

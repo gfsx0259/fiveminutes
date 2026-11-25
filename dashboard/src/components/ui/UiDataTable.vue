@@ -63,9 +63,19 @@ const props = withDefaults(defineProps<{
 const attrs = useAttrs()
 const slots = useSlots()
 
+const DEFAULT_ITEMS_PER_PAGE = 100
+const DEFAULT_ITEMS_PER_PAGE_OPTIONS = [100, 200, 500]
+
 const tableAttrs = computed(() => {
   const { cellProps: _cellProps, ...rest } = attrs
-  return rest
+  const has = (kebab: string, camel: string) => kebab in rest || camel in rest
+  return {
+    ...(has('items-per-page', 'itemsPerPage') ? {} : { itemsPerPage: DEFAULT_ITEMS_PER_PAGE }),
+    ...(has('items-per-page-options', 'itemsPerPageOptions')
+      ? {}
+      : { itemsPerPageOptions: DEFAULT_ITEMS_PER_PAGE_OPTIONS }),
+    ...rest,
+  }
 })
 
 const externalCellProps = computed(() => attrs.cellProps as CellPropsFn | CellPropsInput | undefined)

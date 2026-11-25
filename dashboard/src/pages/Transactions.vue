@@ -106,7 +106,7 @@
         :headers="headers"
         :items="filtered"
         :loading="wallet.loading && wallet.transactions.length === 0"
-        :items-per-page-options="[50, 100, 200]"
+        :items-per-page-options="[100, 200, 500]"
         item-value="id"
         hover
         :cell-copy-value="cellCopy"
@@ -160,7 +160,7 @@
             :page-count="pageCount"
             :items-length="filtered.length"
             :items-per-page="itemsPerPage"
-            :items-per-page-options="[50, 100, 200]"
+            :items-per-page-options="[100, 200, 500]"
             @update:page="page = $event"
             @update:items-per-page="itemsPerPage = $event"
           />
@@ -296,7 +296,7 @@ const headers = computed(() => prepareTableHeaders([
 
 const sortBy = ref<{ key: string, order: 'asc' | 'desc' }[]>([{ key: 'at', order: 'desc' }])
 const page = ref(1)
-const itemsPerPage = ref(50)
+const itemsPerPage = ref(100)
 const pageCount = computed(() => Math.max(1, Math.ceil(filtered.value.length / itemsPerPage.value)))
 
 watch(filtered, () => {
