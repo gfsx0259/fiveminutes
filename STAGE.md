@@ -9,7 +9,7 @@
 В `/etc/hosts` нет масок, поэтому каждое имя пишется отдельно. Строка одна:
 
 ```text
-2.29.205.3 id.rider.io id.chase.io id.marshall.io owner.rider.io api.rider.io api.chase.io api.marshall.io buyer.chase.io seller.chase.io admin.chase.io buyer.marshall.io seller.marshall.io admin.marshall.io kafka.rider.io
+2.29.205.3 id.rider.io id.chase.io id.marshall.io owner.rider.io api.rider.io api.chase.io api.marshall.io buyer.chase.io partner.chase.io admin.chase.io buyer.marshall.io partner.marshall.io admin.marshall.io kafka.rider.io
 ```
 
 На Linux и macOS файл `/etc/hosts`, правка через `sudo`. На Windows это `C:\Windows\System32\drivers\etc\hosts`, блокнот от имени администратора.
@@ -90,10 +90,10 @@ curl -X POST https://api.marshall.io/v1/lead \
 | --- | --- | --- |
 | Владелец | `owner@rider.io` | `https://id.rider.io`, кабинет `https://owner.rider.io` |
 | Байер Chase | `buyer@chase.io` | `https://id.chase.io`, кабинет `https://buyer.chase.io` |
-| Партнёр Chase | `partner@chase.io` | `https://id.chase.io`, кабинет `https://seller.chase.io` |
+| Партнёр Chase | `partner@chase.io` | `https://id.chase.io`, кабинет `https://partner.chase.io` |
 | Админ Chase | `admin@chase.io` | `https://id.chase.io`, кабинет `https://admin.chase.io` |
 | Байер Marshall | `buyer@marshall.io` | `https://id.marshall.io`, кабинет `https://buyer.marshall.io` |
-| Партнёр Marshall | `partner@marshall.io` | `https://id.marshall.io`, кабинет `https://seller.marshall.io` |
+| Партнёр Marshall | `partner@marshall.io` | `https://id.marshall.io`, кабинет `https://partner.marshall.io` |
 | Админ Marshall | `admin@marshall.io` | `https://id.marshall.io`, кабинет `https://admin.marshall.io` |
 
 ## Деплой на стенд

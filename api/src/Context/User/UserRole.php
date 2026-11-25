@@ -9,7 +9,7 @@ enum UserRole: string
     /** Поставляет лиды. Кабинет buyer.<apex>. */
     case Buyer = 'buyer';
 
-    /** Покупает пачку. Кабинет seller.<apex>. */
+    /** Покупает пачку. Кабинет partner.<apex>. */
     case Partner = 'partner';
 
     /** Заводит пресеты и модерирует предложения. Кабинет admin.<apex>. */

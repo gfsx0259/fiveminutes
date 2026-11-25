@@ -11,10 +11,10 @@ serve:
         - https://id.chase.io
         - https://id.marshall.io
         - https://buyer.chase.io
-        - https://seller.chase.io
+        - https://partner.chase.io
         - https://admin.chase.io
         - https://buyer.marshall.io
-        - https://seller.marshall.io
+        - https://partner.marshall.io
         - https://admin.marshall.io
         - https://owner.rider.io
       allowed_methods:
@@ -39,10 +39,10 @@ selfservice:
     - https://id.chase.io
     - https://id.marshall.io
     - https://buyer.chase.io
-    - https://seller.chase.io
+    - https://partner.chase.io
     - https://admin.chase.io
     - https://buyer.marshall.io
-    - https://seller.marshall.io
+    - https://partner.marshall.io
     - https://admin.marshall.io
     - https://owner.rider.io
 

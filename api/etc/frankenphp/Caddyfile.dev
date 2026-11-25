@@ -35,10 +35,10 @@
     import cors https://id.chase.io
     import cors https://id.marshall.io
     import cors https://buyer.chase.io
-    import cors https://seller.chase.io
+    import cors https://partner.chase.io
     import cors https://admin.chase.io
     import cors https://buyer.marshall.io
-    import cors https://seller.marshall.io
+    import cors https://partner.marshall.io
     import cors https://admin.marshall.io
     import cors https://owner.rider.io
 

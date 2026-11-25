@@ -13,13 +13,13 @@ owner.rider.io
 chase.io
     id.chase.io
     buyer.chase.io
-    seller.chase.io
+    partner.chase.io
     api.chase.io
 
 marshall.io
     id.marshall.io
     buyer.marshall.io
-    seller.marshall.io
+    partner.marshall.io
     api.marshall.io
 ```
 
@@ -62,7 +62,7 @@ Self-hosted Kratos держит один public base URL и один `session.co
 
 - `id.chase.io` и `id.marshall.io` проксируются на один Kratos.
 - В конфиге домен куки пустой.
-- Край по Host запроса выставляет `Domain` у сессионной и csrf-куки на апекс (`chase.io` или `marshall.io`). Тогда buyer, seller и api этого апекса видят сессию.
+- Край по Host запроса выставляет `Domain` у сессионной и csrf-куки на апекс (`chase.io` или `marshall.io`). Тогда buyer, partner и api этого апекса видят сессию.
 - При создании организации owner дописывает origins кабинетов в CORS и allowed return URL и перечитывает конфиг. Это редкая операция.
 - API живёт на `api.<apex>`, чтобы браузерная кука доезжала так же, как сейчас до `api.leadmarket.io`. Организация берётся из Host, не из тела запроса.
 - Ключ байера на receiver к сессии Kratos не относится.
@@ -77,7 +77,7 @@ Self-hosted Kratos держит один public base URL и один `session.co
 | `integration` | каталог CRM, креды партнёра, доставка |
 | `infra` | ClickHouse, Postgres, Redis |
 | `api` | Yii 3, как LM API: приём лида, кабинеты, кошельки, комиссия, организации |
-| `dashboard` | Vue 3, Pinia, Vuetify: owner, buyer, seller |
+| `dashboard` | Vue 3, Pinia, Vuetify: owner, buyer, partner |
 | `kratos` | один API и UI логина на `id.<apex>` |
 
 ## Порядок
@@ -86,6 +86,6 @@ Self-hosted Kratos держит один public base URL и один `session.co
 2. Ключ байера, приём и проверка в API, matcher внутри организации.
 3. Кошелёк партнёра и наценка.
 4. Каталог CRM и креды партнёра.
-5. Кабинеты buyer и seller. Дерево байеров и demand.
+5. Кабинеты buyer и partner. Дерево байеров и demand.
 
 До кошелька нужно зафиксировать провайдера USDT и выбрать правило наценки из `BUSINESS.md`.
