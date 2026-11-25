@@ -8,8 +8,6 @@ use App\Context\User\User;
 
 final readonly class WalletHistory
 {
-    private const int LIMIT = 200;
-
     public function __construct(
         private WalletTransactionRepository $transactions,
     ) {}
@@ -19,16 +17,22 @@ final readonly class WalletHistory
      */
     public function forUser(User $user): array
     {
-        return array_values($this->transactions->findLatestByUser($user->getId(), self::LIMIT)->map(
-            fn (WalletTransaction $transaction): array => [
+        $balance = $user->getBalance()->cents();
+        $rows = [];
+        foreach ($this->transactions->findLatestByUser($user->getId()) as $transaction) {
+            $rows[] = [
                 'id' => $transaction->getId(),
                 'kind' => $transaction->getKind()->value,
                 'direction' => $transaction->getDirection()->value,
                 'amountCents' => $transaction->getAmountCents(),
+                'balanceAfterCents' => $balance,
                 'leadUuid' => $transaction->getLeadUuid(),
                 'orderId' => $transaction->getOrderId(),
                 'createdAt' => $transaction->getCreatedAt()->format(DATE_ATOM),
-            ],
-        )->toArray());
+            ];
+            $balance -= $transaction->getSignedCents();
+        }
+
+        return $rows;
     }
 }

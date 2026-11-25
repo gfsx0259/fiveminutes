@@ -23,8 +23,8 @@ class WalletTransactionRepository extends Repository
     /**
      * @return Collection<int, WalletTransaction>
      */
-    public function findLatestByUser(string $userId, int $limit): Collection
+    public function findLatestByUser(string $userId): Collection
     {
-        return $this->ordered(['userId' => $userId], $limit);
+        return $this->ordered(['userId' => $userId]);
     }
 }

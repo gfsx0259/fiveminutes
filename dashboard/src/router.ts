@@ -11,6 +11,7 @@ import Performance from '@/pages/Performance.vue'
 import PresetPage from '@/pages/PresetPage.vue'
 import Reports from '@/pages/Reports.vue'
 import Stock from '@/pages/Stock.vue'
+import Transactions from '@/pages/Transactions.vue'
 import Users from '@/pages/Users.vue'
 import Account from '@/pages/Account.vue'
 
@@ -20,6 +21,7 @@ export const router = createRouter({
     { path: '/', component: Home },
     { path: '/dashboard', component: Dashboard },
     { path: '/reports', component: Reports },
+    { path: '/transactions', component: Transactions },
     { path: '/leads', component: Leads },
     { path: '/send-lead', redirect: '/leads' },
     { path: '/presets', component: PresetPage },

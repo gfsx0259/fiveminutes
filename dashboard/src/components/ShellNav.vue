@@ -154,6 +154,7 @@ interface NavItem {
 
 const leads: NavItem = { title: 'Leads', to: '/leads', icon: 'mdi-format-list-bulleted' }
 const performance: NavItem = { title: 'Performance', to: '/performance', icon: 'mdi-chart-timeline-variant' }
+const transactions: NavItem = { title: 'Transactions', to: '/transactions', icon: 'mdi-swap-vertical' }
 
 const menu = computed((): NavItem[] => {
   const role = session.payload?.user?.role
@@ -174,6 +175,7 @@ const menu = computed((): NavItem[] => {
       { title: 'My orders', to: '/orders', icon: 'mdi-clipboard-text-outline' },
       { title: 'My leads', to: '/leads', icon: 'mdi-account-outline', sectionAfter: true },
       { title: 'Reports', to: '/reports', icon: 'mdi-chart-timeline-variant' },
+      transactions,
     ]
   }
   return [
@@ -181,6 +183,7 @@ const menu = computed((): NavItem[] => {
     { title: 'Offers', to: '/offers', icon: 'mdi-check-decagram-outline', sectionAfter: true },
     leads,
     performance,
+    transactions,
   ]
 })
 

@@ -79,6 +79,11 @@ class WalletTransaction
         return $this->amountCents;
     }
 
+    public function getSignedCents(): int
+    {
+        return $this->getDirection() === Direction::Credit ? $this->amountCents : -$this->amountCents;
+    }
+
     public function getLeadUuid(): ?string
     {
         return $this->leadUuid;

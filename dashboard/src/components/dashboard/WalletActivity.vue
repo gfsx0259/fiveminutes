@@ -21,6 +21,7 @@ import { computed } from 'vue'
 import { dollars } from '@/money'
 import { HOUR, momentOf, timeOf, type Purchase } from '@/purchases'
 import type { WalletTransaction } from '@/stores/wallet'
+import { entryTypeOf, entryTypeView } from '@/walletEntries'
 
 const props = defineProps<{
   transactions: WalletTransaction[]
@@ -45,19 +46,19 @@ const entries = computed(() => {
   const rows: Entry[] = []
   for (const transaction of props.transactions) {
     const at = Date.parse(transaction.createdAt)
-    if (transaction.kind === 'partner_lead_charge') {
+    const type = entryTypeView(entryTypeOf(transaction))
+    if (type.value === 'charge') {
       const hour = Math.floor(at / HOUR) * HOUR
       charges.set(hour, [...(charges.get(hour) ?? []), transaction])
       continue
     }
-    const incoming = transaction.direction === 'credit'
     rows.push({
       key: transaction.id,
       at,
-      incoming,
+      incoming: type.incoming,
       amount: transaction.amountCents / 100,
-      icon: incoming ? 'mdi-arrow-bottom-left' : 'mdi-arrow-top-right',
-      title: incoming ? 'Deposit' : 'Withdrawal',
+      icon: type.icon,
+      title: type.label,
       meta: momentOf(at, props.now),
     })
   }
@@ -68,7 +69,7 @@ const entries = computed(() => {
       at: hour + HOUR - 1,
       incoming: false,
       amount: list.reduce((sum, transaction) => sum + transaction.amountCents / 100, 0),
-      icon: 'mdi-cart-arrow-down',
+      icon: entryTypeView('charge').icon,
       title: `Lead charges · ${timeOf(hour)}–${timeOf(hour + HOUR)}`,
       meta: [`${list.length} ${list.length === 1 ? 'lead' : 'leads'}`, geos.slice(0, 3).join(', ') + (geos.length > 3 ? ` +${geos.length - 3}` : '')]
         .filter(Boolean)

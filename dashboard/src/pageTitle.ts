@@ -6,6 +6,7 @@ export function routePageTitle(path: string, role?: string): string | null {
     '/': 'Home',
     '/dashboard': 'Dashboard',
     '/reports': 'Reports',
+    '/transactions': 'Transactions',
     '/stock': 'Buy leads',
     '/orders': role === 'partner' ? 'My orders' : 'Orders',
     '/leads': role === 'partner' ? 'My leads' : 'Leads',

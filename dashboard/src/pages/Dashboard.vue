@@ -46,6 +46,9 @@
           />
         </UiCard>
         <UiCard title="Wallet activity" subtitle="Charges and deposits">
+          <template #actions>
+            <router-link class="dashboard__link" to="/transactions">All transactions <v-icon icon="mdi-arrow-right" size="14" /></router-link>
+          </template>
           <WalletActivity :transactions="wallet.transactions" :purchases="purchases" :now="now" />
         </UiCard>
       </div>
