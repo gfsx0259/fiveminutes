@@ -158,6 +158,9 @@ class Offer
             return false;
         }
         $this->suppliedCount++;
+        if ($this->suppliedCount >= $this->volume) {
+            $this->status = OfferStatus::Finished->value;
+        }
         $this->updatedAt = $at;
 
         return true;

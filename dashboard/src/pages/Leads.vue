@@ -51,9 +51,6 @@
               placeholder="LD-… or uuid"
             />
           </UiLabeledField>
-          <UiLabeledField label="Country">
-            <CountryMultiSelect v-model="filterCountries" />
-          </UiLabeledField>
           <UiLabeledField label="Vertical">
             <UiSelect
               v-model="filterVerticals"
@@ -77,6 +74,9 @@
                 <span>{{ item.title }}</span>
               </template>
             </UiSelect>
+          </UiLabeledField>
+          <UiLabeledField label="Country">
+            <CountryMultiSelect v-model="filterCountries" />
           </UiLabeledField>
           <UiLabeledField label="Traffic source">
             <UiSelect

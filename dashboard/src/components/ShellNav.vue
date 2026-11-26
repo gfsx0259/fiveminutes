@@ -189,8 +189,8 @@ const menu = computed((): NavItem[] => {
     ]
   }
   return [
-    { title: 'My leads', to: '/leads', icon: 'mdi-account-outline' },
-    { title: 'Demands', to: '/demands', icon: 'mdi-layers-outline', sectionAfter: true },
+    { title: 'Demands', to: '/demands', icon: 'mdi-layers-outline' },
+    { title: 'My leads', to: '/leads', icon: 'mdi-account-outline', sectionAfter: true },
     performance,
     transactions,
   ]

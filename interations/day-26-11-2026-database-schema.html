@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Как устроена база Rider</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f5f2;
+      --paper: #fff;
+      --ink: #1c1b19;
+      --muted: #5c5852;
+      --line: #d9d4cc;
+      --accent: #1d4f8c;
+      --accent-soft: #e7eef6;
+      --ch: #0f6e56;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+    }
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 40px 24px 72px;
+    }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 12px; }
+    h2 { font-size: 20px; margin: 36px 0 10px; }
+    p { margin: 0 0 12px; }
+    .lead { color: var(--muted); max-width: 68ch; }
+    .prose { max-width: 72ch; }
+    code {
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: 0.92em;
+      background: #efece6;
+      padding: 0 4px;
+      border-radius: 3px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .stat {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .stat b { display: block; font-size: 22px; }
+    .stat span { color: var(--muted); font-size: 14px; }
+    .note {
+      background: var(--accent-soft);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin: 16px 0 8px;
+    }
+    .note strong { display: block; margin-bottom: 4px; }
+    .legend { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+    .map {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow-x: auto;
+      padding: 12px;
+    }
+    svg text { font-family: inherit; }
+    .node { cursor: pointer; }
+    .picks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .picks button {
+      font: inherit;
+      font-size: 13px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 999px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    .picks button[aria-pressed="true"] {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .detail {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 28px;
+      margin-top: 22px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    th { color: var(--muted); font-weight: 600; }
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 1px 8px;
+      margin-left: 8px;
+      vertical-align: 2px;
+    }
+    .badge.ch { color: var(--ch); border-color: var(--ch); }
+    .example {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .src { color: var(--muted); font-size: 13px; margin-top: 8px; }
+    @media (max-width: 800px) {
+      .stats, .detail { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Как устроена база Rider</h1>
+  <p class="lead">Рынок живёт в Postgres, сами лиды — в ClickHouse. Заказ партнёра и оффер байера сходятся через пресет, прямой связи между ними нет.</p>
+
+  <div class="prose">
+    <p>Четыре сущности, вокруг которых всё крутится:</p>
+    <ul>
+      <li><code>presets</code> — сегмент и цена: страна, источник, возраст, пол, вертикаль, CPL или CPA.</li>
+      <li><code>orders</code> — заказ партнёра. В кабинете это My Orders и Available Demands. Объём 10 и счётчик <code>supplied_count</code> относятся ко всему заказу. Когда счётчик доходит до объёма, статус становится <code>finished</code>.</li>
+      <li><code>offers</code> — квота байера на тот же пресет. В кабинете это My Accepted. Объём 8 и свой <code>supplied_count</code> живут здесь. Статусы: <code>pending</code>, <code>approved</code>, <code>finished</code>, <code>rejected</code>.</li>
+      <li><code>leads</code> — человек, таблица ClickHouse. Пока лид не продан, <code>order_id</code> пустой и статус <code>in_stock</code>.</li>
+    </ul>
+    <p>Путь лида такой. Админ создаёт пресет, партнёр — заказ, байер — оффер, админ его одобряет. Байер сдаёт лид API-ключом из <code>users.meta</code>: лид только записывается, счётчики стоят. Воркер <code>lead:match</code> в одном шаге находит заказ, увеличивает его счётчик и пишет строку в <code>lead_placements</code>, затем находит approved-оффер этого байера и увеличивает уже его счётчик. Деньги идут позже: CPL при доставке, CPA при апруве, проводки лежат в <code>wallet_transactions</code>.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>8</b><span>таблиц в основном флоу</span></div>
+    <div class="stat"><b>2</b><span>базы: Postgres и ClickHouse</span></div>
+    <div class="stat"><b>0</b><span>прямых связей orders и offers</span></div>
+  </div>
+
+  <div class="note">
+    <strong>Имена в кабинете и имена в базе</strong>
+    Available Demands и My Orders читают <code>orders</code>. My Accepted читает <code>offers</code>. My leads читает ClickHouse. Отдельной таблицы demands больше нет: старые slots, demands и acceptances удалены миграцией заказа.
+  </div>
+
+  <h2>Связи</h2>
+  <p class="legend">Сплошная линия — внешний ключ в Postgres. Пунктир — тот же uuid, без внешнего ключа. Клик по таблице открывает поля.</p>
+  <div class="map">
+    <svg id="map" width="1040" height="360" role="img" aria-label="Связи таблиц Rider"></svg>
+  </div>
+  <div class="picks" id="picks"></div>
+
+  <div class="detail">
+    <section id="detail"></section>
+    <aside class="example">
+      <h2 style="margin-top:0">Пример, который уже был</h2>
+      <p>Партнёр заказал 10. Байер принял 8. Поставил 4.</p>
+      <p><code>orders.volume = 10</code>, <code>orders.supplied_count</code> считает всех поставщиков этого заказа.</p>
+      <p><code>offers.volume = 8</code>, <code>offers.supplied_count = 4</code>. Прогресс байера берётся отсюда.</p>
+      <p>Когда байер доставит восьмой лид, оффер станет <code>finished</code>. Заказ при этом может ещё ждать оставшиеся 2.</p>
+    </aside>
+  </div>
+
+  <h2>Путь лида</h2>
+  <p class="lead">Приём и матч разделены. Intake только кладёт лид. Счётчики двигает воркер <code>lead:match</code> в одном шаге <code>Sale::place</code>.</p>
+  <table id="flow">
+    <thead><tr><th>Шаг</th><th>Что происходит</th><th>Какие таблицы</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Рядом с флоу, не в центре</h2>
+  <table>
+    <thead><tr><th>Таблица</th><th>База</th><th>Зачем</th></tr></thead>
+    <tbody>
+      <tr><td>invites</td><td>Postgres</td><td>Приглашение в организацию: email, роль, active</td></tr>
+      <tr><td>live_day_inject_items</td><td>Postgres</td><td>Расписание, когда складской лид влить в живой дневной заказ</td></tr>
+      <tr><td>wallet_settlement_claims</td><td>Postgres</td><td>Пара lead_uuid + kind. Повторная проводка не проходит</td></tr>
+      <tr><td>lead_conversion_notes</td><td>Postgres</td><td>Кто и почему поставил исход лида: actor_id, outcome, reason</td></tr>
+    </tbody>
+  </table>
+  <p class="src">Источник: миграции Postgres в api/migrations и схема api/clickhouse/leads.sql. Поля — те, что есть после миграций на 26 ноября 2026.</p>
+</main>
+<script>
+const tables = [
+  { id: "organizations", title: "organizations", hint: "тенант", x: 16, y: 148, store: "Postgres", ui: "нет отдельного экрана",
+    summary: "Одна организация — один кабинет. Баланс и наценка живут здесь, не в отдельной таблице кошелька.",
+    fields: [["id", "UUID, первичный ключ"], ["name, apex", "название и уникальный домен"], ["balance", "баланс организации, центы, не ниже нуля"], ["markup_percent", "наценка платформы, 0–100, по умолчанию 10"], ["shelf_age_policy", "JSON: как стареет склад лидов"]],
+    links: [["users, invites, presets, orders, offers", "organization_id, внешний ключ"], ["wallet_transactions", "organization_id, внешний ключ"]] },
+  { id: "users", title: "users", hint: "роли и ключ", x: 220, y: 36, store: "Postgres", ui: "логин, API-ключ байера",
+    summary: "Партнёр, байер или админ. Ключ, которым байер сдаёт лиды, лежит в JSON, отдельной таблицы ключей нет.",
+    fields: [["id", "UUID"], ["organization_id", "своя организация"], ["identity_id", "учётка в Kratos, может быть пустой"], ["email, role", "роль: buyer, partner или admin"], ["meta", "JSON, в том числе apiKey байера"], ["balance", "личный баланс, центы"]],
+    links: [["orders.partner_id", "этот пользователь — партнёр заказа"], ["offers.buyer_id", "этот пользователь — байер оффера"], ["presets.admin_id", "кто создал пресет"]] },
+  { id: "presets", title: "presets", hint: "сегмент и цена", x: 220, y: 248, store: "Postgres", ui: "Presets",
+    summary: "Каталог сегмента: страна, источник, возраст, пол, вертикаль и модель оплаты. Заказ и оффер ссылаются сюда, а не друг на друга.",
+    fields: [["id, organization_id, admin_id", "пресет внутри организации"], ["country", "ISO-код, например DE"], ["traffic_source, age, gender", "сегмент трафика"], ["vertical", "gambling, betting, crypto и другие"], ["payment_model", "cpl или cpa"], ["cr", "ожидаемая конверсия, 0–100"], ["base_price_cents", "базовая цена сегмента"]],
+    links: [["orders.preset_id", "заказ партнёра на этот сегмент"], ["offers.preset_id", "квота байера на этот сегмент"], ["уникальность", "организация + страна + источник + возраст + пол + вертикаль + модель"]] },
+  { id: "orders", title: "orders", hint: "заказ партнёра", x: 424, y: 36, store: "Postgres", ui: "My Orders и Available Demands",
+    summary: "Спрос партнёра. Объём 10 — это весь заказ. Когда supplied_count доходит до volume, статус сам становится finished.",
+    fields: [["partner_id, preset_id", "чей заказ и какой сегмент"], ["geo, volume, price_cents", "страна, кап и цена лида"], ["payment_model", "cpl или cpa, копируется в заказ"], ["stock, service_on", "склад без даты, либо живой день с датой"], ["opens_at, closes_at, timezone", "окно приёма"], ["supplied_count, status", "сколько уже влито; in_progress, paused, finished"], ["stock_pick_priority, stock_pick_zone", "как забирать лиды со склада"]],
+    links: [["offers", "прямой связи нет, общий только preset"], ["lead_placements.order_id", "какая продажа закрыла место в заказе"], ["leads.order_id", "тот же uuid, но лид лежит в ClickHouse"]] },
+  { id: "offers", title: "offers", hint: "квота байера", x: 424, y: 248, store: "Postgres", ui: "Demands → My Accepted",
+    summary: "Обещание байера поставить свою квоту, например 8 из партнёрских 10. Статусы живут отдельно от заказа.",
+    fields: [["buyer_id, preset_id, geo", "кто, какой сегмент, какая страна"], ["volume, supplied_count", "своя квота и сколько уже поставлено"], ["stock, service_on", "склад или конкретный день"], ["status", "pending, approved, finished, rejected"]],
+    links: [["orders", "внешнего ключа нет"], ["матчер", "ищет approved-оффер байера по пресету, стране и дню"], ["finished", "ставится в trySupply, когда supplied_count достигает volume"]] },
+  { id: "leads", title: "leads", hint: "сам лид", x: 628, y: 148, store: "ClickHouse", ui: "My leads",
+    summary: "Человек и его статус. Движок ReplacingMergeTree по updated_at. Приём лида сюда пишет, счётчики заказа и оффера ещё не трогает.",
+    fields: [["uuid, organization_id, buyer_id", "лид и кто его сдал"], ["seller_id, order_id", "партнёр и заказ, пустые пока лид на складе"], ["email, phone, first_name, last_name", "контакт"], ["country, traffic_source, age, gender", "то, по чему ищется пресет"], ["status", "sold, in_stock, delivered, approved, rejected"], ["price_cents, sold_at", "цена и момент продажи"], ["is_delivered, client_status, client_deposit", "доставка и статус у партнёра"]],
+    links: [["lead_placements.lead_uuid", "тот же uuid, без внешнего ключа между базами"], ["wallet_transactions.lead_uuid", "проводки по этому лиду"], ["acceptance_id", "старая колонка, в текущем флоу не используется"]] },
+  { id: "lead_placements", title: "lead_placements", hint: "продажа", x: 832, y: 36, store: "Postgres", ui: "не показывается отдельно",
+    summary: "Одна строка на лид. Либо продажа в заказ, либо склад: заказ, продавец и цена пустые.",
+    fields: [["lead_uuid", "первичный ключ, тот же uuid, что в ClickHouse"], ["order_id, seller_id", "куда и кому продано, оба пустые на складе"], ["price_cents, sold_at", "у складской строки цена 0 и даты продажи нет"]],
+    links: [["orders", "order_id, внешний ключ, может быть NULL"], ["users", "seller_id — партнёр, может быть NULL"], ["leads", "общий uuid, разные базы"]] },
+  { id: "wallet_transactions", title: "wallet_transactions", hint: "деньги", x: 832, y: 248, store: "Postgres", ui: "Transactions",
+    summary: "Журнал проводок. Баланс при этом хранится на организации и на пользователе, а не суммой по этой таблице.",
+    fields: [["organization_id, user_id", "чей кошелёк; user_id может быть пустым"], ["direction, amount_cents", "credit или debit, сумма в центах"], ["kind", "partner_lead_charge, buyer_lead_credit, org_platform_fee, adjustment"], ["lead_uuid, order_id", "за какой лид и заказ"], ["metadata", "JSON с деталями проводки"]],
+    links: [["wallet_settlement_claims", "не даёт провести один и тот же лид дважды"], ["leads", "lead_uuid без внешнего ключа"]] }
+];
+
+const edges = [
+  ["organizations", "users", "fk"],
+  ["organizations", "presets", "fk"],
+  ["users", "orders", "fk"],
+  ["users", "offers", "fk"],
+  ["presets", "orders", "fk"],
+  ["presets", "offers", "fk"],
+  ["orders", "lead_placements", "fk"],
+  ["orders", "leads", "logical"],
+  ["offers", "leads", "logical"],
+  ["leads", "lead_placements", "logical"],
+  ["leads", "wallet_transactions", "logical"]
+];
+
+const flow = [
+  ["1. Пресет", "Админ описывает сегмент и базовую цену.", "presets"],
+  ["2. Заказ", "Партнёр берёт пресет: объём, страна, день или склад, окно. В кабинете это My Orders. Открытый остаток байер видит как Available Demands.", "orders"],
+  ["3. Оффер", "Байер берёт тот же пресет и свою квоту. Админ переводит pending в approved. Это My Accepted. На orders строки нет.", "offers"],
+  ["4. Приём", "Байер сдаёт лид ключом из users.meta. Лид пишется в ClickHouse. Счётчики заказа и оффера стоят на месте.", "leads"],
+  ["5. Матч", "Воркер выбирает заказ из пула. supplied_count заказа растёт и при полном объёме заказ становится finished. Строка lead_placements фиксирует продажу или склад.", "orders, lead_placements, leads"],
+  ["6. Квота", "В том же шаге ищется approved-оффер этого байера на пресет, страну и день. Его supplied_count растёт и при полной квоте оффер становится finished.", "offers"],
+  ["7. Деньги", "CPL списывается на доставке, CPA — на апруве. Партнёру debit, байеру credit, организации комиссия. Повтор той же проводки отсекает wallet_settlement_claims.", "wallet_transactions"]
+];
+
+const W = 190;
+const H = 52;
+let selected = "orders";
+const byId = Object.fromEntries(tables.map((table) => [table.id, table]));
+
+function anchor(table, side) {
+  return side === "right"
+    ? [table.x + W, table.y + H / 2]
+    : [table.x, table.y + H / 2];
+}
+
+function draw() {
+  const svg = document.getElementById("map");
+  svg.replaceChildren();
+  const ns = "http://www.w3.org/2000/svg";
+  edges.forEach(([from, to, kind]) => {
+    const a = byId[from];
+    const b = byId[to];
+    const [x1, y1] = anchor(a, "right");
+    const [x2, y2] = anchor(b, "left");
+    const mid = (x1 + x2) / 2;
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`);
+    path.setAttribute("fill", "none");
+    const hot = from === selected || to === selected;
+    path.setAttribute("stroke", hot ? "#1d4f8c" : "#b7b1a8");
+    path.setAttribute("stroke-width", hot ? "1.6" : "1");
+    if (kind === "logical") path.setAttribute("stroke-dasharray", "4 4");
+    svg.appendChild(path);
+  });
+  tables.forEach((table) => {
+    const g = document.createElementNS(ns, "g");
+    g.setAttribute("class", "node");
+    g.addEventListener("click", () => select(table.id));
+    const active = table.id === selected;
+    const rect = document.createElementNS(ns, "rect");
+    rect.setAttribute("x", table.x);
+    rect.setAttribute("y", table.y);
+    rect.setAttribute("width", W);
+    rect.setAttribute("height", H);
+    rect.setAttribute("rx", "6");
+    rect.setAttribute("fill", active ? "#1d4f8c" : "#fff");
+    rect.setAttribute("stroke", table.store === "ClickHouse" && !active ? "#0f6e56" : active ? "#1d4f8c" : "#d9d4cc");
+    if (table.store === "ClickHouse" && !active) rect.setAttribute("stroke-dasharray", "4 3");
+    const title = document.createElementNS(ns, "text");
+    title.setAttribute("x", table.x + 10);
+    title.setAttribute("y", table.y + 22);
+    title.setAttribute("fill", active ? "#fff" : "#1c1b19");
+    title.setAttribute("font-size", "12");
+    title.setAttribute("font-weight", "600");
+    title.textContent = table.title;
+    const hint = document.createElementNS(ns, "text");
+    hint.setAttribute("x", table.x + 10);
+    hint.setAttribute("y", table.y + 40);
+    hint.setAttribute("fill", active ? "#d6e4f5" : "#5c5852");
+    hint.setAttribute("font-size", "11");
+    hint.textContent = table.hint;
+    g.append(rect, title, hint);
+    svg.appendChild(g);
+  });
+}
+
+function rows(pairs) {
+  return pairs.map(([a, b]) => `<tr><td><code>${a}</code></td><td>${b}</td></tr>`).join("");
+}
+
+function renderDetail() {
+  const table = byId[selected];
+  document.getElementById("detail").innerHTML = `
+    <h2 style="margin-top:0">${table.title}<span class="badge ${table.store === "ClickHouse" ? "ch" : ""}">${table.store}</span></h2>
+    <p>${table.summary}</p>
+    <p class="legend">В кабинете: ${table.ui}</p>
+    <table><thead><tr><th>Поле</th><th>Зачем</th></tr></thead><tbody>${rows(table.fields)}</tbody></table>
+    <h2>Куда смотрит</h2>
+    <table><thead><tr><th>Куда</th><th>Как</th></tr></thead><tbody>${rows(table.links)}</tbody></table>`;
+  document.querySelectorAll("#picks button").forEach((button) => {
+    button.setAttribute("aria-pressed", button.dataset.id === selected ? "true" : "false");
+  });
+}
+
+function select(id) {
+  selected = id;
+  draw();
+  renderDetail();
+}
+
+document.getElementById("picks").innerHTML = tables.map((table) =>
+  `<button type="button" data-id="${table.id}">${table.title}</button>`
+).join("");
+document.getElementById("picks").addEventListener("click", (event) => {
+  const id = event.target.dataset && event.target.dataset.id;
+  if (id) select(id);
+});
+document.querySelector("#flow tbody").innerHTML = flow.map(([step, what, where]) =>
+  `<tr><td>${step}</td><td>${what}</td><td><code>${where}</code></td></tr>`
+).join("");
+select("orders");
+</script>
+</body>
+</html>

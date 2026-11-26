@@ -127,7 +127,7 @@
               <td class="demands-copy" @click="copyCell($event, modelLabel(row.paymentModel))"><ModelTag :model="row.paymentModel" /></td>
               <td class="demands-number demands-copy" @click="copyCell($event, row.priceCents > 0 ? dollars(row.priceCents / 100) : '')">{{ row.priceCents > 0 ? dollars(row.priceCents / 100) : '—' }}</td>
               <td>
-                <StockVolumeBar :value="row.supplied" :max="row.volume" :parent="row.volume" />
+                <StockVolumeBar :value="progressSupplied(row)" :max="progressCap(row)" :parent="progressCap(row)" />
               </td>
               <td>
                 <div class="demands-actions">
@@ -303,7 +303,8 @@ import {
 } from '@/marketOptions'
 import { useMarketStore, type CapRow, type OfferRow, type PresetRow } from '@/stores/market'
 
-type DemandStatus = 'available' | 'pending' | 'approved' | 'rejected'
+/** `finished` comes from the API once the buyer's own deliveries reach the offer volume. */
+type DemandStatus = 'available' | 'pending' | 'approved' | 'finished' | 'rejected'
 
 interface DemandRow {
   key: string
@@ -347,6 +348,18 @@ function isExpired(serviceOn: string | null): boolean {
   return serviceOn !== null && serviceOn.slice(0, 10) < utcToday()
 }
 
+/**
+ * Table progress: for an accepted offer it is the buyer's own cap and own deliveries
+ * (same numbers as the offer details), for an open demand it is the whole demand.
+ */
+function progressCap(row: DemandRow): number {
+  return row.kind === 'offer' && row.yourVolume != null ? row.yourVolume : row.volume
+}
+
+function progressSupplied(row: DemandRow): number {
+  return row.kind === 'offer' ? row.ownSupplied : row.supplied
+}
+
 function inScope(row: DemandRow): boolean {
   if (filterScope.value === 'active') return !row.expired
   if (filterScope.value === 'past') return row.expired
@@ -378,7 +391,7 @@ function presetOf(presetId: string): PresetRow | undefined {
 const activeOfferKeys = computed(() => {
   const keys = new Set<string>()
   for (const offer of market.offers) {
-    if (offer.status === 'pending' || offer.status === 'approved') {
+    if (offer.status === 'pending' || offer.status === 'approved' || offer.status === 'finished') {
       keys.add(capKey(offer.presetId, offer.serviceOn))
     }
   }
@@ -411,7 +424,7 @@ function rowFromCap(cap: CapRow): DemandRow {
 function rowFromOffer(offer: OfferRow): DemandRow {
   const preset = presetOf(offer.presetId)
   const cap = market.caps.find((item) => capKey(item.presetId, item.serviceOn) === capKey(offer.presetId, offer.serviceOn))
-  const status: DemandStatus = offer.status === 'approved' || offer.status === 'pending' || offer.status === 'rejected'
+  const status: DemandStatus = offer.status === 'approved' || offer.status === 'pending' || offer.status === 'rejected' || offer.status === 'finished'
     ? offer.status
     : 'pending'
   return {
@@ -462,7 +475,8 @@ const filtered = computed(() => currentRows.value.filter((row) => {
   if (filterVertical.value && row.vertical !== filterVertical.value) return false
   if (filterGeo.value.length > 0 && !filterGeo.value.includes(row.geo)) return false
   if (filterCap.value) {
-    const left = row.volume > 0 ? ((row.volume - row.supplied) / row.volume) * 100 : 0
+    const cap = progressCap(row)
+    const left = cap > 0 ? ((cap - progressSupplied(row)) / cap) * 100 : 0
     if (left > Number(filterCap.value)) return false
   }
   return true
@@ -475,7 +489,7 @@ const pageRows = computed(() => {
 })
 
 const kpis = computed(() => {
-  const inProgress = market.offers.filter((offer) => offer.status === 'approved').length
+  const inProgress = acceptedRows.value.filter((row) => row.status === 'approved').length
   const accepted = market.offers.filter((offer) => offer.status !== 'rejected')
   const acceptedValue = accepted.reduce((sum, offer) => {
     const price = presetOf(offer.presetId)?.basePriceCents ?? 0
@@ -513,7 +527,7 @@ function remainingPercent(row: DemandRow): number {
 /** After an admin approves the offer the details grow into the delivery workspace. */
 const acceptedDetails = computed(() => dialogMode.value === 'details'
   && selected.value?.kind === 'offer'
-  && selected.value.status === 'approved')
+  && (selected.value.status === 'approved' || selected.value.status === 'finished'))
 
 const dialogTitle = computed(() => {
   if (dialogMode.value === 'accept') return 'Accept Demand'
@@ -538,6 +552,7 @@ const dailyCapHelp = computed(() => {
 function statusTone(status: DemandStatus): string {
   if (status === 'pending') return 'lavender'
   if (status === 'approved') return 'primary'
+  if (status === 'finished') return 'success'
   if (status === 'rejected') return 'error'
   return 'default'
 }
@@ -545,6 +560,7 @@ function statusTone(status: DemandStatus): string {
 function statusLabel(status: DemandStatus): string {
   if (status === 'pending') return 'Under Review'
   if (status === 'approved') return 'In Progress'
+  if (status === 'finished') return 'Finished'
   if (status === 'rejected') return 'Rejected'
   return 'Available'
 }
@@ -552,6 +568,7 @@ function statusLabel(status: DemandStatus): string {
 function statusExplanation(status: DemandStatus): string {
   if (status === 'pending') return 'Your acceptance is awaiting review. Delivery is not active yet.'
   if (status === 'approved') return 'Your acceptance has been approved and delivery is active.'
+  if (status === 'finished') return 'You have delivered the full daily cap for this offer.'
   if (status === 'rejected') return 'Your acceptance was rejected. Delivery is not active.'
   return ''
 }

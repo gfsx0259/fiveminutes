@@ -8,5 +8,6 @@ enum OfferStatus: string
 {
     case Pending = 'pending';
     case Approved = 'approved';
+    case Finished = 'finished';
     case Rejected = 'rejected';
 }
