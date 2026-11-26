@@ -4,7 +4,7 @@
     :class="{ 'ui-filter-panel--expanded': bodyVisible }"
     v-bind="$attrs"
   >
-    <div v-if="mobile" class="ui-filter-panel__mobile-bar">
+    <div v-if="collapse" class="ui-filter-panel__mobile-bar">
       <UiButton
         class="ui-filter-panel__toggle"
         variant="outline"
@@ -27,7 +27,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import UiButton from '@/components/ui/UiButton.vue'
-import { useViewport } from '@/viewport'
+import { useFilterPanelCollapse } from '@/viewport'
 
 defineOptions({ inheritAttrs: false })
 
@@ -37,12 +37,12 @@ const props = withDefaults(defineProps<{
   activeCount: 0,
 })
 
-const { mobile } = useViewport()
+const collapse = useFilterPanelCollapse()
 const userToggled = ref(false)
 const bodyOpen = ref(false)
 
 const bodyVisible = computed(() => {
-  if (!mobile.value) {
+  if (!collapse.value) {
     return true
   }
   if (!userToggled.value) {
@@ -61,7 +61,7 @@ function toggleBody(): void {
 }
 
 watch(() => props.activeCount, (count) => {
-  if (!mobile.value || userToggled.value) {
+  if (!collapse.value || userToggled.value) {
     return
   }
   if (count > 0) {
@@ -107,13 +107,13 @@ watch(() => props.activeCount, (count) => {
   padding: 2px 6px;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1281px) {
   .ui-filter-panel__mobile-bar {
     display: none;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1280px) {
   .ui-filter-panel--collapsible:not(.ui-filter-panel--expanded) {
     margin-bottom: 8px;
     padding: 10px 12px;

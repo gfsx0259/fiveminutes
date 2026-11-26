@@ -10,6 +10,7 @@ use App\Context\Identity\NoSessionException;
 use App\Api\Form\LeadRejectForm;
 use App\Context\Lead\Intake;
 use App\Context\Lead\LeadConversionDesk;
+use App\Context\Lead\LeadCsv;
 use App\Context\Lead\LeadJournal;
 use App\Context\Lead\LeadPartnerDeliveryDesk;
 use App\Context\Lead\LeadRejectedException;
@@ -18,6 +19,7 @@ use App\Context\User\NotBuyerException;
 use DomainException;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\UploadedFileInterface;
 use Throwable;
 use Yiisoft\DataResponse\ResponseFactory\DataResponseFactoryInterface;
 use Yiisoft\RequestProvider\RequestProviderInterface;
@@ -38,8 +40,7 @@ final readonly class LeadController
 
     public function create(): ResponseInterface
     {
-        $header = $this->requests->get()->getHeaderLine('Authorization');
-        $token = str_starts_with($header, 'Bearer ') ? trim(substr($header, 7)) : '';
+        $token = $this->bearer();
         $body = $this->requests->get()->getParsedBody();
 
         try {
@@ -55,6 +56,64 @@ final readonly class LeadController
         return $this->responses->createResponse([
             'uuid' => $lead->getUuid(),
         ]);
+    }
+
+    /**
+     * Postback: the same lead as POST /v1/lead, passed as query parameters. The key may be the
+     * `api_key` parameter because a postback URL cannot carry headers.
+     */
+    public function postback(): ResponseInterface
+    {
+        $query = $this->requests->get()->getQueryParams();
+        $token = $this->bearer();
+        if ($token === '' && isset($query['api_key']) && is_string($query['api_key'])) {
+            $token = trim($query['api_key']);
+        }
+        unset($query['api_key']);
+        // An unencoded "+" in a URL arrives as a space, so a bare international number gets its plus back.
+        if (isset($query['phone']) && is_string($query['phone']) && preg_match('/^[1-9]\d{7,14}$/', trim($query['phone'])) === 1) {
+            $query['phone'] = '+' . trim($query['phone']);
+        }
+
+        try {
+            $lead = $this->intake->accept($token, $query);
+        } catch (UnknownApiKeyException $exception) {
+            return $this->responses->createResponse(['error' => $exception->getMessage()], 401);
+        } catch (NotBuyerException $exception) {
+            return $this->responses->createResponse(['error' => $exception->getMessage()], 403);
+        } catch (LeadRejectedException $exception) {
+            return $this->responses->createResponse(['errors' => $exception->errors()], 400);
+        }
+
+        return $this->responses->createResponse(['uuid' => $lead->getUuid()]);
+    }
+
+    /**
+     * Many leads in one UTF-8 CSV: a multipart `file` field or a raw text/csv body.
+     */
+    public function importCsv(): ResponseInterface
+    {
+        $request = $this->requests->get();
+        $file = $request->getUploadedFiles()['file'] ?? null;
+        $csv = $file instanceof UploadedFileInterface
+            ? ($file->getError() === UPLOAD_ERR_OK ? (string) $file->getStream() : null)
+            : (string) $request->getBody();
+
+        if ($csv === null || $csv === '') {
+            return $this->responses->createResponse(['errors' => ['file' => 'The file is empty']], 400);
+        }
+
+        try {
+            $result = $this->intake->acceptMany($this->bearer(), LeadCsv::rows($csv));
+        } catch (UnknownApiKeyException $exception) {
+            return $this->responses->createResponse(['error' => $exception->getMessage()], 401);
+        } catch (NotBuyerException $exception) {
+            return $this->responses->createResponse(['error' => $exception->getMessage()], 403);
+        } catch (LeadRejectedException $exception) {
+            return $this->responses->createResponse(['errors' => $exception->errors()], 400);
+        }
+
+        return $this->responses->createResponse($result);
     }
 
     public function index(): ResponseInterface
@@ -104,6 +163,13 @@ final readonly class LeadController
     public function deliver(): ResponseInterface
     {
         return $this->convert(fn ($user, $uuid) => $this->partnerDelivery->mockDeliver($user, $uuid));
+    }
+
+    private function bearer(): string
+    {
+        $header = $this->requests->get()->getHeaderLine('Authorization');
+
+        return str_starts_with($header, 'Bearer ') ? trim(substr($header, 7)) : '';
     }
 
     /**

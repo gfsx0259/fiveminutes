@@ -1,7 +1,6 @@
 import { documentTitle } from '@/pageTitle'
 import { useSessionStore } from '@/stores/session'
 import { createRouter, createWebHistory } from 'vue-router'
-import Connections from '@/pages/Connections.vue'
 import Dashboard from '@/pages/Dashboard.vue'
 import Demands from '@/pages/Demands.vue'
 import Home from '@/pages/Home.vue'
@@ -24,8 +23,8 @@ export const router = createRouter({
     { path: '/reports', component: Reports },
     { path: '/transactions', component: Transactions },
     { path: '/leads', component: Leads },
-    { path: '/connections', component: Connections },
-    { path: '/send-lead', redirect: '/connections' },
+    { path: '/connections', redirect: '/demands' },
+    { path: '/send-lead', redirect: '/demands' },
     { path: '/presets', component: PresetPage },
     { path: '/orders', component: Orders },
     { path: '/stock', component: Stock },

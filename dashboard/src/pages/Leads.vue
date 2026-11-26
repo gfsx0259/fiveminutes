@@ -103,7 +103,7 @@
             </UiSelect>
           </UiLabeledField>
         </div>
-        <div class="leads-filters__toolbar-end">
+        <div v-if="!filterPanelCompact" class="leads-filters__toolbar-end">
           <UiButton
             variant="outline"
             :icon="advancedOpen ? 'mdi-chevron-up' : 'mdi-tune-variant'"
@@ -116,7 +116,7 @@
         </div>
       </div>
       <div
-        v-show="advancedOpen"
+        v-show="filterPanelCompact || advancedOpen"
         class="leads-filters__advanced"
         :class="{ 'leads-filters__advanced--partner': isPartner }"
       >
@@ -419,7 +419,7 @@ import UiTablePagination from '@/components/ui/UiTablePagination.vue'
 import { countFilledFilters } from '@/filterCount'
 import { prepareTableHeaders } from '@/tableHeaders'
 import { copyTextFromExportCell } from '@/tableCellCopy'
-import { useCompactTableActions } from '@/viewport'
+import { useCompactTableActions, useFilterPanelCollapse } from '@/viewport'
 import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import { showToast } from '@/composables/useToast'
 import { downloadCsv } from '@/csv'
@@ -488,6 +488,7 @@ const filterClientStatus = ref('')
 const filterDeposit = ref<'yes' | 'no' | null>(null)
 const filterGender = ref<string | null>(null)
 const filterAge = ref('')
+const filterPanelCompact = useFilterPanelCollapse()
 const advancedOpen = ref(false)
 
 const depositFilterItems = [
@@ -1248,33 +1249,6 @@ onMounted(() => {
 }
 
 @media (max-width: 1280px) {
-  .leads-filters__toolbar {
-    flex-wrap: wrap;
-  }
-
-  .leads-filters__main {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .leads-filters__main.leads-filters__main--partner {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .leads-filters__toolbar-end {
-    margin-left: auto;
-  }
-
-  .leads-filters__advanced {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .leads-filters__advanced.leads-filters__advanced--partner {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 767px) {
   .leads-filter-panel :deep(.ui-filter-panel__body) {
     display: flex;
     flex-direction: column;
@@ -1287,16 +1261,32 @@ onMounted(() => {
 
   .leads-filters__main,
   .leads-filters__main.leads-filters__main--partner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     order: 1;
-    grid-template-columns: minmax(0, 1fr);
     width: 100%;
+  }
+
+  .leads-filters__main.leads-filters__main--partner > :last-child {
+    grid-column: 1 / -1;
   }
 
   .leads-filters__advanced,
   .leads-filters__advanced.leads-filters__advanced--partner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     order: 2;
-    grid-template-columns: minmax(0, 1fr);
     width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .leads-filters__main,
+  .leads-filters__main.leads-filters__main--partner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .leads-filters__advanced,
+  .leads-filters__advanced.leads-filters__advanced--partner {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .leads-filters__toolbar-end {

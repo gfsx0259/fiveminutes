@@ -1104,7 +1104,12 @@ onMounted(async () => {
 
 @media (max-width: 1280px) {
   .stock-filters__row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Availability: last field, full width */
+  .stock-filters__row > :nth-child(5) {
+    grid-column: 1 / -1;
   }
 
   .stock-filter-panel__reset {

@@ -40,7 +40,7 @@
             />
           </UiLabeledField>
         </div>
-        <div class="orders-filters__toolbar-end">
+        <div v-if="!filterPanelCompact" class="orders-filters__toolbar-end">
           <UiButton
             variant="outline"
             :icon="advancedOpen ? 'mdi-chevron-up' : 'mdi-tune-variant'"
@@ -52,7 +52,7 @@
           <UiButton class="filter-panel-reset" variant="ghost" icon="mdi-refresh" @click="resetFilters">Reset</UiButton>
         </div>
       </div>
-      <div v-show="advancedOpen" class="orders-filters__advanced">
+      <div v-show="filterPanelCompact || advancedOpen" class="orders-filters__advanced">
         <UiLabeledField label="Vertical">
           <UiSelect
             v-model="filterVerticals"
@@ -317,7 +317,7 @@ import { exportTableCsv, cellToString } from '@/tableCsvExport'
 import { countFilledFilters } from '@/filterCount'
 import { prepareTableHeaders } from '@/tableHeaders'
 import { tableCellCopyFromExport } from '@/tableCellCopy'
-import { useCompactTableActions } from '@/viewport'
+import { useCompactTableActions, useFilterPanelCollapse } from '@/viewport'
 import {
   modelLabel,
   paymentModels,
@@ -382,6 +382,7 @@ const filterTraffics = ref<string[]>([])
 const filterPaymentModel = ref<string | null>(null)
 const filterOrderType = ref<'live' | 'stock' | null>(null)
 const filterServiceOn = ref('')
+const filterPanelCompact = useFilterPanelCollapse()
 const advancedOpen = ref(false)
 
 const scopeItems = [
@@ -834,25 +835,6 @@ onMounted(() => {
 }
 
 @media (max-width: 1280px) {
-  .orders-filters__toolbar {
-    flex-wrap: wrap;
-  }
-
-  .orders-filters__main {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .orders-filters__toolbar-end {
-    margin-left: auto;
-  }
-
-  .orders-filters__advanced {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 767px) {
   .orders-filter-panel :deep(.ui-filter-panel__body) {
     display: flex;
     flex-direction: column;
@@ -864,31 +846,24 @@ onMounted(() => {
   }
 
   .orders-filters__main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     order: 1;
-    grid-template-columns: minmax(0, 1fr);
     width: 100%;
   }
 
   .orders-filters__advanced {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     order: 2;
+  }
+}
+
+@media (max-width: 767px) {
+  .orders-filters__main {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .orders-filters__toolbar-end {
-    order: 3;
-    border-top: 1px solid #ece8ff;
-    display: grid;
-    gap: 8px;
-    grid-template-columns: 1fr;
-    height: auto;
-    margin-left: 0;
-    margin-top: 4px;
-    padding-top: 12px;
-    width: 100%;
-  }
-
-  .orders-filters__toolbar-end :deep(.ui-btn) {
-    width: 100%;
+  .orders-filters__advanced {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

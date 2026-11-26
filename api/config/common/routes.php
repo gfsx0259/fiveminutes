@@ -37,6 +37,8 @@ return [
         Route::post('/wallet/deposit')->action([WalletController::class, 'deposit'])->name('wallet-deposit'),
         Route::post('/wallet/withdraw')->action([WalletController::class, 'withdraw'])->name('wallet-withdraw'),
         Route::post('/v1/lead')->action([LeadController::class, 'create'])->name('lead-create'),
+        Route::get('/v1/lead')->action([LeadController::class, 'postback'])->name('lead-postback'),
+        Route::post('/v1/leads/csv')->action([LeadController::class, 'importCsv'])->name('lead-csv'),
         Route::get('/leads')->action([LeadController::class, 'index'])->name('leads'),
         Route::get('/leads/{uuid}')->action([LeadController::class, 'show'])->name('lead-show'),
         Route::post('/leads/{uuid}/approve')->action([LeadController::class, 'approve'])->name('lead-approve'),

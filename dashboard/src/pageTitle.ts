@@ -10,7 +10,6 @@ export function routePageTitle(path: string, role?: string): string | null {
     '/stock': 'Buy leads',
     '/orders': role === 'partner' ? 'My orders' : 'Orders',
     '/leads': role === 'admin' ? 'Leads' : 'My leads',
-    '/connections': 'Connections',
     '/performance': 'Performance',
     '/presets': 'Presets',
     '/offers': 'Offers',

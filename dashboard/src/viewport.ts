@@ -21,11 +21,17 @@ function useMediaQuery(query: string) {
 }
 
 export const TABLE_ACTIONS_COMPACT_MQ = '(max-width: 1280px)'
+export const FILTER_PANEL_COLLAPSE_MQ = '(max-width: 1280px)'
 
 export function useViewport() {
   const mobile = useMediaQuery('(max-width: 767px)')
   const tablet = useMediaQuery('(min-width: 768px) and (max-width: 1023px)')
   return { mobile, tablet }
+}
+
+/** Partner list pages: collapse the whole filter panel (not only “more” fields). */
+export function useFilterPanelCollapse() {
+  return useMediaQuery(FILTER_PANEL_COLLAPSE_MQ)
 }
 
 /** Row action buttons collapse to ⋯ menu (tables with `ui-table-cell-actions`). */

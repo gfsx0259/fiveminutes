@@ -178,17 +178,22 @@
 
     <v-dialog
       v-model="dialogOpen"
-      max-width="510"
+      :max-width="acceptedDetails ? 1200 : 510"
       class="demands-dialog-root"
       scrim="#11162c"
     >
       <v-card v-if="selected" class="demands-dialog" rounded="0" elevation="0">
-        <h2>{{ dialogTitle }}</h2>
+        <h2>
+          {{ dialogTitle }}
+          <StatusChip v-if="acceptedDetails" status="approved" label="Accepted" tone="success" />
+        </h2>
         <button type="button" class="demands-dialog__close" aria-label="Close dialog" @click="dialogOpen = false">
           <v-icon icon="mdi-close" size="20" />
         </button>
 
-        <div class="demands-modal-intro">
+        <AcceptedOfferDetails v-if="acceptedDetails" :row="selected" />
+
+        <div v-if="!acceptedDetails" class="demands-modal-intro">
           <strong>{{ offerDisplayId(selected.presetId) }}</strong>
           <p v-if="dialogMode === 'accept'">
             Review this demand and enter the daily cap you can deliver. An admin approves the offer before leads start.
@@ -199,7 +204,7 @@
           </p>
         </div>
 
-        <dl class="demands-summary">
+        <dl v-if="!acceptedDetails" class="demands-summary">
           <div><dt>Traffic Source</dt><dd>{{ trafficLabel(selected.trafficSource) }}</dd></div>
           <div><dt>Remaining Cap</dt><dd>{{ remaining(selected).toLocaleString('en-US') }} ({{ remainingPercent(selected) }}%)</dd></div>
           <div>
@@ -266,6 +271,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import StatusChip from '@/components/StatusChip.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
+import AcceptedOfferDetails from '@/components/demands/AcceptedOfferDetails.vue'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import CollapsibleFilterPanel from '@/components/ui/CollapsibleFilterPanel.vue'
@@ -315,6 +321,7 @@ interface DemandRow {
   gender: string
   status: DemandStatus
   yourVolume: number | null
+  ownSupplied: number
 }
 
 const market = useMarketStore()
@@ -396,6 +403,7 @@ function rowFromCap(cap: CapRow): DemandRow {
     gender: cap.gender,
     status: 'available',
     yourVolume: null,
+    ownSupplied: 0,
   }
 }
 
@@ -422,6 +430,7 @@ function rowFromOffer(offer: OfferRow): DemandRow {
     gender: offer.gender || preset?.gender || '',
     status,
     yourVolume: offer.volume,
+    ownSupplied: offer.supplied,
   }
 }
 
@@ -499,6 +508,11 @@ function remainingPercent(row: DemandRow): number {
   if (row.volume < 1) return 0
   return Math.max(0, Math.min(100, Math.round((remaining(row) / row.volume) * 100)))
 }
+
+/** After an admin approves the offer the details grow into the delivery workspace. */
+const acceptedDetails = computed(() => dialogMode.value === 'details'
+  && selected.value?.kind === 'offer'
+  && selected.value.status === 'approved')
 
 const dialogTitle = computed(() => {
   if (dialogMode.value === 'accept') return 'Accept Demand'
@@ -1047,7 +1061,11 @@ onMounted(() => {
 }
 
 .demands-dialog > h2 {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   font-size: 22px;
+  gap: 12px;
   font-weight: 700;
   letter-spacing: -0.5px;
   line-height: 1.5;
