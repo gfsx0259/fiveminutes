@@ -156,12 +156,11 @@
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div v-if="!market.loading && filtered.length === 0" class="demands-empty">
-        <strong>No demands found</strong>
-        <p>Try a different filter or tab.</p>
-        <UiButton variant="outline" @click="clearFilters">Clear filters</UiButton>
+        <div v-if="!market.loading && filtered.length === 0" class="demands-empty">
+          <strong>No demands found</strong>
+          <p>Try a different filter or tab.</p>
+          <UiButton variant="outline" @click="clearFilters">Clear filters</UiButton>
+        </div>
       </div>
 
       <UiTablePagination
@@ -206,7 +205,7 @@
 
         <dl v-if="!acceptedDetails" class="demands-summary">
           <div><dt>Traffic Source</dt><dd>{{ trafficLabel(selected.trafficSource) }}</dd></div>
-          <div><dt>Remaining Cap</dt><dd>{{ remaining(selected).toLocaleString('en-US') }} ({{ remainingPercent(selected) }}%)</dd></div>
+          <div><dt>Remaining Cap</dt><dd>{{ shownRemaining(selected).toLocaleString('en-US') }} ({{ shownRemainingPercent(selected) }}%)</dd></div>
           <div>
             <dt>Vertical</dt>
             <dd>
@@ -388,15 +387,21 @@ function presetOf(presetId: string): PresetRow | undefined {
   return presetsById.value.get(presetId)
 }
 
-const activeOfferKeys = computed(() => {
-  const keys = new Set<string>()
+/** Leads this buyer has already reserved and not yet delivered on this preset and day. A finished offer holds nothing. */
+function heldVolume(presetId: string, serviceOn: string | null): number {
+  const key = capKey(presetId, serviceOn)
+  let held = 0
   for (const offer of market.offers) {
-    if (offer.status === 'pending' || offer.status === 'approved' || offer.status === 'finished') {
-      keys.add(capKey(offer.presetId, offer.serviceOn))
-    }
+    if (capKey(offer.presetId, offer.serviceOn) !== key) continue
+    if (offer.status !== 'pending' && offer.status !== 'approved') continue
+    held += Math.max(0, offer.volume - offer.supplied)
   }
-  return keys
-})
+  return held
+}
+
+function unclaimed(volume: number, supplied: number, presetId: string, serviceOn: string | null): number {
+  return Math.max(0, volume - supplied - heldVolume(presetId, serviceOn))
+}
 
 function rowFromCap(cap: CapRow): DemandRow {
   const preset = presetOf(cap.presetId)
@@ -449,7 +454,7 @@ function rowFromOffer(offer: OfferRow): DemandRow {
 }
 
 const availableRows = computed(() => market.caps
-  .filter((cap) => !cap.stock && cap.volume > cap.supplied && !activeOfferKeys.value.has(capKey(cap.presetId, cap.serviceOn)))
+  .filter((cap) => !cap.stock && unclaimed(cap.volume, cap.supplied, cap.presetId, cap.serviceOn) > 0)
   .map(rowFromCap))
 
 const acceptedRows = computed(() => market.offers.map(rowFromOffer))
@@ -519,9 +524,19 @@ function remaining(row: DemandRow): number {
   return Math.max(0, row.volume - row.supplied)
 }
 
-function remainingPercent(row: DemandRow): number {
+/** On accept, the cap the buyer can still take after their own open offers. */
+function claimable(row: DemandRow): number {
+  if (row.kind !== 'cap') return remaining(row)
+  return unclaimed(row.volume, row.supplied, row.presetId, row.serviceOn)
+}
+
+function shownRemaining(row: DemandRow): number {
+  return dialogMode.value === 'accept' ? claimable(row) : remaining(row)
+}
+
+function shownRemainingPercent(row: DemandRow): number {
   if (row.volume < 1) return 0
-  return Math.max(0, Math.min(100, Math.round((remaining(row) / row.volume) * 100)))
+  return Math.max(0, Math.min(100, Math.round((shownRemaining(row) / row.volume) * 100)))
 }
 
 /** After an admin approves the offer the details grow into the delivery workspace. */
@@ -534,7 +549,7 @@ const dialogTitle = computed(() => {
   return selected.value?.kind === 'offer' ? 'Offer Details' : 'Demand Details'
 })
 
-const dailyCapLimit = computed(() => (selected.value ? Math.max(remaining(selected.value), 1) : 1))
+const dailyCapLimit = computed(() => (selected.value ? claimable(selected.value) : 0))
 const validDailyCap = computed(() => {
   const value = acceptVolume.value.trim()
   if (!/^\d+$/.test(value)) return false
@@ -1057,7 +1072,7 @@ onMounted(() => {
   font-size: 13px;
   gap: 10px;
   justify-items: center;
-  padding: 42px 14px;
+  padding: 28px 14px 18px;
   text-align: center;
 }
 
