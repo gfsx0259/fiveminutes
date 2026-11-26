@@ -57,7 +57,14 @@ final class OrderForm extends AbstractInput
         public readonly string $stock_gender = '',
         public readonly string $pick_priority = '',
         public readonly string $pick_zone = '',
+        #[Regex(pattern: '/^[0-9a-f-]{36}$/i', message: 'Team must be a UUID', skipOnEmpty: true)]
+        public readonly string $team_id = '',
     ) {}
+
+    public function teamId(): ?string
+    {
+        return $this->team_id === '' ? null : $this->team_id;
+    }
 
     public function kindAndHours(mixed $value, Callback $rule, ValidationContext $context): Result
     {

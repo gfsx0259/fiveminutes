@@ -28,14 +28,14 @@
         <strong>{{ totalCents > 0 ? dollars(totalCents / 100) : '—' }}</strong>
       </div>
     </div>
-    <div class="order-checkout__panel">
+    <div v-if="balanceCents !== null" class="order-checkout__panel">
       <div class="order-checkout__line">
-        <span>Your balance</span>
+        <span>{{ teamBudget ? 'Team budget left' : 'Your balance' }}</span>
         <span>{{ dollars(balanceCents / 100) }}</span>
       </div>
       <div v-if="insufficient > 0" class="ui-notice ui-notice--warning order-checkout__alert" role="status">
-        <strong class="order-checkout__notice-title">Insufficient balance</strong>
-        Top up by {{ dollars(insufficient / 100) }}.
+        <strong class="order-checkout__notice-title">{{ teamBudget ? 'Not enough team budget' : 'Insufficient balance' }}</strong>
+        {{ teamBudget ? 'Ask your lead to raise the budget by' : 'Top up by' }} {{ dollars(insufficient / 100) }}.
       </div>
     </div>
   </div>
@@ -49,7 +49,8 @@ const props = withDefaults(
   defineProps<{
     pricePerLeadCents: number
     quantity: number
-    balanceCents: number
+    balanceCents: number | null
+    teamBudget?: boolean
     priceLabel?: string
     totalLabel?: string
     totalCentsOverride?: number | null
@@ -60,6 +61,7 @@ const props = withDefaults(
     totalLabel: 'Total cost',
     totalCentsOverride: null,
     catalogTotalCents: null,
+    teamBudget: false,
   },
 )
 
@@ -73,7 +75,7 @@ const totalCents = computed(() => {
   return props.quantity * props.pricePerLeadCents
 })
 
-const insufficient = computed(() => Math.max(0, totalCents.value - props.balanceCents))
+const insufficient = computed(() => props.balanceCents === null ? 0 : Math.max(0, totalCents.value - props.balanceCents))
 
 const savingsCents = computed(() => {
   if (props.catalogTotalCents == null || totalCents.value < 1) {

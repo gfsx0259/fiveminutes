@@ -229,7 +229,7 @@
             class="stock-actions__btn ui-table-cell-actions__btn"
             variant="primary"
             icon="mdi-cart-outline"
-            :disabled="item.available < 1"
+            :disabled="item.available < 1 || !canOrder"
             @click="openBuy(item)"
           >
             Buy
@@ -239,6 +239,7 @@
             class="stock-actions__btn ui-table-cell-actions__btn"
             variant="primary"
             icon="mdi-calendar-plus"
+            :disabled="!canOrder"
             @click="openOrder(item)"
           >
             Order
@@ -260,7 +261,7 @@
                 v-if="viewTab === 'stock'"
                 type="button"
                 class="ui-table-cell-actions__menu-only"
-                :disabled="item.available < 1"
+                :disabled="item.available < 1 || !canOrder"
                 @click="openBuy(item)"
               >
                 <v-icon icon="mdi-cart-outline" size="16" />
@@ -270,6 +271,7 @@
                 v-else
                 type="button"
                 class="ui-table-cell-actions__menu-only"
+                :disabled="!canOrder"
                 @click="openOrder(item)"
               >
                 <v-icon icon="mdi-calendar-plus" size="16" />
@@ -382,6 +384,7 @@ const { tableListLayoutClass } = useTableListLayout()
 const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
+const canOrder = computed(() => session.can('orders.manage'))
 const market = useMarketStore()
 
 const filterVerticals = ref<string[]>([])

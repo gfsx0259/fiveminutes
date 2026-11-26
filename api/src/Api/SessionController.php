@@ -28,16 +28,11 @@ final readonly class SessionController
         try {
             $cookie = $this->requests->get()->getHeaderLine('Cookie');
             $session = $this->sessions->read($cookie);
-            $actor = $this->currentUser->requireActor($cookie);
-            $effective = $this->currentUser->effective($actor, $cookie);
+            $seat = $this->currentUser->seat($cookie);
         } catch (NoSessionException|NoAccountException) {
             return $this->responses->createResponse(['error' => 'No session'], 401);
         }
 
-        $impersonating = $actor->getId() !== $effective->getId();
-
-        return $this->responses->createResponse(
-            $this->view->present($session, $effective, $impersonating ? $actor : null),
-        );
+        return $this->responses->createResponse($this->view->present($session, $seat));
     }
 }

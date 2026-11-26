@@ -11,6 +11,7 @@ use App\Api\MarketController;
 use App\Api\OrganizationController;
 use App\Api\RegistrationController;
 use App\Api\SessionController;
+use App\Api\TeamController;
 use App\Api\UserController;
 use App\Api\WalletController;
 use Yiisoft\Router\Group;
@@ -27,6 +28,23 @@ return [
         Route::delete('/identity/sessions/others')->action([IdentityController::class, 'revokeOtherSessions'])->name('identity-sessions-others'),
         Route::delete('/identity/sessions/{id}')->action([IdentityController::class, 'revokeSession'])->name('identity-session-revoke'),
         Route::get('/users')->action([UserController::class, 'index'])->name('users'),
+        Route::get('/team')->action([TeamController::class, 'index'])->name('team'),
+        Route::get('/team/events')->action([TeamController::class, 'events'])->name('team-events'),
+        Route::post('/team/owner')->action([TeamController::class, 'handOver'])->name('team-owner'),
+        Route::post('/team')->action([TeamController::class, 'invite'])->name('team-invite'),
+        Route::post('/team/{id:[0-9a-f-]{36}}/renew')->action([TeamController::class, 'renew'])->name('team-renew'),
+        Route::put('/team/{id:[0-9a-f-]{36}}')->action([TeamController::class, 'update'])->name('team-update'),
+        Route::delete('/team/{id:[0-9a-f-]{36}}')->action([TeamController::class, 'remove'])->name('team-remove'),
+        Route::post('/team/units')->action([TeamController::class, 'createUnit'])->name('team-unit-create'),
+        Route::patch('/team/units/{id:[0-9a-f-]{36}}')->action([TeamController::class, 'renameUnit'])->name('team-unit-rename'),
+        Route::put('/team/units/{id:[0-9a-f-]{36}}/parent')->action([TeamController::class, 'moveUnit'])->name('team-unit-move'),
+        Route::delete('/team/units/{id:[0-9a-f-]{36}}')->action([TeamController::class, 'removeUnit'])->name('team-unit-remove'),
+        Route::put('/team/units/{id:[0-9a-f-]{36}}/budget')->action([TeamController::class, 'limitBudget'])->name('team-unit-budget'),
+        Route::get('/team/units/{id:[0-9a-f-]{36}}/budget')->action([TeamController::class, 'budgetHistory'])->name('team-unit-budget-history'),
+        Route::put('/team/orders/{id:[0-9a-f-]{36}}')->action([TeamController::class, 'moveOrder'])->name('team-order-move'),
+        Route::post('/exports')->action([TeamController::class, 'export'])->name('export'),
+        Route::get('/users/{id:[0-9a-f-]{36}}/team')->action([TeamController::class, 'partnerTeam'])->name('user-team'),
+        Route::delete('/users/{id:[0-9a-f-]{36}}/team/{member:[0-9a-f-]{36}}')->action([TeamController::class, 'removePartnerMember'])->name('user-team-remove'),
         Route::post('/impersonate')->action([ImpersonationController::class, 'start'])->name('impersonate-start'),
         Route::delete('/impersonate')->action([ImpersonationController::class, 'stop'])->name('impersonate-stop'),
         Route::post('/organization/markup')->action([OrganizationController::class, 'setMarkup'])->name('organization-markup'),

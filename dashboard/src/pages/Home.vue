@@ -9,6 +9,7 @@ import { useSessionStore } from '@/stores/session'
 const session = useSessionStore()
 
 const role = session.payload?.user?.role
-const home = role === 'partner' ? '/dashboard' : role === 'buyer' ? '/demands' : '/leads'
+const partnerHome = ['/dashboard', '/stock', '/orders'].find((path) => session.canOpen(path)) ?? '/leads'
+const home = role === 'partner' ? partnerHome : role === 'buyer' ? '/demands' : '/leads'
 void useRouter().replace(home)
 </script>

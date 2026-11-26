@@ -93,16 +93,19 @@
       </div>
     </v-main>
     <UiToastHost />
+    <ConfirmHost />
   </v-app>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ShellNav from '@/components/ShellNav.vue'
 import UiToastHost from '@/components/UiToastHost.vue'
+import ConfirmHost from '@/components/ConfirmHost.vue'
 import TopbarWallet from '@/components/TopbarWallet.vue'
 import UiButton from '@/components/ui/UiButton.vue'
+import { ACCESS_CHANGED_EVENT } from '@/api'
 import { loginUrl, logout } from '@/host'
 import { documentTitle } from '@/pageTitle'
 import { maybeResolveAdminStockShare } from '@/stockShareAssist'
@@ -112,6 +115,7 @@ import { useViewport } from '@/viewport'
 const COLLAPSE_KEY = 'rider.sidebar.collapsed'
 
 const session = useSessionStore()
+const router = useRouter()
 const route = useRoute()
 
 const impersonation = computed(() => session.payload?.impersonation ?? null)
@@ -123,7 +127,7 @@ const rail = computed(() => !overlayNav.value && (tabletRail.value || collapsed.
 
 const showWallet = computed(() => {
   const role = session.payload?.user?.role
-  return role === 'partner' || role === 'buyer'
+  return (role === 'partner' || role === 'buyer') && session.can('wallet.view') && session.spend !== null
 })
 
 try {
@@ -172,7 +176,25 @@ watch(
   },
 )
 
+watch(
+  () => session.payload?.user?.permissions,
+  () => {
+    if (session.payload?.user && !session.canOpen(route.path)) {
+      void router.replace('/')
+    }
+  },
+)
+
+function refreshAccess(): void {
+  if (document.visibilityState === 'visible') {
+    void session.refresh()
+  }
+}
+
 onMounted(() => {
+  window.addEventListener(ACCESS_CHANGED_EVENT, refreshAccess)
+  window.addEventListener('focus', refreshAccess)
+  document.addEventListener('visibilitychange', refreshAccess)
   void session.load()
 })
 </script>

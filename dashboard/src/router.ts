@@ -1,5 +1,6 @@
 import { documentTitle } from '@/pageTitle'
 import { useSessionStore } from '@/stores/session'
+import { TEAM_PATH } from '@/team'
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/pages/Dashboard.vue'
 import Demands from '@/pages/Demands.vue'
@@ -11,6 +12,7 @@ import Performance from '@/pages/Performance.vue'
 import PresetPage from '@/pages/PresetPage.vue'
 import Reports from '@/pages/Reports.vue'
 import Stock from '@/pages/Stock.vue'
+import Team from '@/pages/Team.vue'
 import Transactions from '@/pages/Transactions.vue'
 import Users from '@/pages/Users.vue'
 import Account from '@/pages/Account.vue'
@@ -42,7 +44,15 @@ export const router = createRouter({
     { path: '/performance', component: Performance },
     { path: '/users', component: Users },
     { path: '/account', component: Account },
+    { path: TEAM_PATH, component: Team },
   ],
+})
+
+router.beforeEach((to) => {
+  const session = useSessionStore()
+  if (session.payload?.user && !session.canOpen(to.path)) {
+    return '/'
+  }
 })
 
 router.afterEach((to) => {

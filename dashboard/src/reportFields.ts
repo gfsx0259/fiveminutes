@@ -3,7 +3,7 @@ import { modelLabel, trafficLabel, verticalLabel } from '@/marketOptions'
 import { dollars } from '@/money'
 import { HOUR, outcomeView, percent, startOfDay, timeOf, totalsOf, type Purchase, type PurchaseTotals } from '@/purchases'
 
-export type ReportDimension = 'country' | 'vertical' | 'traffic' | 'model' | 'status' | 'day' | 'hour'
+export type ReportDimension = 'team' | 'openedBy' | 'country' | 'vertical' | 'traffic' | 'model' | 'status' | 'day' | 'hour'
 
 export interface DimensionView {
   key: ReportDimension
@@ -12,6 +12,8 @@ export interface DimensionView {
 }
 
 export const dimensions: DimensionView[] = [
+  { key: 'team', label: 'Team', filterable: true },
+  { key: 'openedBy', label: 'Opened by', filterable: true },
   { key: 'country', label: 'Country', filterable: true },
   { key: 'traffic', label: 'Traffic source', filterable: true },
   { key: 'vertical', label: 'Vertical', filterable: true },
@@ -26,6 +28,8 @@ export function dimensionLabel(key: ReportDimension): string {
 }
 
 export function valueOf(purchase: Purchase, dimension: ReportDimension): string {
+  if (dimension === 'team') return purchase.team
+  if (dimension === 'openedBy') return purchase.openedBy
   if (dimension === 'country') return purchase.lead.country || ''
   if (dimension === 'traffic') return purchase.lead.trafficSource || ''
   if (dimension === 'vertical') return purchase.vertical || ''
@@ -37,6 +41,7 @@ export function valueOf(purchase: Purchase, dimension: ReportDimension): string 
 
 export function nameOf(dimension: ReportDimension, value: string): string {
   if (value === '') return '—'
+  if (dimension === 'team' || dimension === 'openedBy') return value
   if (dimension === 'country') return `${value} · ${countryName(value)}`
   if (dimension === 'traffic') return trafficLabel(value)
   if (dimension === 'vertical') return verticalLabel(value)
@@ -156,6 +161,7 @@ export type PresetState = Required<Pick<ReportPreset, 'groups' | 'conditions'>> 
 
 export const defaultPresets: ReportPreset[] = [
   { key: 'countries', label: 'Countries', groups: ['country'] },
+  { key: 'teams', label: 'Teams', groups: ['team', 'openedBy'] },
   { key: 'days', label: 'Days', groups: ['day'] },
   { key: 'sources', label: 'Traffic sources', groups: ['traffic', 'country'] },
   { key: 'verticals', label: 'Verticals', groups: ['vertical', 'country'] },

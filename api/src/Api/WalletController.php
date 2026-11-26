@@ -8,6 +8,7 @@ use App\Api\Form\WalletAdjustForm;
 use App\Context\Identity\CurrentUser;
 use App\Context\Identity\NoAccountException;
 use App\Context\Identity\NoSessionException;
+use App\Context\Team\Permission;
 use App\Context\Wallet\InsufficientBalanceException;
 use App\Context\Wallet\WalletDesk;
 use App\Context\Wallet\WalletHistory;
@@ -31,12 +32,17 @@ final readonly class WalletController
     public function transactions(): ResponseInterface
     {
         try {
-            $user = $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie'));
+            $seat = $this->currentUser->seat($this->requests->get()->getHeaderLine('Cookie'));
+            $seat->authorize(Permission::WalletView);
+            if ($seat->unitId() !== null) {
+                throw new DomainException('The account wallet is kept above your team, your spend is on the Team page');
+            }
+            $transactions = $this->history->forUser($seat->getAccount());
         } catch (Throwable $exception) {
             return $this->failure($exception);
         }
 
-        return $this->responses->createResponse(['transactions' => $this->history->forUser($user)]);
+        return $this->responses->createResponse(['transactions' => $transactions]);
     }
 
     public function deposit(WalletAdjustForm $form): ResponseInterface
@@ -55,8 +61,12 @@ final readonly class WalletController
     private function adjust(callable $action): ResponseInterface
     {
         try {
-            $user = $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie'));
-            $balanceCents = $action($user);
+            $seat = $this->currentUser->seat($this->requests->get()->getHeaderLine('Cookie'));
+            $seat->authorize(Permission::WalletManage);
+            if ($seat->unitId() !== null) {
+                throw new DomainException('The account balance is managed above your team');
+            }
+            $balanceCents = $action($seat->getAccount());
         } catch (Throwable $exception) {
             return $this->failure($exception);
         }

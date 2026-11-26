@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Context\Team\TeamDesk;
 use App\Context\User\IdentityAlreadyLinkedException;
 use App\Context\User\InviteMissingException;
 use App\Context\User\Registration;
@@ -18,6 +19,7 @@ final readonly class RegistrationController
 {
     public function __construct(
         private Registration $registration,
+        private TeamDesk $team,
         private DataResponseFactoryInterface $responses,
         private ResponseFactoryInterface $raw,
         private RequestProviderInterface $requests,
@@ -30,7 +32,9 @@ final readonly class RegistrationController
         $email = is_array($body) && is_string($body['email'] ?? null) ? $body['email'] : '';
 
         try {
-            $this->registration->accept($userId, $email);
+            if ($this->team->join($userId, $email) === null) {
+                $this->registration->accept($userId, $email);
+            }
         } catch (InviteMissingException $exception) {
             return $this->interrupt($exception->getMessage(), 400);
         } catch (IdentityAlreadyLinkedException $exception) {

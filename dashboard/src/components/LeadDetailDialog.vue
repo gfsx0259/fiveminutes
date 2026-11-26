@@ -134,7 +134,7 @@ import { apiPost } from '@/api'
 import { modelLabel, verticalColor, verticalIcon, verticalLabel, trafficLabel } from '@/marketOptions'
 import { dollars } from '@/money'
 import { leadDisplayId, offerDisplayId, orderDisplayId, verticalFromAffSub } from '@/orderDisplay'
-import type { CabinetLead } from '@/stores/leads'
+import { HIDDEN_CONTACT, type CabinetLead } from '@/stores/leads'
 import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 import { computed, ref, watch } from 'vue'
@@ -196,7 +196,7 @@ watch(() => props.openReject, (openReject) => {
 })
 
 const canConvert = computed(() => {
-  if (!props.lead || props.lead.status !== 'sold') return false
+  if (!props.lead || props.lead.status !== 'sold' || !session.can('leads.manage')) return false
   const r = role.value
   return r === 'partner' || r === 'buyer' || r === 'admin'
 })
@@ -364,6 +364,7 @@ function rowValue(row: DetailRow): string {
     if (row.field === 'uuid') return lead.uuid
     if (row.field === 'gender') return genderLabel(lead.gender)
     if (row.field === 'trafficSource') return trafficLabel(lead.trafficSource)
+    if ((row.field === 'phone' || row.field === 'email') && lead.contactsHidden) return HIDDEN_CONTACT
     const value = lead[row.field as keyof CabinetLead]
     if (value === null || value === undefined || value === '') return '—'
     return String(value)
@@ -396,7 +397,7 @@ function rowCopyValue(row: DetailRow): string | null {
   }
   const lead = props.lead
   const displayed = rowValue(row)
-  if (displayed === '—' || displayed === '') {
+  if (displayed === '—' || displayed === '' || ((row.field === 'phone' || row.field === 'email') && lead?.contactsHidden)) {
     return null
   }
 

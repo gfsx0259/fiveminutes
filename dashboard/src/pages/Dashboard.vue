@@ -10,7 +10,7 @@
       </div>
     </div>
 
-    <WalletHero :purchases="purchases" :orders="market.orders" :now="now" />
+    <WalletHero v-if="canSeeWallet" :purchases="purchases" :orders="market.orders" :now="now" />
 
     <DashboardSection
       title="Delivered by LeadMarket"
@@ -45,7 +45,7 @@
             :tooltip="spendTooltip"
           />
         </UiCard>
-        <UiCard title="Wallet activity" subtitle="Charges and deposits">
+        <UiCard v-if="canSeeWallet" title="Wallet activity" subtitle="Charges and deposits">
           <template #actions>
             <router-link class="dashboard__link" to="/transactions">All transactions <v-icon icon="mdi-arrow-right" size="14" /></router-link>
           </template>
@@ -153,11 +153,14 @@ import { SUCCESS_STRONG } from '@/palette'
 import { between, bucketsOf, choicePeriodOf, outcomes, percent, purchasesOf, totalsOf, type PeriodChoice } from '@/purchases'
 import { useLeadStore } from '@/stores/leads'
 import { useMarketStore } from '@/stores/market'
+import { useSessionStore } from '@/stores/session'
 import { useWalletStore } from '@/stores/wallet'
 
 const leadStore = useLeadStore()
 const market = useMarketStore()
 const wallet = useWalletStore()
+const session = useSessionStore()
+const canSeeWallet = computed(() => session.can('wallet.view') && !session.isTeamScoped)
 
 const choice = ref<PeriodChoice>({ key: '7', from: '', to: '' })
 const now = ref(Date.now())
@@ -198,7 +201,7 @@ function spendTooltip(index: number): TooltipRow[] {
 
 async function refresh(): Promise<void> {
   now.value = Date.now()
-  await Promise.all([leadStore.load(), market.loadOrders(), wallet.load()])
+  await Promise.all([leadStore.load(), market.loadOrders(), canSeeWallet.value ? wallet.load() : Promise.resolve()])
 }
 
 useLoadErrorToast(problem, () => { void refresh() })

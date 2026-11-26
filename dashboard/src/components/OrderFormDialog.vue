@@ -139,6 +139,7 @@
         <UiTimeField v-model="closesAt" label="Closes" :minute-step="15" :extra-minutes="[59]" />
       </UiField>
     </div>
+    <OrderTeamField v-if="isPartnerOrder" v-model="teamId" />
     <UiField label="Timezone" icon="mdi-earth" :error="fieldErrors.timezone">
       <UiSelect
         v-model="timezone"
@@ -154,6 +155,7 @@
       :price-per-lead-cents="priceCents"
       :quantity="volumeQty"
       :balance-cents="balanceCents"
+      :team-budget="session.spend?.team ?? false"
       total-label="Total cost"
     />
   </FormDialog>
@@ -191,6 +193,7 @@ import type { StockBuyZone } from '@/stockModalIntent'
 import { orderDisplayId, presetDisplayId } from '@/orderDisplay'
 import { useMarketStore, type PresetRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
+import OrderTeamField from '@/components/OrderTeamField.vue'
 
 const props = defineProps<{
   initialPresetId?: string | null
@@ -408,7 +411,9 @@ async function syncFormToInitialPreset(): Promise<void> {
   applyLinkedFields()
 }
 
-const balanceCents = computed(() => session.payload?.user?.balanceCents ?? 0)
+const balanceCents = computed(() => session.spend?.cents ?? null)
+const teamId = ref<string | undefined>(undefined)
+const isPartnerOrder = computed(() => session.isPartner)
 
 const volumeQty = computed(() => {
   const qty = Number(volume.value)
@@ -538,6 +543,7 @@ watch(open, (value) => {
     stockNudgeDismissed.value = false
     return
   }
+  teamId.value = undefined
   stockNudgeDismissed.value = false
   if (market.stock.length === 0) {
     void market.loadWarehouse()
@@ -728,6 +734,7 @@ async function create(): Promise<void> {
       opens_at: opensAt.value,
       closes_at: closesAt.value,
       timezone: timezone.value,
+      team_id: teamId.value ?? '',
     })
     const countryName =
       ISO2_COUNTRIES.find((c) => c.code === preset.country)?.name ?? preset.country

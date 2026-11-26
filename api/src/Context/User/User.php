@@ -18,7 +18,7 @@ use JsonException;
 class User
 {
     #[Column(type: 'string')]
-    private readonly string $email;
+    private string $email;
 
     #[Column(type: 'string')]
     private readonly string $role;
@@ -134,6 +134,12 @@ class User
 
         $this->identityId = $identityId;
         $this->updatedAt = $clock->now();
+    }
+
+    public function handOver(string $email, string $identityId, Clock $clock): void
+    {
+        $this->email = (new Email($email))->toString();
+        $this->linkIdentity($identityId, $clock);
     }
 
     /**

@@ -14,11 +14,17 @@ use App\Context\Identity\NoSessionException;
 use App\Context\Market\Cabinet;
 use App\Context\Market\OfferDesk;
 use App\Context\Market\OfferMissingException;
+use App\Context\Market\Order;
 use App\Context\Market\OrderDesk;
 use App\Context\Market\OrderMissingException;
 use App\Context\Market\PresetDesk;
 use App\Context\Market\PresetMissingException;
 use App\Context\Market\Warehouse;
+use App\Context\Team\Permission;
+use App\Context\Team\Seat;
+use App\Context\Team\TeamBudget;
+use App\Context\Team\TeamOrders;
+use App\Context\Team\TeamUnitMissingException;
 use App\Context\User\User;
 use DomainException;
 use InvalidArgumentException;
@@ -37,6 +43,8 @@ final readonly class MarketController
         private OfferDesk $offers,
         private Cabinet $cabinet,
         private Warehouse $warehouse,
+        private TeamOrders $teamOrders,
+        private TeamBudget $teamBudget,
         private DataResponseFactoryInterface $responses,
         private RequestProviderInterface $requests,
         private CurrentRoute $route,
@@ -81,27 +89,54 @@ final readonly class MarketController
 
     public function orders(): ResponseInterface
     {
-        return $this->list(fn (User $user): array => ['orders' => $this->cabinet->orders($user)]);
+        try {
+            $seat = $this->seat();
+
+            return $this->responses->createResponse([
+                'orders' => $this->teamOrders->present($seat, $this->cabinet->orders($seat->getAccount())),
+            ]);
+        } catch (Throwable $exception) {
+            return $this->failure($exception);
+        }
     }
 
     public function openOrder(OrderForm $form): ResponseInterface
     {
         try {
-            $order = $this->orders->open(
-                $this->user(),
-                $form->presetId(),
-                $form->geo(),
-                $form->volume(),
-                $form->priceCents(),
-                $form->paymentModel(),
-                $form->stock(),
-                $form->serviceOn(),
-                $form->opensAt(),
-                $form->closesAt(),
-                $form->stockLeadGender(),
-                $form->stockPickPreference(),
-                $form->timezone(),
-            );
+            $seat = $this->seat();
+            $seat->authorize(Permission::OrdersManage);
+            $partner = $seat->getAccount();
+            $teamId = $this->teamOrders->unitForNewOrder($seat, $form->teamId());
+            $order = $this->teamBudget->guard($partner, function () use ($seat, $partner, $teamId, $form): Order {
+                $this->teamBudget->assertFits($partner, $teamId, fn (): int => $form->stock()
+                    ? (int) $this->warehouse->quote(
+                        $partner,
+                        $form->presetId(),
+                        $form->volume(),
+                        $form->stockLeadGender(),
+                        $form->stockPickPreference(),
+                    )['totalCents']
+                    : $form->priceCents() * $form->volume());
+                $order = $this->orders->open(
+                    $partner,
+                    $form->presetId(),
+                    $form->geo(),
+                    $form->volume(),
+                    $form->priceCents(),
+                    $form->paymentModel(),
+                    $form->stock(),
+                    $form->serviceOn(),
+                    $form->opensAt(),
+                    $form->closesAt(),
+                    $form->stockLeadGender(),
+                    $form->stockPickPreference(),
+                    $form->timezone(),
+                );
+                $this->teamOrders->place($seat, $order, $teamId);
+
+                return $order;
+            });
+            $this->teamBudget->alert($partner);
         } catch (Throwable $exception) {
             return $this->failure($exception);
         }
@@ -213,7 +248,12 @@ final readonly class MarketController
     private function changeOrder(callable $change): ResponseInterface
     {
         try {
-            $order = $change($this->user(), $this->id());
+            $seat = $this->seat();
+            $seat->authorize(Permission::OrdersManage);
+            if (!$this->teamOrders->sees($seat, $this->id())) {
+                throw new OrderMissingException('Order not found');
+            }
+            $order = $change($seat->getAccount(), $this->id());
         } catch (Throwable $exception) {
             return $this->failure($exception);
         }
@@ -235,9 +275,14 @@ final readonly class MarketController
         return $this->responses->createResponse(['id' => $offer->getId(), 'status' => $offer->getStatus()->value]);
     }
 
-    private function user(): User
+    private function user(?Permission $permission = null): User
     {
-        return $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie'));
+        return $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie'), $permission);
+    }
+
+    private function seat(): Seat
+    {
+        return $this->currentUser->seat($this->requests->get()->getHeaderLine('Cookie'));
     }
 
     private function id(): string
@@ -261,7 +306,12 @@ final readonly class MarketController
         if ($exception instanceof NoSessionException) {
             return $this->responses->createResponse(['error' => 'No session'], 401);
         }
-        if ($exception instanceof PresetMissingException || $exception instanceof OrderMissingException || $exception instanceof OfferMissingException) {
+        if (
+            $exception instanceof PresetMissingException
+            || $exception instanceof OrderMissingException
+            || $exception instanceof OfferMissingException
+            || $exception instanceof TeamUnitMissingException
+        ) {
             return $this->responses->createResponse(['error' => $exception->getMessage()], 404);
         }
         if ($exception instanceof InvalidArgumentException) {

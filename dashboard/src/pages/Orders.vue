@@ -6,7 +6,7 @@
         <p v-if="isPartner">Day and stock orders you opened. Create new day orders from Buy leads.</p>
         <p v-else>Day orders for today or tomorrow. Partner payout is at or above the preset floor; the platform fee is charged to the buyer.</p>
       </div>
-      <UiButton v-if="!isPartner" variant="outline" icon="mdi-plus" @click="show">Create</UiButton>
+      <UiButton v-if="!isPartner && canManageOrders" variant="outline" icon="mdi-plus" @click="show">Create</UiButton>
     </div>
 
     <OrderFormDialog v-if="!isPartner" v-model="open" />
@@ -120,7 +120,7 @@
       <template #actions>
         <TableCardToolbar
           :refresh-loading="market.loading"
-          :export-disabled="filteredOrders.length === 0"
+          :export-disabled="filteredOrders.length === 0 || !session.can('reports.export')"
           @refresh="refresh()"
           @export="exportCsv"
         />
@@ -140,6 +140,12 @@
       >
         <template #item.id="{ item }">
           <span class="order-id">{{ orderDisplayId(item.id) }}</span>
+        </template>
+        <template #item.teamId="{ item }">
+          <span class="order-team">{{ teamLabel(item) }}</span>
+        </template>
+        <template #item.openedBy="{ item }">
+          <span class="order-opened-by" :title="item.openedBy || undefined">{{ item.openedBy || '—' }}</span>
         </template>
         <template #item.vertical="{ item }">
           <span class="order-entity">
@@ -241,7 +247,16 @@
                   Copy order UUID
                 </button>
                 <button
-                  v-if="item.status === 'in_progress'"
+                  v-if="canMoveOrders"
+                  type="button"
+                  class="order-row-menu__item"
+                  @click="openMove(item)"
+                >
+                  <v-icon icon="mdi-folder-move-outline" size="18" class="order-row-menu__icon" />
+                  Move to team
+                </button>
+                <button
+                  v-if="canManageOrders && item.status === 'in_progress'"
                   type="button"
                   class="order-row-menu__item"
                   :disabled="acting === item.id"
@@ -251,7 +266,7 @@
                   Pause
                 </button>
                 <button
-                  v-if="item.status === 'paused'"
+                  v-if="canManageOrders && item.status === 'paused'"
                   type="button"
                   class="order-row-menu__item"
                   :disabled="acting === item.id"
@@ -261,7 +276,7 @@
                   Resume
                 </button>
                 <button
-                  v-if="item.status !== 'finished'"
+                  v-if="canManageOrders && item.status !== 'finished'"
                   type="button"
                   class="order-row-menu__item"
                   :disabled="acting === item.id"
@@ -290,11 +305,23 @@
         </template>
       </UiDataTable>
     </UiTableCard>
+    <OrderTeamDialog
+      v-if="team.roster && moving"
+      v-model="moveOpen"
+      :roster="team.roster"
+      :order-id="moving.id"
+      :current="moving.teamId ?? null"
+      @saved="onMoved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { allowExport } from '@/exports'
 import { computed, onMounted, ref, watch } from 'vue'
+import OrderTeamDialog from '@/components/OrderTeamDialog.vue'
+import { useTeamStore } from '@/stores/team'
+import { ACCOUNT_LEVEL, teamPath } from '@/team'
 import { useRoute, useRouter } from 'vue-router'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
@@ -355,6 +382,25 @@ const session = useSessionStore()
 const market = useMarketStore()
 const pageReady = ref(false)
 const isPartner = computed(() => session.payload?.user?.role === 'partner')
+const team = useTeamStore()
+const canMoveOrders = computed(() => isPartner.value && Boolean(team.roster?.viewer.lead))
+const moveOpen = ref(false)
+const moving = ref<OrderRow | null>(null)
+
+function teamLabel(item: OrderRow): string {
+  return teamPath(team.roster?.teams ?? [], item.teamId) || ACCOUNT_LEVEL
+}
+
+function openMove(item: OrderRow): void {
+  moving.value = item
+  moveOpen.value = true
+}
+
+async function onMoved(): Promise<void> {
+  showToast('Order moved')
+  await refresh()
+}
+const canManageOrders = computed(() => session.can('orders.manage'))
 const isAdmin = computed(() => session.payload?.user?.role === 'admin')
 const compactTableActions = useCompactTableActions()
 const open = ref(false)
@@ -583,7 +629,10 @@ function orderTypeLabel(item: OrderRow): string {
   return item.stock ? 'Stock' : 'Live'
 }
 
-function exportCsv(): void {
+async function exportCsv(): Promise<void> {
+  if (!(await allowExport('orders', filteredOrders.value.length))) {
+    return
+  }
   exportTableCsv('orders.csv', headers.value, filteredOrders.value, orderExportCell)
 }
 
@@ -617,6 +666,10 @@ function orderExportCell(key: string, item: OrderRow): string {
       return dollars(item.partnerPriceCents / 100)
     case 'status':
       return item.status
+    case 'teamId':
+      return teamLabel(item)
+    case 'openedBy':
+      return item.openedBy || '—'
     default:
       return cellToString((item as Record<string, unknown>)[key])
   }
@@ -652,6 +705,8 @@ const orderColumnMins: Record<string, number> = {
   partnerPriceCents: 116,
   status: 100,
   orderActions: 88,
+  teamId: 140,
+  openedBy: 170,
 }
 
 const headers = computed(() => {
@@ -660,6 +715,8 @@ const headers = computed(() => {
   if (isPartner.value) {
     return prepareTableHeaders([
       ...partnerLeadColumns,
+      { title: 'Team', key: 'teamId', align: 'start' as const },
+      { title: 'Opened by', key: 'openedBy', align: 'start' as const },
       { title: 'Status', key: 'status', align: 'center' as const },
       { title: '', key: 'orderActions', sortable: false, align: 'end' as const },
     ], actionMins)
@@ -746,12 +803,28 @@ async function act(id: string, action: 'pause' | 'resume' | 'finish'): Promise<v
 
 onMounted(() => {
   void refresh()
+  if (isPartner.value) {
+    void team.load()
+  }
 })
 </script>
 
 <style scoped>
 .orders-filter-panel {
   margin-bottom: 16px;
+}
+
+.order-team {
+  font-weight: 600;
+}
+
+.order-opened-by {
+  color: var(--lm-muted);
+  display: inline-block;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .orders-filter-panel :deep(.ui-filter-panel__body) {

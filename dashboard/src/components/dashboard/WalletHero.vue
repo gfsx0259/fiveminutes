@@ -29,7 +29,7 @@
         <em>{{ lastDeposit ? momentOf(Date.parse(lastDeposit.createdAt), now) : 'No deposits yet' }}</em>
       </div>
     </div>
-    <div class="wallet-hero__actions">
+    <div v-if="session.can('wallet.manage')" class="wallet-hero__actions">
       <UiButton variant="ghost" class="wallet-hero__add" icon="mdi-plus" :loading="wallet.busy" @click="wallet.deposit()">
         Add funds
       </UiButton>

@@ -34,6 +34,7 @@
           <UiInput v-model="volume" type="number" :placeholder="String(target.available)" />
         </UiField>
         <StockPickControls v-model:pick-zone="pickZone" class="stock-buy__pick" />
+        <OrderTeamField v-model="teamId" />
       </div>
 
       <section v-if="volumeQty > 0" class="stock-buy__pricing" aria-label="Purchase details">
@@ -94,7 +95,8 @@
         :price-label="quoteReady ? 'Avg. per lead' : 'Price per lead'"
         :price-per-lead-cents="effectiveUnitCents"
         :quantity="volumeQty"
-        :balance-cents="balanceCents"
+          :balance-cents="balanceCents"
+          :team-budget="session.spend?.team ?? false"
         :total-cents-override="totalCents"
         :catalog-total-cents="quoteReady ? catalogTotalCents : null"
       />
@@ -120,6 +122,7 @@ import { dollars } from '@/money'
 import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
+import OrderTeamField from '@/components/OrderTeamField.vue'
 
 const props = defineProps<{
   target: StockBuyTarget | null
@@ -137,6 +140,7 @@ const market = useMarketStore()
 const session = useSessionStore()
 const busy = ref(false)
 const formError = ref('')
+const teamId = ref<string | undefined>(undefined)
 const fieldErrors = ref<Record<string, string>>({})
 const volume = ref('')
 const notice = ref(false)
@@ -147,7 +151,7 @@ const quoteLoading = ref(false)
 const quoteError = ref('')
 const pickZone = ref<StockPickZoneId>(defaultStockPickZone())
 
-const balanceCents = computed(() => session.payload?.user?.balanceCents ?? 0)
+const balanceCents = computed(() => session.spend?.cents ?? null)
 
 const volumeQty = computed(() => {
   const cap = props.target?.available ?? 0
@@ -208,6 +212,9 @@ function typedQty(): number {
 }
 
 watch(open, (value) => {
+  if (value) {
+    teamId.value = undefined
+  }
   if (!value) {
     return
   }
@@ -283,8 +290,8 @@ function validateBuy(target: StockBuyTarget): number | null {
     return null
   }
   const qty = volumeQty.value
-  if (totalCents.value > balanceCents.value) {
-    formError.value = 'Your balance is not enough for this order'
+  if (balanceCents.value !== null && totalCents.value > balanceCents.value) {
+    formError.value = session.spend?.team ? 'The team budget is not enough for this order' : 'Your balance is not enough for this order'
     return null
   }
   return qty
@@ -311,6 +318,7 @@ async function buy(): Promise<void> {
       price: Math.round(target.basePriceCents / 100),
       payment_model: target.paymentModel,
       kind: 'stock',
+      team_id: teamId.value ?? '',
       ...stockPickApiFields(pickZone.value),
     })
     const supplied = result.supplied ?? qty

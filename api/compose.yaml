@@ -68,6 +68,31 @@ services:
       test: ["NONE"]
     tty: true
 
+  team-alerts:
+    image: rider-api-api
+    pull_policy: never
+    hostname: rider-team-alerts
+    entrypoint: ["php", "yii", "team:budget-alerts"]
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - dev-leadmarket-network
+    volumes:
+      - ./:/app
+    healthcheck:
+      test: ["NONE"]
+    tty: true
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    hostname: rider-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+    networks:
+      - dev-leadmarket-network
+
   balance:
     image: rider-api-api
     pull_policy: never

@@ -208,7 +208,7 @@
       <template #actions>
         <TableCardToolbar
           :refresh-loading="leadStore.loading"
-          :export-disabled="filtered.length === 0"
+          :export-disabled="filtered.length === 0 || !session.can('reports.export')"
           @refresh="leadStore.load()"
           @export="exportCsv"
         />
@@ -252,8 +252,13 @@
         <template #item.lastName="{ item }">
           {{ item.lastName || '—' }}
         </template>
+        <template #item.phone="{ item }">
+          <span v-if="item.contactsHidden" class="lead-hidden"><v-icon icon="mdi-lock-outline" size="14" />{{ HIDDEN_CONTACT }}</span>
+          <span v-else>{{ item.phone || '—' }}</span>
+        </template>
         <template #item.email="{ item }">
-          <span class="lead-email" :title="item.email || undefined">{{ item.email || '—' }}</span>
+          <span v-if="item.contactsHidden" class="lead-hidden"><v-icon icon="mdi-lock-outline" size="14" />{{ HIDDEN_CONTACT }}</span>
+          <span v-else class="lead-email" :title="item.email || undefined">{{ item.email || '—' }}</span>
         </template>
         <template #item.ip="{ item }">
           <span class="lead-ip">{{ item.ip || '—' }}</span>
@@ -338,11 +343,11 @@
                   <v-icon icon="mdi-identifier" size="18" class="lead-row-menu__icon" />
                   Copy lead UUID
                 </button>
-                <button type="button" class="lead-row-menu__item" @click="copyWithLabel(item.phone, 'Phone')">
+                <button v-if="!item.contactsHidden" type="button" class="lead-row-menu__item" @click="copyWithLabel(item.phone, 'Phone')">
                   <v-icon icon="mdi-phone" size="18" class="lead-row-menu__icon" />
                   Copy phone
                 </button>
-                <button type="button" class="lead-row-menu__item" @click="copyWithLabel(item.email, 'Email')">
+                <button v-if="!item.contactsHidden" type="button" class="lead-row-menu__item" @click="copyWithLabel(item.email, 'Email')">
                   <v-icon icon="mdi-email-outline" size="18" class="lead-row-menu__icon" />
                   Copy email
                 </button>
@@ -400,6 +405,7 @@
 </template>
 
 <script setup lang="ts">
+import { allowExport } from '@/exports'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiPost } from '@/api'
@@ -448,7 +454,7 @@ import {
   leadsTableShareToQuery,
   shouldDeferTableShareAssist,
 } from '@/tableViewShare'
-import { useLeadStore, type CabinetLead } from '@/stores/leads'
+import { HIDDEN_CONTACT, useLeadStore, type CabinetLead } from '@/stores/leads'
 import { useMarketStore, type OrderRow } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 import { useTableListLayout } from '@/composables/useTableListLayout'
@@ -881,7 +887,7 @@ function onDetailOpenChange(open: boolean): void {
 }
 
 function leadCanConvert(lead: CabinetLead): boolean {
-  if (lead.status !== 'sold') {
+  if (lead.status !== 'sold' || !session.can('leads.manage')) {
     return false
   }
   const role = session.payload?.user?.role
@@ -889,7 +895,7 @@ function leadCanConvert(lead: CabinetLead): boolean {
 }
 
 function leadCanMockDeliver(lead: CabinetLead): boolean {
-  if (lead.isDelivered || lead.deliveryError) {
+  if (lead.isDelivered || lead.deliveryError || !session.can('leads.manage')) {
     return false
   }
   const role = session.payload?.user?.role
@@ -968,7 +974,10 @@ function onLeadConverted(lead: CabinetLead): void {
   void session.load()
 }
 
-function exportCsv(): void {
+async function exportCsv(): Promise<void> {
+  if (!(await allowExport('leads', filtered.value.length))) {
+    return
+  }
   const header = isAdmin.value
     ? ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'First name', 'Last name', 'Phone', 'Email', 'IP', 'Buyer', 'Partner', 'Day inject', 'Status']
     : ['Lead ID', 'Vertical', 'Country', 'Traffic source', 'First name', 'Last name', 'Phone', 'Email', 'IP', 'Status']
@@ -1102,6 +1111,13 @@ onMounted(() => {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.lead-hidden {
+  align-items: center;
+  color: var(--lm-muted);
+  display: inline-flex;
+  gap: 4px;
 }
 
 .lead-email {
