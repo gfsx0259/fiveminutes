@@ -191,7 +191,7 @@
         </span>
       </template>
       <template #item.paymentModel="{ item }">
-        {{ modelLabel(item.paymentModel) }}
+        <ModelTag :model="item.paymentModel" />
       </template>
       <template #item.conversion="{ item }">
         <StatusChip
@@ -332,6 +332,7 @@ import OrderFormDialog from '@/components/OrderFormDialog.vue'
 import type { OrderFormDraft } from '@/components/OrderFormDialog.vue'
 import StockBuyDialog from '@/components/StockBuyDialog.vue'
 import StockFreshnessBar from '@/components/StockFreshnessBar.vue'
+import ModelTag from '@/components/ModelTag.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
 import CollapsibleFilterPanel from '@/components/ui/CollapsibleFilterPanel.vue'

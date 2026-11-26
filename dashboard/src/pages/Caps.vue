@@ -44,7 +44,7 @@
           {{ genderLabel(item.gender) }}
         </template>
         <template #item.paymentModel="{ item }">
-          {{ modelLabel(item.paymentModel) }}
+          <ModelTag :model="item.paymentModel" />
         </template>
         <template #item.geo="{ item }">
           <CountryPick :code="item.geo" />
@@ -77,6 +77,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import CountryPick from '@/components/CountryPick.vue'
+import ModelTag from '@/components/ModelTag.vue'
 import OfferFormDialog from '@/components/OfferFormDialog.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'

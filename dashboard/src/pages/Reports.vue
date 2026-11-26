@@ -326,8 +326,8 @@ onMounted(() => {
 }
 
 .reports__block[data-block='own'] {
-  --block-accent: #2f9e5b;
-  --block-soft: #e7f6ec;
+  --block-accent: var(--success-strong);
+  --block-soft: var(--success-soft);
 }
 
 .reports__block header {

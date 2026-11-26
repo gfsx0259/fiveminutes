@@ -270,7 +270,7 @@ function copyCell(event: MouseEvent, text: string): void {
 }
 
 .report-table__columns-block strong[data-block='own'] {
-  color: #2f9e5b;
+  color: var(--success-strong);
 }
 
 .report-table__columns-block label {
@@ -331,8 +331,8 @@ thead th {
 }
 
 .report-table__blocks th[data-block='own'] {
-  background: #eaf6ee;
-  color: #2f9e5b;
+  background: var(--success-soft);
+  color: var(--success-strong);
 }
 
 thead th[data-block='own'] {

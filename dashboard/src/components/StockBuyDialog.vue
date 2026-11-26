@@ -408,7 +408,7 @@ async function buy(): Promise<void> {
 }
 
 .stock-buy__pct {
-  color: #2e9b6a;
+  color: var(--success-strong);
   font-weight: 600;
 }
 

@@ -16,8 +16,24 @@
   --lm-font-body: 14px;
   --lm-font-table: 13px;
   --lm-sidebar-width: 256px;
+  /*
+   * Green palette — the only two greens in the app (partner dashboard wallet icons).
+   * strong: text, icons, chart fills. soft: badge / chip / icon-tile backgrounds.
+   * JS twin: src/palette.ts — keep in sync.
+   */
+  --success-strong: #1d7a3a;
+  --success-soft: #e5f6ea;
+  /*
+   * Lavender / yellow pairs (strong = text, soft = background).
+   * Payment model tags: CPL = lavender, CPA = yellow. Also used by "lavender" / "warning" status chips.
+   * JS twin: src/palette.ts — keep in sync.
+   */
+  --lavender-strong: #3412b9;
+  --lavender-soft: #eeebff;
+  --yellow-strong: #a65e00;
+  --yellow-soft: #fff1d9;
   /* Stock freshness — green/red match dashboard outcome chips (purchases.ts) */
-  --stock-fresh: #2f9e5b;
+  --stock-fresh: var(--success-strong);
   --stock-aged: #e3b14f;
   --stock-expired: #e0607e;
   --v-font-body: "Inter", sans-serif;

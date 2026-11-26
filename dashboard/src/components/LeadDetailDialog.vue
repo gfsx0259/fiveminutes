@@ -81,6 +81,14 @@
                       >{{ verticalLabel(rowValue(row)) }}</CopyableText>
                       <span v-else class="text-medium-emphasis">—</span>
                     </span>
+                    <template v-else-if="row.kind === 'model'">
+                      <CopyableText
+                        v-if="rowCopyValue(row)"
+                        class="lead-detail__model"
+                        :text="rowCopyValue(row)"
+                      ><ModelTag :model="presetValues?.paymentModel ?? ''" /></CopyableText>
+                      <span v-else class="text-medium-emphasis">—</span>
+                    </template>
                     <CopyableText
                       v-else-if="rowCopyValue(row)"
                       :text="rowCopyValue(row)"
@@ -119,6 +127,7 @@
 <script setup lang="ts">
 import CopyableText from '@/components/CopyableText.vue'
 import CountryFlag from '@/components/CountryFlag.vue'
+import ModelTag from '@/components/ModelTag.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { apiPost } from '@/api'
@@ -130,7 +139,7 @@ import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 import { computed, ref, watch } from 'vue'
 
-type RowKind = 'text' | 'status' | 'delivery' | 'clientDeposit' | 'country' | 'vertical'
+type RowKind = 'text' | 'status' | 'delivery' | 'clientDeposit' | 'country' | 'vertical' | 'model'
 
 interface DetailRow {
   key: string
@@ -230,7 +239,7 @@ const presetRows: DetailRow[] = [
   { key: 'trafficSource', label: 'Traffic source', kind: 'text', source: 'preset', field: 'trafficSource' },
   { key: 'age', label: 'Age', kind: 'text', source: 'preset', field: 'age' },
   { key: 'gender', label: 'Gender', kind: 'text', source: 'preset', field: 'gender' },
-  { key: 'paymentModel', label: 'Payment model', kind: 'text', source: 'preset', field: 'paymentModel' },
+  { key: 'paymentModel', label: 'Payment model', kind: 'model', source: 'preset', field: 'paymentModel' },
   { key: 'priceCents', label: 'Catalog price', kind: 'text', source: 'preset', field: 'priceCents' },
 ]
 
@@ -528,6 +537,13 @@ async function rejectLead(): Promise<void> {
 
 .lead-detail__table :deep(td .copyable:hover) {
   background: #efecff;
+}
+
+/* Badge keeps its own colors: no wrapper padding or hover background. */
+.lead-detail__table :deep(td .copyable.lead-detail__model),
+.lead-detail__table :deep(td .copyable.lead-detail__model:hover) {
+  background: transparent;
+  padding: 0;
 }
 
 .lead-detail__country,

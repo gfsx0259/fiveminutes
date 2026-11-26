@@ -1,3 +1,4 @@
+import { SUCCESS_STRONG } from '@/palette'
 import type { Bucket } from '@/purchases'
 import type { CabinetLead } from '@/stores/leads'
 import type { OrderRow } from '@/stores/market'
@@ -16,7 +17,7 @@ export interface EntryTypeView {
 }
 
 export const entryTypes: EntryTypeView[] = [
-  { value: 'deposit', label: 'Deposit', plural: 'Deposits', icon: 'mdi-arrow-bottom-left', incoming: true, color: '#2f9e5b', note: 'Funds added to the wallet' },
+  { value: 'deposit', label: 'Deposit', plural: 'Deposits', icon: 'mdi-arrow-bottom-left', incoming: true, color: SUCCESS_STRONG, note: 'Funds added to the wallet' },
   { value: 'payout', label: 'Lead payout', plural: 'Lead payouts', icon: 'mdi-cash-plus', incoming: true, color: '#4f8fe8', note: 'Paid to you for delivered and approved leads' },
   { value: 'charge', label: 'Lead charge', plural: 'Lead charges', icon: 'mdi-cart-arrow-down', incoming: false, color: '#5b45e8', note: 'CPL leads are charged on delivery, CPA leads when they are sold to you' },
   { value: 'withdrawal', label: 'Withdrawal', plural: 'Withdrawals', icon: 'mdi-arrow-top-right', incoming: false, color: '#e0607e', note: 'Funds taken out of the wallet' },

@@ -78,10 +78,10 @@
       tone="own"
     >
       <div class="dashboard__kpis">
-        <KpiTile icon="mdi-percent-outline" label="CR" :value="percent(current.approvalRate)" :trend="trend.map((item) => item.approvalRate)" color="#2f9e5b" foot="approved ÷ leads with a status">
+        <KpiTile icon="mdi-percent-outline" label="CR" :value="percent(current.approvalRate)" :trend="trend.map((item) => item.approvalRate)" :color="SUCCESS_STRONG" foot="approved ÷ leads with a status">
           <DeltaChip :current="current.approvalRate" :previous="previous.approvalRate" points />
         </KpiTile>
-        <KpiTile icon="mdi-check-circle-outline" label="Approved" :value="current.approved.toLocaleString('en-US')" :trend="trend.map((item) => item.approved)" color="#2f9e5b" :foot="period.versus">
+        <KpiTile icon="mdi-check-circle-outline" label="Approved" :value="current.approved.toLocaleString('en-US')" :trend="trend.map((item) => item.approved)" :color="SUCCESS_STRONG" :foot="period.versus">
           <DeltaChip :current="current.approved" :previous="previous.approved" />
         </KpiTile>
         <KpiTile icon="mdi-close-circle-outline" label="Rejected" :value="current.rejected.toLocaleString('en-US')" :trend="trend.map((item) => item.rejected)" color="#e0607e" :foot="period.versus">
@@ -149,6 +149,7 @@ import UiCard from '@/components/ui/UiCard.vue'
 import type { TooltipRow } from '@/charts'
 import { compactDollars, dollars, wholeDollars } from '@/money'
 import { openOrdersOf, reservedOf } from '@/orderBook'
+import { SUCCESS_STRONG } from '@/palette'
 import { between, bucketsOf, choicePeriodOf, outcomes, percent, purchasesOf, totalsOf, type PeriodChoice } from '@/purchases'
 import { useLeadStore } from '@/stores/leads'
 import { useMarketStore } from '@/stores/market'

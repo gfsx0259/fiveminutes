@@ -260,7 +260,7 @@ defineExpose({
 }
 
 .stock-zone--fresh .stock-zone__top {
-  background: linear-gradient(180deg, #e6f8ee 0%, #f5fcf8 100%);
+  background: linear-gradient(180deg, var(--success-soft) 0%, #f7fcf9 100%);
 }
 
 .stock-zone--good .stock-zone__top {
@@ -288,8 +288,8 @@ defineExpose({
 }
 
 .stock-zone--fresh .stock-zone__icon {
-  background: #cdf3dc;
-  color: #17a34a;
+  background: var(--success-soft);
+  color: var(--success-strong);
 }
 
 .stock-zone--good .stock-zone__icon {
@@ -312,9 +312,9 @@ defineExpose({
 }
 
 .stock-zone__hot {
-  background: #2fca73;
+  background: var(--success-strong);
   border-radius: 999px;
-  color: #06361c;
+  color: #fff;
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -380,7 +380,7 @@ defineExpose({
 .stock-zone--fresh .stock-zone__stat-value--cr,
 .stock-zone--fresh .stock-zone__stat-value--quality,
 .stock-zone--fresh .stock-zone__stat-icon--quality {
-  color: #17a34a;
+  color: var(--success-strong);
 }
 
 .stock-zone--good .stock-zone__stat-value--quality,

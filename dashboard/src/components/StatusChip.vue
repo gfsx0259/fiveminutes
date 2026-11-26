@@ -122,8 +122,8 @@ const label = computed(() => {
 }
 
 .status-chip[data-tone='lavender'] {
-  background: #eeebff;
-  color: #3412b9;
+  background: var(--lavender-soft);
+  color: var(--lavender-strong);
 }
 
 .status-chip[data-tone='orange'] {
@@ -132,8 +132,8 @@ const label = computed(() => {
 }
 
 .status-chip[data-tone='success'] {
-  background: #e5f6e9;
-  color: #23743e;
+  background: var(--success-soft);
+  color: var(--success-strong);
 }
 
 .status-chip[data-tone='error'] {
@@ -142,8 +142,8 @@ const label = computed(() => {
 }
 
 .status-chip[data-tone='warning'] {
-  background: #fff1d9;
-  color: #a65e00;
+  background: var(--yellow-soft);
+  color: var(--yellow-strong);
 }
 
 .status-chip[data-tone='default'] {

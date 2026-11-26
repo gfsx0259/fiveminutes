@@ -126,11 +126,11 @@ const rows = computed(() => {
 }
 
 .top-geos__bar[data-tone='own'] {
-  background: #e7f6ec;
+  background: var(--success-soft);
 }
 
 .top-geos__bar[data-tone='own'] i {
-  background: linear-gradient(90deg, #7fd3a0, #2f9e5b);
+  background: var(--success-strong);
 }
 
 .top-geos__num {

@@ -124,7 +124,7 @@
               </td>
               <td class="demands-copy" @click="copyCell($event, countryName(row.geo))"><span class="demands-geo"><CountryPick :code="row.geo" label="code" /></span></td>
               <td class="demands-copy" @click="copyCell($event, trafficLabel(row.trafficSource))"><span class="demands-source">{{ trafficLabel(row.trafficSource) }}</span></td>
-              <td class="demands-copy" @click="copyCell($event, modelLabel(row.paymentModel))">{{ modelLabel(row.paymentModel) }}</td>
+              <td class="demands-copy" @click="copyCell($event, modelLabel(row.paymentModel))"><ModelTag :model="row.paymentModel" /></td>
               <td class="demands-number demands-copy" @click="copyCell($event, row.priceCents > 0 ? dollars(row.priceCents / 100) : '')">{{ row.priceCents > 0 ? dollars(row.priceCents / 100) : '—' }}</td>
               <td>
                 <StockVolumeBar :value="row.supplied" :max="row.volume" :parent="row.volume" />
@@ -269,6 +269,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import ModelTag from '@/components/ModelTag.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
 import AcceptedOfferDetails from '@/components/demands/AcceptedOfferDetails.vue'

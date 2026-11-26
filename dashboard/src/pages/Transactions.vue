@@ -618,7 +618,7 @@ onUnmounted(() => {
 }
 
 .tx-amount--in {
-  color: #1d7a3a;
+  color: var(--success-strong);
 }
 
 .tx-balance {

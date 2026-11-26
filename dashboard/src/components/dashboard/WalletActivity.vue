@@ -111,8 +111,8 @@ const entries = computed(() => {
 }
 
 .wallet-activity__icon[data-flow='in'] {
-  background: #e5f6ea;
-  color: #1d7a3a;
+  background: var(--success-soft);
+  color: var(--success-strong);
 }
 
 .wallet-activity__text {
@@ -140,7 +140,7 @@ const entries = computed(() => {
 }
 
 .wallet-activity__amount--in {
-  color: #1d7a3a;
+  color: var(--success-strong);
 }
 
 .wallet-activity__empty {

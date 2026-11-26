@@ -120,7 +120,7 @@
           {{ verticalLabel(item.vertical) }}
         </template>
         <template #item.paymentModel="{ item }">
-          {{ modelLabel(item.paymentModel) }}
+          <ModelTag :model="item.paymentModel" />
         </template>
         <template #item.basePriceCents="{ item }">
           {{ dollars(item.basePriceCents / 100) }}
@@ -166,6 +166,7 @@ import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import { api } from '@/api'
 import CountryFlag from '@/components/CountryFlag.vue'
 import CountryPick from '@/components/CountryPick.vue'
+import ModelTag from '@/components/ModelTag.vue'
 import FormDialog from '@/components/FormDialog.vue'
 import ShelfAgePolicyPanel from '@/components/ShelfAgePolicyPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'

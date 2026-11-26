@@ -22,15 +22,15 @@ defineProps<{
   padding: 4px 8px;
 }
 
-/* Same palette as StatusChip (buyer prototype badges). */
+/* CPL — lavender, CPA — yellow (pairs live in styles/tokens.css). */
 .model-tag[data-model='cpl'] {
-  background: #e8efff;
-  color: #345caa;
+  background: var(--lavender-soft);
+  color: var(--lavender-strong);
 }
 
 .model-tag[data-model='cpa'] {
-  background: #eeebff;
-  color: #3412b9;
+  background: var(--yellow-soft);
+  color: var(--yellow-strong);
 }
 
 .model-tag--empty {

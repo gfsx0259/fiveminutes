@@ -113,9 +113,9 @@ const props = withDefaults(
 }
 
 .preset-offer-summary__badge {
-  background: #e8f5e9;
+  background: var(--success-soft);
   border-radius: 999px;
-  color: #2e7d32;
+  color: var(--success-strong);
   font-size: 11px;
   font-weight: 700;
   padding: 2px 10px;
@@ -230,9 +230,9 @@ const props = withDefaults(
 }
 
 .preset-offer-summary__cr {
-  background: #e8f5e9;
+  background: var(--success-soft);
   border-radius: 8px;
-  color: #2e7d32;
+  color: var(--success-strong);
   font-size: 12px;
   font-weight: 700;
   padding: 2px 8px;

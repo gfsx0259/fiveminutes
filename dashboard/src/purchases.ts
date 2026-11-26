@@ -1,4 +1,5 @@
 import { verticalFromAffSub } from '@/orderDisplay'
+import { SUCCESS_STRONG } from '@/palette'
 import type { CabinetLead } from '@/stores/leads'
 import type { OrderRow } from '@/stores/market'
 
@@ -56,7 +57,7 @@ export interface OutcomeView {
 }
 
 export const outcomes: OutcomeView[] = [
-  { value: 'approved', label: 'Approved', color: '#2f9e5b', tone: 'success', note: 'You confirmed the deposit' },
+  { value: 'approved', label: 'Approved', color: SUCCESS_STRONG, tone: 'success', note: 'You confirmed the deposit' },
   { value: 'rejected', label: 'Rejected', color: '#e0607e', tone: 'error', note: 'You marked it invalid, not interested or unreachable' },
   { value: 'delivered', label: 'Delivered', color: '#7ea6f5', tone: 'success', note: 'CPL lead, paid on delivery, no status needed' },
   { value: 'pending', label: 'Waiting for status', color: '#c7bffc', tone: 'primary', note: 'Waiting for your status' },

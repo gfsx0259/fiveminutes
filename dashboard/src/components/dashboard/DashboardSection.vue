@@ -36,8 +36,8 @@ withDefaults(defineProps<{
 }
 
 .dashboard-section[data-tone='own'] {
-  --section-accent: #2f9e5b;
-  --section-soft: #e7f6ec;
+  --section-accent: var(--success-strong);
+  --section-soft: var(--success-soft);
 }
 
 .dashboard-section__head {

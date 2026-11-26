@@ -115,7 +115,7 @@ const savingsCents = computed(() => {
 }
 
 .order-checkout__line--savings {
-  color: #2e9b6a;
+  color: var(--success-strong);
   font-weight: 600;
 }
 

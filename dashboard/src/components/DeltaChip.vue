@@ -54,8 +54,8 @@ const tone = computed(() => {
 }
 
 .delta-chip[data-tone='up'] {
-  background: #e5f6e9;
-  color: #23743e;
+  background: var(--success-soft);
+  color: var(--success-strong);
 }
 
 .delta-chip[data-tone='down'] {

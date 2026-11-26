@@ -157,7 +157,7 @@
           </span>
         </template>
         <template #item.paymentModel="{ item }">
-          {{ modelLabel(item.paymentModel) }}
+          <ModelTag :model="item.paymentModel" />
         </template>
         <template #item.orderType="{ item }">
           <StatusChip
@@ -299,6 +299,7 @@ import { useRoute, useRouter } from 'vue-router'
 import CountryMultiSelect from '@/components/CountryMultiSelect.vue'
 import CountryPick from '@/components/CountryPick.vue'
 import OrderFormDialog from '@/components/OrderFormDialog.vue'
+import ModelTag from '@/components/ModelTag.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import StockVolumeBar from '@/components/StockVolumeBar.vue'
 import CollapsibleFilterPanel from '@/components/ui/CollapsibleFilterPanel.vue'
