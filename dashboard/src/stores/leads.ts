@@ -16,6 +16,7 @@ export interface CabinetLead {
   clientDeposit?: boolean
   phone: string
   email: string
+  contactsHidden?: boolean
   firstName: string
   lastName: string
   country: string
@@ -37,6 +38,12 @@ export interface CabinetLead {
   liveInjectOrderId?: string
 }
 
+export const HIDDEN_CONTACT = 'Hidden'
+
+function withContacts(lead: CabinetLead): CabinetLead {
+  return { ...lead, phone: lead.phone ?? '', email: lead.email ?? '' }
+}
+
 export const useLeadStore = defineStore('leads', () => {
   const leads = ref<CabinetLead[]>([])
   const loading = ref(false)
@@ -56,7 +63,7 @@ export const useLeadStore = defineStore('leads', () => {
         return
       }
       const body = await response.json() as { leads?: CabinetLead[] }
-      leads.value = body.leads ?? []
+      leads.value = (body.leads ?? []).map(withContacts)
     } catch {
       error.value = 'Failed to load leads'
     } finally {
@@ -71,7 +78,7 @@ export const useLeadStore = defineStore('leads', () => {
         return null
       }
       const body = await response.json() as { lead?: CabinetLead }
-      return body.lead ?? null
+      return body.lead ? withContacts(body.lead) : null
     } catch {
       return null
     }

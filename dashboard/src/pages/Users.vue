@@ -31,6 +31,16 @@
         </template>
         <template #item.actions="{ item }">
           <UiButton
+            v-if="item.role === 'partner'"
+            variant="outline"
+            size="small"
+            icon="mdi-account-group-outline"
+            class="mr-2"
+            @click="teamOf = item"
+          >
+            Team
+          </UiButton>
+          <UiButton
             v-if="item.role !== 'admin'"
             variant="outline"
             size="small"
@@ -43,12 +53,20 @@
         </template>
       </UiDataTable>
     </UiTableCard>
+
+    <PartnerTeamDialog
+      v-if="teamOf"
+      :model-value="Boolean(teamOf)"
+      :partner="teamOf"
+      @update:model-value="(open: boolean) => { if (!open) teamOf = null }"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { api } from '@/api'
+import PartnerTeamDialog from '@/components/PartnerTeamDialog.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataTable from '@/components/ui/UiDataTable.vue'
 import UiTableCard from '@/components/ui/UiTableCard.vue'
@@ -67,6 +85,7 @@ const items = ref<OrgUser[]>([])
 const loading = ref(false)
 const error = ref('')
 const impersonatingId = ref<string | null>(null)
+const teamOf = ref<OrgUser | null>(null)
 
 const headers = prepareTableHeaders(
   [
@@ -74,7 +93,7 @@ const headers = prepareTableHeaders(
     { title: 'Role', key: 'role' },
     { title: '', key: 'actions', sortable: false, align: 'end' as const },
   ],
-  { email: 220, role: 120, actions: 160 },
+  { email: 220, role: 120, actions: 230 },
 )
 
 function exportCsv(): void {

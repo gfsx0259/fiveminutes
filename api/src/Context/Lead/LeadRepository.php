@@ -81,7 +81,23 @@ final readonly class LeadRepository
     }
 
     /**
-     * @param array<string, string> $parameters
+     * @param list<string> $orderIds
+     * @return Collection<int, Lead>
+     */
+    public function findPurchasedInOrders(string $organizationId, string $sellerId, array $orderIds): Collection
+    {
+        if ($orderIds === []) {
+            return new ArrayCollection([]);
+        }
+
+        return $this->select(
+            'organization_id = :organization_id AND seller_id = :seller_id AND has(:order_ids, toString(order_id))',
+            ['organization_id' => $organizationId, 'seller_id' => $sellerId, 'order_ids' => $orderIds],
+        );
+    }
+
+    /**
+     * @param array<string, string|list<string>> $parameters
      * @return Collection<int, Lead>
      */
     private function select(string $where, array $parameters): Collection

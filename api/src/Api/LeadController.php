@@ -15,6 +15,7 @@ use App\Context\Lead\LeadJournal;
 use App\Context\Lead\LeadPartnerDeliveryDesk;
 use App\Context\Lead\LeadRejectedException;
 use App\Context\Lead\UnknownApiKeyException;
+use App\Context\Team\Permission;
 use App\Context\User\NotBuyerException;
 use DomainException;
 use InvalidArgumentException;
@@ -119,7 +120,7 @@ final readonly class LeadController
     public function index(): ResponseInterface
     {
         try {
-            $user = $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie'));
+            $seat = $this->currentUser->seat($this->requests->get()->getHeaderLine('Cookie'));
         } catch (NoSessionException) {
             return $this->responses->createResponse(['error' => 'No session'], 401);
         } catch (NoAccountException $exception) {
@@ -127,14 +128,14 @@ final readonly class LeadController
         }
 
         return $this->responses->createResponse([
-            'leads' => $this->journal->forUser($user),
+            'leads' => $this->journal->forSeat($seat),
         ]);
     }
 
     public function show(): ResponseInterface
     {
         try {
-            $user = $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie'));
+            $seat = $this->currentUser->seat($this->requests->get()->getHeaderLine('Cookie'));
         } catch (NoSessionException) {
             return $this->responses->createResponse(['error' => 'No session'], 401);
         } catch (NoAccountException $exception) {
@@ -142,7 +143,7 @@ final readonly class LeadController
         }
 
         $uuid = (string) $this->route->getArgument('uuid');
-        $lead = $this->journal->oneForUser($user, $uuid);
+        $lead = $this->journal->oneForSeat($seat, $uuid);
         if ($lead === null) {
             return $this->responses->createResponse(['error' => 'Lead not found'], 404);
         }
@@ -178,15 +179,19 @@ final readonly class LeadController
     private function convert(callable $action): ResponseInterface
     {
         try {
-            $user = $this->currentUser->require($this->requests->get()->getHeaderLine('Cookie'));
+            $seat = $this->currentUser->seat($this->requests->get()->getHeaderLine('Cookie'));
+            $seat->authorize(Permission::LeadsManage);
             $uuid = (string) $this->route->getArgument('uuid');
-            $lead = $action($user, $uuid);
+            if ($this->journal->oneForSeat($seat, $uuid) === null) {
+                return $this->responses->createResponse(['error' => 'Lead not found'], 404);
+            }
+            $lead = $action($seat->getAccount(), $uuid);
         } catch (Throwable $exception) {
             return $this->conversionFailure($exception);
         }
 
         return $this->responses->createResponse([
-            'lead' => $this->journal->oneForUser($user, $lead->getUuid()),
+            'lead' => $this->journal->oneForSeat($seat, $lead->getUuid()),
         ]);
     }
 

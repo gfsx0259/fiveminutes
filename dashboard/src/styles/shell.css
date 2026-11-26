@@ -558,6 +558,14 @@ html:has(.lm-nav-dialog) {
   align-self: center;
 }
 
+.lm-topbar-wallet--warn .lm-topbar-wallet__amount {
+  color: #b7791f;
+}
+
+.lm-topbar-wallet--over .lm-topbar-wallet__amount {
+  color: #c2405f;
+}
+
 .lm-topbar-wallet__deposit {
   align-items: center;
   align-self: stretch;

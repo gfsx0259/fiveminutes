@@ -7,7 +7,7 @@
       </div>
       <div class="reports__head-actions">
         <PeriodPicker v-model="choice" :now="now" />
-        <UiButton variant="outline" icon="mdi-download" :disabled="tree.length === 0" @click="exportCsv">Export CSV</UiButton>
+        <UiButton variant="outline" icon="mdi-download" :disabled="tree.length === 0 || !session.can('reports.export')" @click="exportCsv">Export CSV</UiButton>
       </div>
     </div>
 
@@ -66,6 +66,7 @@
 </template>
 
 <script setup lang="ts">
+import { allowExport } from '@/exports'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useLoadErrorToast } from '@/composables/useLoadErrorToast'
 import DeltaChip from '@/components/DeltaChip.vue'
@@ -101,12 +102,16 @@ import {
 } from '@/reportFields'
 import { useLeadStore } from '@/stores/leads'
 import { useMarketStore } from '@/stores/market'
+import { useTeamStore } from '@/stores/team'
+import { ACCOUNT_LEVEL, teamPath } from '@/team'
+import { useSessionStore } from '@/stores/session'
 
 const COLUMNS_KEY = 'rider:reports:columns'
 const STATE_KEY = 'rider:reports:state'
 
 const leadStore = useLeadStore()
 const market = useMarketStore()
+const session = useSessionStore()
 
 const choice = ref<PeriodChoice>({ key: '7', from: '', to: '' })
 const saved = savedState()
@@ -126,7 +131,11 @@ function keep(key: string, value: unknown): void {
   }
 }
 
-const purchases = computed(() => purchasesOf(leadStore.leads, market.orders, market.presets))
+const teams = useTeamStore()
+const purchases = computed(() => purchasesOf(leadStore.leads, market.orders, market.presets).map((purchase) => ({
+  ...purchase,
+  team: teamPath(teams.roster?.teams ?? [], purchase.teamId) || ACCOUNT_LEVEL,
+})))
 const period = computed(() => choicePeriodOf(choice.value, now.value))
 const inPeriodAll = computed(() => between(purchases.value, period.value.from, period.value.to))
 const matching = computed(() => purchases.value.filter((purchase) => matches(purchase, conditions.value)))
@@ -210,7 +219,10 @@ function count(value: number): string {
   return value.toLocaleString('en-US')
 }
 
-function exportCsv(): void {
+async function exportCsv(): Promise<void> {
+  if (!(await allowExport('reports', tree.value.length))) {
+    return
+  }
   const shown = metrics.filter((metric) => columns.value.includes(metric.key))
   const header = [...groups.value.map(dimensionLabel), ...shown.map((metric) => metric.label)]
   const lines: string[][] = []
@@ -233,7 +245,7 @@ function exportCsv(): void {
 
 async function refresh(): Promise<void> {
   now.value = Date.now()
-  await Promise.all([leadStore.load(), market.loadOrders(), market.loadPresets()])
+  await Promise.all([leadStore.load(), market.loadOrders(), market.loadPresets(), teams.load()])
 }
 
 useLoadErrorToast(problem, () => { void refresh() })

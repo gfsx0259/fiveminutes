@@ -152,16 +152,7 @@ final readonly class KratosSettings
      */
     private function presentFlow(SettingsFlow $flow): array
     {
-        $email = null;
-        $identity = $flow->getIdentity();
-        if ($identity !== null) {
-            $traits = $identity->getTraits();
-            if (is_array($traits) && isset($traits['email']) && is_string($traits['email'])) {
-                $email = $traits['email'];
-            } elseif (is_object($traits) && isset($traits->email) && is_string($traits->email)) {
-                $email = $traits->email;
-            }
-        }
+        $email = (new IdentityEmail($flow->getIdentity()))->value();
 
         $state = $flow->getState();
         $payload = [

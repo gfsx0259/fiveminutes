@@ -41,6 +41,8 @@ export interface OrderRow {
   orderCostCents?: number | null
   liveInjectScheduled?: number
   liveInjectNextDueAt?: string | null
+  teamId?: string | null
+  openedBy?: string | null
 }
 
 export interface CapRow {

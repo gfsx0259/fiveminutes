@@ -9,6 +9,8 @@ use App\Command\SettleLeadsCommand;
 use App\Command\DevSeedCommand;
 use App\Command\DevShiftLeadShelfAgeCommand;
 use App\Command\DevStockCommand;
+use App\Command\DevTeamCommand;
+use App\Command\TeamBudgetAlertsCommand;
 
 return [
     'yiisoft/yii-console' => [
@@ -17,9 +19,11 @@ return [
             'lead:match' => MatchLeadsCommand::class,
             'wallet:settle' => SettleLeadsCommand::class,
             'live-day:inject' => LiveDayInjectCommand::class,
+            'team:budget-alerts' => TeamBudgetAlertsCommand::class,
             'dev:seed' => DevSeedCommand::class,
             'dev:shift-shelf-age' => DevShiftLeadShelfAgeCommand::class,
             'dev:stock' => DevStockCommand::class,
+            'dev:team' => DevTeamCommand::class,
         ],
     ],
 ];

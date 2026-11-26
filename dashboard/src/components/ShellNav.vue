@@ -31,15 +31,22 @@
       <div v-if="showWallet" class="lm-mobile-nav__wallet lm-mobile-nav__panel">
         <div class="lm-mobile-nav__label">
           <v-icon icon="mdi-wallet-outline" size="16" />
-          Wallet balance
+          {{ session.spend?.team ? session.spend.label : 'Wallet balance' }}
         </div>
         <strong class="lm-mobile-nav__amount">{{ walletBalance }}</strong>
         <div class="lm-mobile-nav__wallet-actions">
-          <UiButton variant="ghost" class="lm-mobile-nav__add" icon="mdi-plus" :loading="wallet.busy" @click="onDeposit">
+          <UiButton
+            v-if="session.can('wallet.manage') && !session.isTeamScoped"
+            variant="ghost"
+            class="lm-mobile-nav__add"
+            icon="mdi-plus"
+            :loading="wallet.busy"
+            @click="onDeposit"
+          >
             Add funds
           </UiButton>
           <UiButton
-            v-if="role !== 'buyer'"
+            v-if="role !== 'buyer' && session.can('orders.manage')"
             variant="ghost"
             class="lm-mobile-nav__buy"
             icon="mdi-cart-outline"
@@ -117,6 +124,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import { dollars } from '@/money'
 import { useSessionStore } from '@/stores/session'
 import { useWalletStore } from '@/stores/wallet'
+import { TEAM_PATH } from '@/team'
 
 defineProps<{
   showToggle?: boolean
@@ -137,10 +145,7 @@ const router = useRouter()
 const session = useSessionStore()
 const wallet = useWalletStore()
 
-const walletBalance = computed(() => {
-  const cents = session.payload?.user?.balanceCents ?? 0
-  return dollars(cents / 100)
-})
+const walletBalance = computed(() => dollars((session.spend?.cents ?? 0) / 100))
 
 function onDeposit(): void {
   void wallet.deposit()
@@ -186,7 +191,8 @@ const menu = computed((): NavItem[] => {
       { title: 'My leads', to: '/leads', icon: 'mdi-account-outline', sectionAfter: true },
       { title: 'Reports', to: '/reports', icon: 'mdi-chart-timeline-variant' },
       transactions,
-    ]
+      { title: 'Team', to: TEAM_PATH, icon: 'mdi-account-group-outline' },
+    ].filter((item) => session.canOpen(item.to))
   }
   return [
     { title: 'Demands', to: '/demands', icon: 'mdi-layers-outline' },
@@ -208,7 +214,10 @@ const role = computed(() => session.payload?.user?.role || 'сессия')
 const accountLine = computed(() => {
   const user = session.payload?.user
   if (!user) return 'нет пользователя в организации'
-  return user.organization ? `${user.role} · ${user.organization.name}` : user.role
+  const line = user.organization ? `${user.role} · ${user.organization.name}` : user.role
+  const path = session.payload?.member?.teamPath ?? []
+  if (path.length) return `${user.organization?.name ?? user.role} · ${path.join(' › ')}`
+  return session.payload?.member ? `${line} · team` : line
 })
 
 const initials = computed(() => {

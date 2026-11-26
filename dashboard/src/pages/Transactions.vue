@@ -59,8 +59,10 @@
             {{ free < 0 ? 'Open orders need more than your balance. Add funds so they keep receiving leads.' : 'Open orders are not charged upfront. Each lead is charged when it arrives.' }}
           </p>
           <div class="transactions__actions">
-            <UiButton variant="primary" icon="mdi-plus" :loading="wallet.busy" @click="wallet.deposit()">Add funds</UiButton>
-            <UiButton variant="outline" icon="mdi-arrow-top-right" :disabled="wallet.busy || balance <= 0" @click="wallet.withdraw()">Withdraw</UiButton>
+            <template v-if="session.can('wallet.manage')">
+              <UiButton variant="primary" icon="mdi-plus" :loading="wallet.busy" @click="wallet.deposit()">Add funds</UiButton>
+              <UiButton variant="outline" icon="mdi-arrow-top-right" :disabled="wallet.busy || balance <= 0" @click="wallet.withdraw()">Withdraw</UiButton>
+            </template>
           </div>
         </div>
       </UiCard>
@@ -93,7 +95,7 @@
       <template #actions>
         <TableCardToolbar
           :refresh-loading="wallet.loading"
-          :export-disabled="filtered.length === 0"
+          :export-disabled="filtered.length === 0 || !session.can('reports.export')"
           @refresh="refresh()"
           @export="exportCsv"
         />
@@ -173,6 +175,7 @@
 </template>
 
 <script setup lang="ts">
+import { allowExport } from '@/exports'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import ChartLegend from '@/components/charts/ChartLegend.vue'
 import ComboChart from '@/components/charts/ComboChart.vue'
@@ -386,7 +389,10 @@ function exportCell(key: string, entry: WalletEntry): string {
 
 const cellCopy = tableCellCopyFromExport(exportCell)
 
-function exportCsv(): void {
+async function exportCsv(): Promise<void> {
+  if (!(await allowExport('transactions', filtered.value.length))) {
+    return
+  }
   exportTableCsv('transactions.csv', headers.value, filtered.value, exportCell)
 }
 

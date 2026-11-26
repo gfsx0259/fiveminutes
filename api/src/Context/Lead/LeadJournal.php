@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Context\Lead;
 
 use App\Context\Market\OrganizationMarkup;
+use App\Context\Team\Permission;
+use App\Context\Team\Seat;
+use App\Context\Team\TeamOrders;
 use App\Context\User\User;
 use App\Context\User\UserRepository;
 use App\Context\User\UserRole;
@@ -16,17 +19,22 @@ final readonly class LeadJournal
         private UserRepository $users,
         private OrganizationMarkup $markup,
         private LiveDayInjectStore $liveInject,
+        private TeamOrders $teamOrders,
     ) {}
 
     /**
      * @return list<array<string, mixed>>
      */
-    public function forUser(User $user): array
+    public function forSeat(Seat $seat): array
     {
+        $user = $seat->getAccount();
         $organizationId = $user->getOrganizationId();
+        $visible = $this->teamOrders->visibleOrderIds($seat);
         $leads = match ($user->getRole()) {
             UserRole::Buyer => $this->leads->findMined($organizationId, $user->getId()),
-            UserRole::Partner => $this->leads->findPurchased($organizationId, $user->getId()),
+            UserRole::Partner => $visible === null
+                ? $this->leads->findPurchased($organizationId, $user->getId())
+                : $this->leads->findPurchasedInOrders($organizationId, $user->getId(), array_keys($visible)),
             UserRole::Admin => $this->leads->findByOrganization($organizationId),
         };
 
@@ -40,7 +48,7 @@ final readonly class LeadJournal
             : [];
         $rows = [];
         foreach ($leadList as $lead) {
-            $rows[] = $this->row($lead, $emails, $user, $overlay[$lead->getUuid()] ?? null);
+            $rows[] = $this->row($lead, $emails, $seat, $overlay[$lead->getUuid()] ?? null);
         }
 
         return $rows;
@@ -49,10 +57,11 @@ final readonly class LeadJournal
     /**
      * @return array<string, mixed>|null
      */
-    public function oneForUser(User $user, string $uuid): ?array
+    public function oneForSeat(Seat $seat, string $uuid): ?array
     {
+        $user = $seat->getAccount();
         $lead = $this->leads->findByUuid($uuid);
-        if ($lead === null || !$this->allows($user, $lead)) {
+        if ($lead === null || !$this->allows($user, $lead) || !$this->teamOrders->sees($seat, $lead->getOrderId())) {
             return null;
         }
 
@@ -60,7 +69,7 @@ final readonly class LeadJournal
             ? $this->liveInject->overlayByLeadUuids([$uuid])[$uuid] ?? null
             : null;
 
-        return $this->row($lead, $this->emails($user->getOrganizationId()), $user, $overlay);
+        return $this->row($lead, $this->emails($user->getOrganizationId()), $seat, $overlay);
     }
 
     /**
@@ -83,8 +92,9 @@ final readonly class LeadJournal
     /**
      * @param ?array{status: string, due_at: string, order_id: string} $inject
      */
-    private function row(Lead $lead, array $emails, User $viewer, ?array $inject = null): array
+    private function row(Lead $lead, array $emails, Seat $seat, ?array $inject = null): array
     {
+        $viewer = $seat->getAccount();
         $sellerId = $lead->getSellerId();
 
         $row = [
@@ -132,15 +142,21 @@ final readonly class LeadJournal
             }
         }
 
-        return $this->redact($row, $viewer);
+        return $this->redact($row, $seat);
     }
 
     /**
      * @param array<string, mixed> $row
      * @return array<string, mixed>
      */
-    private function redact(array $row, User $viewer): array
+    private function redact(array $row, Seat $seat): array
     {
+        $viewer = $seat->getAccount();
+        $row['contactsHidden'] = !$seat->can(Permission::LeadsView);
+        if ($row['contactsHidden']) {
+            $row['phone'] = null;
+            $row['email'] = null;
+        }
         if ($viewer->getRole() === UserRole::Buyer) {
             unset($row['sellerId'], $row['sellerEmail'], $row['orderId']);
         } elseif ($viewer->getRole() === UserRole::Partner) {

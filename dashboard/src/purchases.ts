@@ -14,6 +14,9 @@ export interface Purchase {
   model: string
   cost: number
   outcome: Outcome
+  teamId: string | null
+  team: string
+  openedBy: string
 }
 
 export interface PurchaseTotals {
@@ -109,6 +112,9 @@ export function purchasesOf(
       model: lead.orderId ? models.get(lead.orderId) ?? '' : '',
       cost: (lead.partnerPriceCents ?? lead.priceCents) / 100,
       outcome: outcomeOf(lead.status),
+      teamId: orderById.get(lead.orderId ?? '')?.teamId ?? null,
+      team: '',
+      openedBy: orderById.get(lead.orderId ?? '')?.openedBy ?? '',
     }))
     .sort((left, right) => left.at - right.at)
 }
