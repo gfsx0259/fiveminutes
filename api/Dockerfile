@@ -2,11 +2,15 @@ FROM composer/composer:2-bin AS composer
 
 FROM konstantinpopov/frankenphp:1.13.2-php8.4.27 AS base
 
+# longlang/phpkafka → exussum12/xxhash requires ext-bcmath. The base image does not ship it.
+FROM base AS php
+RUN install-php-extensions bcmath
+
 #
 # Development
 #
 
-FROM base AS dev
+FROM php AS dev
 ARG USER_ID=10001
 ARG GROUP_ID=10001
 ARG USER_NAME=appuser
@@ -39,14 +43,14 @@ USER ${USER_NAME}
 # Production
 #
 
-FROM base AS prod-builder
+FROM php AS prod-builder
 COPY --from=composer /composer /usr/bin/composer
 COPY . /app
 RUN --mount=type=cache,target=/tmp/cache \
     composer install --no-dev --no-progress --no-interaction --classmap-authoritative && \
     rm composer.lock composer.json
 
-FROM base AS prod
+FROM php AS prod
 ENV RIDER_ENV=prod
 COPY --from=prod-builder --chown=www-data:www-data /app /app
 USER www-data

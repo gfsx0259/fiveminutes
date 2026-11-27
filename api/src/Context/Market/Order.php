@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Market;
 
 use App\Value\Geo;
+use App\Value\MetaMap;
 use App\Value\Money;
 use App\Value\Volume;
 use Cycle\Annotated\Annotation\Column;
@@ -44,6 +45,10 @@ class Order
     #[Column(type: 'string', name: 'stock_pick_zone', nullable: true)]
     private readonly ?string $stockPickZone;
 
+    /** @var array<string, string> */
+    #[Column(type: 'jsonb', typecast: 'json')]
+    private readonly array $meta;
+
     public function __construct(
         #[Column(type: 'uuid', primary: true)]
         private readonly string $id,
@@ -74,7 +79,9 @@ class Order
         ?string $stockPickZone = null,
         #[Column(type: 'string', name: 'timezone')]
         private readonly string $timezone = 'UTC',
+        array $meta = [],
     ) {
+        $this->meta = MetaMap::from($meta)->pairs();
         if ($this->stock === ($this->serviceOn !== null)) {
             throw new InvalidArgumentException('A day order has a date and a stock order does not');
         }
@@ -194,6 +201,14 @@ class Order
     public function getTimezone(): string
     {
         return $this->timezone;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getMeta(): array
+    {
+        return $this->meta;
     }
 
     public function getStatus(): OrderStatus

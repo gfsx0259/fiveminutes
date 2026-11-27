@@ -2,13 +2,18 @@ import { countryName } from '@/countries'
 import { genderLabel, modelLabel, trafficLabel, verticalLabel } from '@/marketOptions'
 
 export const rotationAxisOptions = [
-  { title: 'Vertical', value: 'vertical' },
-  { title: 'Country', value: 'country' },
-  { title: 'Traffic source', value: 'traffic_source' },
-  { title: 'Payment model', value: 'payment_model' },
-  { title: 'Age', value: 'age' },
-  { title: 'Gender', value: 'gender' },
+  { title: 'Vertical', value: 'vertical', onLead: true },
+  { title: 'Country', value: 'country', onLead: true },
+  { title: 'Traffic source', value: 'traffic_source', onLead: true },
+  { title: 'Payment model', value: 'payment_model', onLead: false },
+  { title: 'Age', value: 'age', onLead: true },
+  { title: 'Gender', value: 'gender', onLead: true },
 ]
+
+/** A lead carries this value. Payment model does not: its folders are tried in a fixed order. */
+export function rotationAxisOnLead(axis: string): boolean {
+  return rotationAxisOptions.find((item) => item.value === axis)?.onLead !== false
+}
 
 export interface RotationOrder {
   id: string
@@ -57,7 +62,7 @@ export function rotationValueLabel(axis: string, value: string): string {
     return modelLabel(value)
   }
   if (axis === 'age') {
-    return value || 'Any age'
+    return value || '*'
   }
   if (axis === 'gender') {
     return genderLabel(value)
@@ -111,7 +116,7 @@ export function presetRemainder(preset: RotationPreset, axes: string[]): string 
     parts.push(modelLabel(preset.paymentModel))
   }
   if (!axes.includes('age')) {
-    parts.push(preset.age || 'Any age')
+    parts.push(preset.age || '*')
   }
   if (!axes.includes('gender')) {
     parts.push(genderLabel(preset.gender))

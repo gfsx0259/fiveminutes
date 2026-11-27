@@ -11,6 +11,7 @@ use App\Context\Team\TeamOrders;
 use App\Context\User\User;
 use App\Context\User\UserRepository;
 use App\Context\User\UserRole;
+use App\Value\MetaMap;
 
 final readonly class LeadJournal
 {
@@ -115,6 +116,8 @@ final readonly class LeadJournal
             'gender' => $lead->getGender(),
             'ip' => $lead->getIp(),
             'affSub' => $lead->getAffSub(),
+            'meta' => MetaMap::from($lead->getMeta())->forJson(),
+            'presetId' => $lead->getPresetId(),
             'uniqId' => $lead->getUniqId(),
             'priceCents' => $lead->getPriceCents(),
             'createdAt' => $lead->getCreatedAt()->format(DATE_ATOM),

@@ -8,6 +8,7 @@ use App\Context\User\User;
 use App\Context\Lead\LiveDayInjectStore;
 use App\Context\User\UserRepository;
 use App\Context\User\UserRole;
+use App\Value\MetaMap;
 use DomainException;
 
 final readonly class Cabinet
@@ -90,6 +91,7 @@ final readonly class Cabinet
                 'opensAt' => $order->getOpensAt(),
                 'closesAt' => $order->getClosesAt(),
                 'timezone' => $order->getTimezone(),
+                'meta' => MetaMap::from($order->getMeta())->forJson(),
                 'status' => $order->getStatus()->value,
                 'partnerId' => $order->getPartnerId(),
                 'partnerEmail' => $emails[$order->getPartnerId()] ?? '',

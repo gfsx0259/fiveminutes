@@ -1,6 +1,6 @@
 -- Weighted deficit round-robin over one preset pool.
 -- KEYS[1]  {org}:preset:{id}:orders
--- ARGV    dow, minute, utc, ttl, alpha, prefix, geo, today, mode
+-- ARGV    dow, minute, utc, ttl, alpha, prefix, geo, today, mode, meta
 local pool_key = KEYS[1]
 local now_dow = tonumber(ARGV[1])
 local now_min = tonumber(ARGV[2])
@@ -11,6 +11,14 @@ local key_prefix = ARGV[6] or ''
 local geo = ARGV[7] or ''
 local today = ARGV[8] or ''
 local mode = ARGV[9] or 'day'
+local function meta_key(value)
+    if value == nil or value == false or value == '' or value == '{}' then
+        return '{}'
+    end
+    return value
+end
+
+local wanted_meta = meta_key(ARGV[10])
 
 local function order_data_key(order_id)
     return key_prefix .. 'order:' .. order_id .. ':data'
@@ -64,7 +72,8 @@ local function try_candidate(order_id)
         'capacity',
         'geo',
         'date',
-        'stock'
+        'stock',
+        'meta'
     )
     local partner_id = fields[1]
     local rate = fields[2]
@@ -73,8 +82,9 @@ local function try_candidate(order_id)
     local order_geo = fields[5]
     local order_date = fields[6]
     local stock = fields[7]
+    local order_meta = meta_key(fields[8])
 
-    if partner_id == false or rate == false or order_geo ~= geo or not is_available(availability_utc) then
+    if partner_id == false or rate == false or order_geo ~= geo or order_meta ~= wanted_meta or not is_available(availability_utc) then
         return nil
     end
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Lead;
 
 use App\Value\Criterion;
+use App\Value\MetaMap;
 use InvalidArgumentException;
 
 final readonly class LeadSubmission
@@ -19,6 +20,8 @@ final readonly class LeadSubmission
     private string $firstName;
     private string $lastName;
     private string $affSub;
+    /** @var array<string, string> */
+    private array $meta;
 
     /**
      * @param array<mixed, mixed> $body
@@ -49,8 +52,14 @@ final readonly class LeadSubmission
         $firstName = $this->limited($body, 'first_name', $errors);
         $lastName = $this->limited($body, 'last_name', $errors);
         $affSub = $this->limited($body, 'aff_sub', $errors);
+        try {
+            $meta = MetaMap::from($body['meta'] ?? [])->pairs();
+        } catch (InvalidArgumentException $exception) {
+            $errors['meta'] = $exception->getMessage();
+            $meta = [];
+        }
         $trafficSource = $this->criterion($body, 'traffic_source', 'Traffic source', $errors);
-        $age = $this->criterion($body, 'age', 'Age', $errors);
+        $age = $this->optionalCriterion($body, 'age', 'Age', $errors);
         $gender = $this->optionalCriterion($body, 'gender', 'Gender', $errors);
 
         if ($errors !== []) {
@@ -67,6 +76,7 @@ final readonly class LeadSubmission
         $this->firstName = $firstName;
         $this->lastName = $lastName;
         $this->affSub = $affSub;
+        $this->meta = $meta;
     }
 
     public function phone(): string
@@ -117,6 +127,14 @@ final readonly class LeadSubmission
     public function affSub(): string
     {
         return $this->affSub;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function meta(): array
+    {
+        return $this->meta;
     }
 
     /**

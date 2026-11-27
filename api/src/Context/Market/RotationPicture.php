@@ -47,7 +47,18 @@ final readonly class RotationPicture
         foreach ($presets as $preset) {
             $buckets[$this->value($preset, $head)][] = $preset;
         }
-        uksort($buckets, static fn (int|string $left, int|string $right): int => strcasecmp((string) $left, (string) $right));
+        uksort($buckets, static function (int|string $left, int|string $right) use ($head): int {
+            if ($head === RotationAxis::PaymentModel) {
+                return PresetMatch::paymentOrder((string) $left) <=> PresetMatch::paymentOrder((string) $right);
+            }
+            $leftStar = PresetMatch::star((string) $left);
+            $rightStar = PresetMatch::star((string) $right);
+            if ($leftStar !== $rightStar) {
+                return $leftStar ? 1 : -1;
+            }
+
+            return strcasecmp((string) $left, (string) $right);
+        });
 
         $nodes = [];
         foreach ($buckets as $value => $group) {

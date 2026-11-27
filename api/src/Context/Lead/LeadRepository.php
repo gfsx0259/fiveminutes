@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Context\Lead;
 
-use App\Context\Market\Gender;
 use App\Context\Market\Preset;
+use App\Context\Market\PresetMatch;
 use App\Context\Market\ShelfAgePolicy;
 use App\Context\Market\ShelfAgePolicyQuery;
 use App\Context\Market\ShelfAgeZone;
 use App\Context\Market\StockPickPreference;
 use App\Value\AgeBracket;
+use App\Value\MetaMap;
 use InvalidArgumentException;
 use Beeterty\ClickHouse\Client;
 use DateTimeImmutable;
@@ -22,8 +23,8 @@ final readonly class LeadRepository
 {
     private const string SELECT_COLUMNS = 'uuid, organization_id, buyer_id, seller_id, ifNull(order_id, acceptance_id) AS order_id,
                     email, phone, first_name, last_name, country, traffic_source, age, gender,
-                    ip, aff_sub, uniq_id, status, price_cents, created_at, updated_at, sold_at,
-                    is_delivered, delivery_error, client_status, client_deposit';
+                    ip, aff_sub, meta, uniq_id, status, price_cents, created_at, updated_at, sold_at,
+                    is_delivered, delivery_error, client_status, client_deposit, preset_id';
 
     public function __construct(private Client $clickhouse) {}
 
@@ -45,6 +46,8 @@ final readonly class LeadRepository
             'gender' => $lead->getGender(),
             'ip' => $lead->getIp(),
             'aff_sub' => $lead->getAffSub(),
+            'meta' => $lead->metaToken(),
+            'preset_id' => $lead->getPresetId(),
             'uniq_id' => $lead->getUniqId(),
             'status' => $lead->getStatus()->value,
             'price_cents' => $lead->getPriceCents(),
@@ -342,7 +345,7 @@ final readonly class LeadRepository
      */
     private function lead(array $row): Lead
     {
-        return new Lead(
+        return (new Lead(
             (string) $row['uuid'],
             (string) $row['organization_id'],
             (string) $row['buyer_id'],
@@ -368,7 +371,7 @@ final readonly class LeadRepository
             $this->bool($row['delivery_error'] ?? 0),
             (string) ($row['client_status'] ?? ''),
             $this->bool($row['client_deposit'] ?? 0),
-        );
+        ))->withPreset($this->nullable($row['preset_id'] ?? null))->withMeta(MetaMap::from($row['meta'] ?? [])->pairs());
     }
 
     private function bool(mixed $value): bool
@@ -399,9 +402,16 @@ final readonly class LeadRepository
         return $at->format('Y-m-d H:i:s.u');
     }
 
-    private function genderFilter(): string
+    /**
+     * @return array{sql: string, params: array<string, string>}
+     */
+    private function genderClause(Preset $preset): array
     {
-        return '(:gender = \'' . Gender::All->value . '\' OR gender = :gender)';
+        if (PresetMatch::star($preset->getGender())) {
+            return ['sql' => "gender = ''", 'params' => []];
+        }
+
+        return ['sql' => 'gender = :gender', 'params' => ['gender' => $preset->getGender()]];
     }
 
     private function trafficClause(): string
@@ -415,21 +425,24 @@ final readonly class LeadRepository
     private function stockMatch(string $organizationId, Preset $preset, ?string $leadGender = null): array
     {
         $age = $this->ageClause($preset);
+        $gender = $this->genderClause($preset);
         $sql = 'organization_id = :organization_id
                AND status = :status
                AND country = :country
                AND lower(aff_sub) = :vertical_aff
                AND ' . $this->trafficClause() . '
                AND ' . $age['sql'] . '
-               AND ' . $this->genderFilter();
+               AND ' . $gender['sql'] . '
+               AND (preset_id = :preset_id OR preset_id IS NULL)';
         $params = [
             'organization_id' => $organizationId,
             'status' => LeadStatus::InStock->value,
             'country' => $preset->getCountry(),
             'vertical_aff' => 'aff-' . $preset->getVertical(),
             'traffic_source' => $preset->getTrafficSource(),
-            'gender' => $preset->getGender(),
+            'preset_id' => $preset->getId(),
             ...$age['params'],
+            ...$gender['params'],
         ];
         if ($leadGender !== null) {
             $sql .= ' AND gender = :lead_gender';
@@ -502,8 +515,8 @@ final readonly class LeadRepository
     private function ageClause(Preset $preset): array
     {
         $bracket = trim($preset->getAge());
-        if ($bracket === '') {
-            return ['sql' => '1', 'params' => []];
+        if (PresetMatch::star($bracket)) {
+            return ['sql' => "age = ''", 'params' => []];
         }
         $span = AgeBracket::span($bracket);
         if ($span === null) {

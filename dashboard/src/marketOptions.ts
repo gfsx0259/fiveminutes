@@ -7,7 +7,7 @@ export const trafficSources = [
 export const genders = [
   { title: 'Male', value: 'm' },
   { title: 'Female', value: 'f' },
-  { title: 'All', value: 'all' },
+  { title: '*', value: 'all' },
 ]
 
 export const paymentModels = [

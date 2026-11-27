@@ -131,6 +131,7 @@ final readonly class MarketController
                     $form->stockLeadGender(),
                     $form->stockPickPreference(),
                     $form->timezone(),
+                    $form->meta(),
                 );
                 $this->teamOrders->place($seat, $order, $teamId);
 

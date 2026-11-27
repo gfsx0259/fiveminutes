@@ -7,6 +7,8 @@ namespace App\Context\Lead;
 use App\Context\Market\Order;
 use App\Context\Market\OrderRepository;
 use App\Context\Market\Permit;
+use App\Context\Market\Preset;
+use App\Context\Market\PresetMatch;
 use App\Context\Wallet\SettlementPublisher;
 use App\Context\Tree\OrderPool;
 use App\Context\Tree\Pick;
@@ -24,6 +26,7 @@ final readonly class Sale
 {
     public function __construct(
         private Tree $tree,
+        private PresetMatch $presets,
         private OrderRepository $orders,
         private OrderPool $pool,
         private Permit $permits,
@@ -40,6 +43,10 @@ final readonly class Sale
         $this->orm->getHeap()->clean();
         $existing = $this->placements->findByLead($lead->getUuid());
         if ($existing !== null) {
+            $previous = $this->leads->findByUuid($lead->getUuid());
+            $lead = $previous instanceof Lead
+                ? $lead->withPreset($previous->getPresetId())
+                : $lead->withPreset(($preset = $this->presets->forLead($lead)) instanceof Preset ? $preset->getId() : null);
             $stored = $this->stored($lead, $existing);
             $this->leads->add($stored);
 
@@ -49,10 +56,14 @@ final readonly class Sale
         $at = $this->clock->now()->setTimezone(new DateTimeZone('UTC'));
         $pick = $this->tree->take($lead, $at);
         $order = $this->usable($lead, $pick);
-        if (!$order instanceof Order) {
+        if ($order instanceof Order) {
+            $lead = $lead->withPreset($order->getPresetId());
+        } else {
             $this->giveBack($lead, $pick);
             $pick = null;
             $order = null;
+            $preset = $this->presets->forLead($lead);
+            $lead = $lead->withPreset($preset instanceof Preset ? $preset->getId() : null);
         }
         $stored = $order === null ? $lead->hold($at) : $lead->sell($order->getPartnerId(), $order->getId(), $order->getPriceCents(), $at);
         if ($order !== null) {

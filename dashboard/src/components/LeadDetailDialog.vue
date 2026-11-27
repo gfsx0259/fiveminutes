@@ -133,6 +133,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import { apiPost } from '@/api'
 import { modelLabel, verticalColor, verticalIcon, verticalLabel, trafficLabel } from '@/marketOptions'
 import { dollars } from '@/money'
+import { formatLeadMeta } from '@/metaFields'
 import { leadDisplayId, offerDisplayId, orderDisplayId, verticalFromAffSub } from '@/orderDisplay'
 import { HIDDEN_CONTACT, type CabinetLead } from '@/stores/leads'
 import { useMarketStore } from '@/stores/market'
@@ -255,6 +256,7 @@ const leadRows: DetailRow[] = [
   { key: 'gender', label: 'Gender', kind: 'text', source: 'lead', field: 'gender' },
   { key: 'ip', label: 'IP', kind: 'text', source: 'lead', field: 'ip' },
   { key: 'affSub', label: 'Aff sub', kind: 'text', source: 'lead', field: 'affSub' },
+  { key: 'meta', label: 'Meta', kind: 'text', source: 'lead', field: 'meta' },
 ]
 
 const presetSectionRows = computed((): DetailRow[] => {
@@ -363,6 +365,7 @@ function rowValue(row: DetailRow): string {
     if (row.field === 'leadId') return leadDisplayId(lead.uuid)
     if (row.field === 'uuid') return lead.uuid
     if (row.field === 'gender') return genderLabel(lead.gender)
+    if (row.field === 'meta') return formatLeadMeta(lead.meta)
     if (row.field === 'trafficSource') return trafficLabel(lead.trafficSource)
     if ((row.field === 'phone' || row.field === 'email') && lead.contactsHidden) return HIDDEN_CONTACT
     const value = lead[row.field as keyof CabinetLead]

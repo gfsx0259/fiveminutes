@@ -12,12 +12,15 @@
     <section v-if="isAdmin" class="ui-filter-panel rotation__panel">
       <h2 class="rotation__title">Grouping</h2>
       <p class="rotation__hint">
-        Folders follow this order. Two presets in the same folder do not share leads: a lead still lands in one preset and rotates only with that preset's orders.
+        Folders follow this order. A lead matches the folder of each field it carries. Payment model is not on the lead, so those folders are tried from the top: CPL, then CPA.
       </p>
       <ol class="rotation__axes">
         <li v-for="(axis, index) in draft" :key="axis">
           <span class="rotation__axis-index">{{ index + 1 }}</span>
-          <span class="rotation__axis-name">{{ rotationAxisLabel(axis) }}</span>
+          <span class="rotation__axis-copy">
+            <span class="rotation__axis-name">{{ rotationAxisLabel(axis) }}</span>
+            <span v-if="!rotationAxisOnLead(axis)" class="rotation__axis-note">Not on the lead. Order is automatic: CPL, then CPA.</span>
+          </span>
           <span class="rotation__axis-actions">
             <button type="button" :disabled="index === 0" aria-label="Move up" @click="move(index, -1)">
               <v-icon icon="mdi-chevron-up" size="16" />
@@ -62,7 +65,7 @@ import { computed, onMounted, ref } from 'vue'
 import { api } from '@/api'
 import RotationBranch from '@/components/RotationBranch.vue'
 import UiButton from '@/components/ui/UiButton.vue'
-import { rotationAxisLabel, rotationAxisOptions, type RotationNode } from '@/rotation'
+import { rotationAxisLabel, rotationAxisOnLead, rotationAxisOptions, type RotationNode } from '@/rotation'
 import { useSessionStore } from '@/stores/session'
 
 const session = useSessionStore()
@@ -191,23 +194,38 @@ onMounted(() => {
 }
 
 .rotation__axes li {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   gap: 10px;
-  max-width: 28rem;
+  max-width: 36rem;
 }
 
 .rotation__axis-index {
   color: var(--lm-muted);
   font-size: 12px;
   font-weight: 700;
+  padding-top: 3px;
   width: 1rem;
 }
 
-.rotation__axis-name {
+.rotation__axis-copy {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rotation__axis-name {
   font-size: 14px;
   font-weight: 650;
+}
+
+.rotation__axis-note {
+  color: var(--lm-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .rotation__axis-actions {

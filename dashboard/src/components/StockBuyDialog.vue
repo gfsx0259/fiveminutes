@@ -30,6 +30,11 @@
       </div>
 
       <div class="stock-buy__fields">
+        <div class="stock-buy__meta">
+          <UiField label="Meta" icon="mdi-tag-outline">
+            <MetaFields v-model="metaRows" />
+          </UiField>
+        </div>
         <UiField label="Quantity *" icon="mdi-counter" :error="fieldErrors.volume">
           <UiInput v-model="volume" type="number" :placeholder="String(target.available)" />
         </UiField>
@@ -123,6 +128,8 @@ import { offerId, type StockBuyTarget } from '@/stockBuy'
 import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
 import OrderTeamField from '@/components/OrderTeamField.vue'
+import MetaFields from '@/components/MetaFields.vue'
+import { metaFromRows, type MetaRow } from '@/metaFields'
 
 const props = defineProps<{
   target: StockBuyTarget | null
@@ -143,6 +150,7 @@ const formError = ref('')
 const teamId = ref<string | undefined>(undefined)
 const fieldErrors = ref<Record<string, string>>({})
 const volume = ref('')
+const metaRows = ref<MetaRow[]>([])
 const notice = ref(false)
 const noticeText = ref('')
 const quoteLines = ref<StockQuoteLine[]>([])
@@ -319,6 +327,7 @@ async function buy(): Promise<void> {
       payment_model: target.paymentModel,
       kind: 'stock',
       team_id: teamId.value ?? '',
+      meta: metaFromRows(metaRows.value),
       ...stockPickApiFields(pickZone.value),
     })
     const supplied = result.supplied ?? qty
@@ -336,6 +345,10 @@ async function buy(): Promise<void> {
 </script>
 
 <style scoped>
+.stock-buy__meta {
+  display: none;
+}
+
 .stock-buy__offer {
   display: flex;
   flex-direction: column;

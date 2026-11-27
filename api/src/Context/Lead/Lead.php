@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Lead;
 
 use App\Clock;
+use App\Value\MetaMap;
 use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
@@ -32,6 +33,9 @@ final readonly class Lead
     private bool $deliveryError;
     private string $clientStatus;
     private bool $clientDeposit;
+    private ?string $presetId;
+    /** @var array<string, string> */
+    private array $meta;
 
     public function __construct(
         string $uuid,
@@ -59,6 +63,8 @@ final readonly class Lead
         bool $deliveryError = false,
         string $clientStatus = '',
         bool $clientDeposit = false,
+        ?string $presetId = null,
+        array $meta = [],
     ) {
         $this->uuid = $this->requireId($uuid, 'Lead uuid is empty');
         $this->organizationId = $this->requireId($organizationId, 'Organization id is empty');
@@ -88,6 +94,8 @@ final readonly class Lead
         $this->deliveryError = $deliveryError;
         $this->clientStatus = trim($clientStatus);
         $this->clientDeposit = $clientDeposit;
+        $this->presetId = $this->optionalId($presetId);
+        $this->meta = MetaMap::from($meta)->pairs();
     }
 
     public function sell(string $sellerId, string $orderId, int $priceCents, DateTimeImmutable $at): self
@@ -253,6 +261,8 @@ final readonly class Lead
             $this->deliveryError,
             $this->clientStatus,
             $this->clientDeposit,
+            $this->presetId,
+            $this->meta,
         );
     }
 
@@ -284,6 +294,8 @@ final readonly class Lead
             $this->deliveryError,
             $this->clientStatus,
             $this->clientDeposit,
+            $this->presetId,
+            $this->meta,
         );
     }
 
@@ -320,6 +332,77 @@ final readonly class Lead
             $deliveryError,
             $clientStatus,
             $clientDeposit,
+            $this->presetId,
+            $this->meta,
+        );
+    }
+
+    public function withPreset(?string $presetId): self
+    {
+        return new self(
+            $this->uuid,
+            $this->organizationId,
+            $this->buyerId,
+            $this->sellerId,
+            $this->orderId,
+            $this->email,
+            $this->phone,
+            $this->firstName,
+            $this->lastName,
+            $this->country,
+            $this->trafficSource,
+            $this->age,
+            $this->gender,
+            $this->ip,
+            $this->affSub,
+            $this->uniqId,
+            $this->getStatus(),
+            $this->priceCents,
+            $this->createdAt,
+            $this->updatedAt,
+            $this->soldAt,
+            $this->isDelivered,
+            $this->deliveryError,
+            $this->clientStatus,
+            $this->clientDeposit,
+            $presetId,
+            $this->meta,
+        );
+    }
+
+    /**
+     * @param array<string, string> $meta
+     */
+    public function withMeta(array $meta): self
+    {
+        return new self(
+            $this->uuid,
+            $this->organizationId,
+            $this->buyerId,
+            $this->sellerId,
+            $this->orderId,
+            $this->email,
+            $this->phone,
+            $this->firstName,
+            $this->lastName,
+            $this->country,
+            $this->trafficSource,
+            $this->age,
+            $this->gender,
+            $this->ip,
+            $this->affSub,
+            $this->uniqId,
+            $this->getStatus(),
+            $this->priceCents,
+            $this->createdAt,
+            $this->updatedAt,
+            $this->soldAt,
+            $this->isDelivered,
+            $this->deliveryError,
+            $this->clientStatus,
+            $this->clientDeposit,
+            $this->presetId,
+            $meta,
         );
     }
 
@@ -357,7 +440,27 @@ final readonly class Lead
             $this->deliveryError,
             $this->clientStatus,
             $this->clientDeposit,
+            $this->presetId,
+            $this->meta,
         );
+    }
+
+    public function getPresetId(): ?string
+    {
+        return $this->presetId;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getMeta(): array
+    {
+        return $this->meta;
+    }
+
+    public function metaToken(): string
+    {
+        return MetaMap::from($this->meta)->canonical();
     }
 
     private function requireId(string $value, string $message): string

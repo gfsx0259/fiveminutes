@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Form;
 
+use App\Value\MetaMap;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -59,7 +60,16 @@ final class OrderForm extends AbstractInput
         public readonly string $pick_zone = '',
         #[Regex(pattern: '/^[0-9a-f-]{36}$/i', message: 'Team must be a UUID', skipOnEmpty: true)]
         public readonly string $team_id = '',
+        public readonly array $meta = [],
     ) {}
+
+    /**
+     * @return array<string, string>
+     */
+    public function meta(): array
+    {
+        return MetaMap::from($this->meta)->pairs();
+    }
 
     public function teamId(): ?string
     {
@@ -69,6 +79,11 @@ final class OrderForm extends AbstractInput
     public function kindAndHours(mixed $value, Callback $rule, ValidationContext $context): Result
     {
         $result = new Result();
+        try {
+            MetaMap::from($this->meta);
+        } catch (InvalidArgumentException $exception) {
+            $result->addError($exception->getMessage(), valuePath: ['meta']);
+        }
         if ($this->kind === 'day' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->service_on) !== 1) {
             $result->addError('Date must look like 2026-11-16', valuePath: ['service_on']);
         }
