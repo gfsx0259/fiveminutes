@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { api } from '@/api'
 
 export interface CabinetLead {
@@ -24,9 +24,10 @@ export interface CabinetLead {
   age: string
   gender: string
   ip: string
-  affSub: string
+  vertical: string
   meta?: Record<string, string>
   presetId?: string | null
+  isTest?: boolean
   uniqId: string
   priceCents: number
   buyerNetCents?: number
@@ -48,6 +49,8 @@ function withContacts(lead: CabinetLead): CabinetLead {
 
 export const useLeadStore = defineStore('leads', () => {
   const leads = ref<CabinetLead[]>([])
+  /** Statistics skip test leads: they only prove the integration works. */
+  const counted = computed(() => leads.value.filter((lead) => lead.isTest !== true))
   const loading = ref(false)
   const error = ref('')
 
@@ -86,5 +89,5 @@ export const useLeadStore = defineStore('leads', () => {
     }
   }
 
-  return { leads, loading, error, load, loadOne }
+  return { leads, counted, loading, error, load, loadOne }
 })

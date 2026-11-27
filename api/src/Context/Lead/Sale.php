@@ -40,6 +40,13 @@ final readonly class Sale
 
     public function place(Lead $lead): Lead
     {
+        if ($lead->isTest()) {
+            // A test lead proves the delivery chain: it is kept for its buyer, never sold, shelved or settled.
+            $this->leads->add($lead);
+
+            return $lead;
+        }
+
         $this->orm->getHeap()->clean();
         $existing = $this->placements->findByLead($lead->getUuid());
         if ($existing !== null) {

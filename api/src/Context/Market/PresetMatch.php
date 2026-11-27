@@ -103,15 +103,10 @@ final readonly class PresetMatch
         return $presetGender === $leadGender;
     }
 
-    /** Vertical rides on aff_sub as aff-crypto, the same mark mined leads already use. */
     private function vertical(Lead $lead): string
     {
-        $affSub = strtolower(trim($lead->getAffSub()));
-        if (!str_starts_with($affSub, 'aff-')) {
-            return '';
-        }
         try {
-            return Vertical::from(substr($affSub, 4))->value;
+            return Vertical::from(strtolower(trim($lead->getVertical())))->value;
         } catch (ValueError) {
             return '';
         }

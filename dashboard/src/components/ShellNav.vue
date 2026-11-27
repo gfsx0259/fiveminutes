@@ -84,6 +84,7 @@
         :class="{
           'lm-nav__item--active': route.path === item.to,
           'lm-nav__item--section-end': item.sectionAfter,
+          'lm-nav__item--attention': item.attention,
         }"
         :title="item.title"
         :aria-label="item.title"
@@ -91,6 +92,7 @@
       >
         <v-icon :icon="item.icon" size="18" />
         <span class="lm-nav__text">{{ item.title }}</span>
+        <span v-if="item.attention" class="lm-nav__flag">Set up</span>
       </router-link>
     </nav>
 
@@ -161,6 +163,8 @@ interface NavItem {
   to: string
   icon: string
   sectionAfter?: boolean
+  /** Marks a step the user still has to do. */
+  attention?: boolean
 }
 
 const leads: NavItem = {
@@ -196,6 +200,7 @@ const menu = computed((): NavItem[] => {
     ].filter((item) => session.canOpen(item.to))
   }
   return [
+    { title: 'Integration', to: '/integration', icon: 'mdi-code-json', attention: session.payload?.user?.integrationCompletedAt === null },
     { title: 'Demands', to: '/demands', icon: 'mdi-layers-outline' },
     { title: 'My leads', to: '/leads', icon: 'mdi-account-outline', sectionAfter: true },
     performance,

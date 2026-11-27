@@ -277,6 +277,38 @@ html:has(.lm-nav-dialog) {
   margin-bottom: 10px;
 }
 
+/* A step the user has not done yet: warm accent until it is done. */
+.lm-nav__item--attention:not(.lm-nav__item--active) {
+  background: #ffcf4d1a;
+  box-shadow: inset 0 0 0 1px #ffcf4d55;
+  color: #fff3cf;
+}
+
+.lm-nav__item--attention .v-icon {
+  color: #ffcf4d;
+}
+
+.lm-nav__flag {
+  background: #ffcf4d;
+  border-radius: 999px;
+  color: #3b2a00;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: auto;
+  padding: 4px 8px;
+}
+
+.lm-sidebar--rail .lm-nav__flag {
+  font-size: 0;
+  height: 8px;
+  padding: 0;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 8px;
+}
+
 .lm-nav__item:hover:not(.lm-nav__item--active) {
   background: #ffffff0b;
 }

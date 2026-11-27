@@ -6,6 +6,7 @@ use App\Api\ApiKeyController;
 use App\Api\HealthController;
 use App\Api\IdentityController;
 use App\Api\ImpersonationController;
+use App\Api\IntegrationController;
 use App\Api\LeadController;
 use App\Api\MarketController;
 use App\Api\OrganizationController;
@@ -64,6 +65,8 @@ return [
         Route::post('/leads/{uuid}/approve')->action([LeadController::class, 'approve'])->name('lead-approve'),
         Route::post('/leads/{uuid}/reject')->action([LeadController::class, 'reject'])->name('lead-reject'),
         Route::post('/leads/{uuid}/deliver')->action([LeadController::class, 'deliver'])->name('lead-deliver'),
+        Route::get('/integration')->action([IntegrationController::class, 'show'])->name('integration'),
+        Route::get('/integration/test-lead')->action([IntegrationController::class, 'testLead'])->name('integration-test-lead'),
         Route::get('/api-key')->action([ApiKeyController::class, 'show'])->name('api-key'),
         Route::post('/api-key')->action([ApiKeyController::class, 'create'])->name('api-key-create'),
         Route::get('/presets')->action([MarketController::class, 'presets'])->name('presets'),

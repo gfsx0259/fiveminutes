@@ -221,7 +221,7 @@ function buyerNetCents(lead: CabinetLead): number {
 
 function aggregateBuyer() {
   const grouped = new Map<string, { leads: number; sold: number; approved: number; rejected: number; earnings: number }>()
-  for (const lead of leadStore.leads) {
+  for (const lead of leadStore.counted) {
     const country = lead.country || '—'
     const row = grouped.get(country) ?? { leads: 0, sold: 0, approved: 0, rejected: 0, earnings: 0 }
     row.leads += 1
@@ -259,7 +259,7 @@ function aggregateAdmin() {
     string,
     { leads: number; sold: number; approved: number; rejected: number; partnerSales: number; profit: number }
   >()
-  for (const lead of leadStore.leads) {
+  for (const lead of leadStore.counted) {
     const country = lead.country || '—'
     const row = grouped.get(country) ?? { leads: 0, sold: 0, approved: 0, rejected: 0, partnerSales: 0, profit: 0 }
     row.leads += 1

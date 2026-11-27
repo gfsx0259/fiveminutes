@@ -21,6 +21,8 @@ export interface AppUser {
   role: string
   permissions: TeamPermission[]
   balanceCents?: number | null
+  /** A buyer's first test lead; null until the integration is proven, absent for other roles. */
+  integrationCompletedAt?: string | null
   organization: Organization | null
 }
 
@@ -68,6 +70,13 @@ export const useSessionStore = defineStore('session', () => {
     }
     const permission = pagePermission(path)
     return permission === null || can(permission)
+  }
+
+  /** The cabinet learns of a finished setup here, so the menu stops asking for it without a reload. */
+  function markIntegrated(at: string): void {
+    if (payload.value?.user) {
+      payload.value.user.integrationCompletedAt = at
+    }
   }
 
   async function load(): Promise<void> {
@@ -137,5 +146,5 @@ export const useSessionStore = defineStore('session', () => {
     window.location.href = `${cabinetOrigin(window.location.hostname, 'admin')}/users`
   }
 
-  return { payload, missing, loading, error, isPartner, isTeamScoped, spend, can, canOpen, load, refresh, startImpersonation, stopImpersonation }
+  return { payload, missing, loading, error, isPartner, isTeamScoped, spend, can, canOpen, markIntegrated, load, refresh, startImpersonation, stopImpersonation }
 })

@@ -27,6 +27,7 @@ const toneMap: Record<string, string> = {
   completed: 'success',
   approved: 'success',
   in_stock: 'lavender',
+  test: 'warning',
   in_delivery: 'orange',
   reserved: 'warning',
   scheduled: 'warning',

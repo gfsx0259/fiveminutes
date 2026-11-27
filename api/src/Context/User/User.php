@@ -87,6 +87,25 @@ class User
         return is_string($key) && $key !== '' ? $key : null;
     }
 
+    /**
+     * When the buyer's first test lead came through; null while the integration is still unproven.
+     */
+    public function integrationCompletedAt(): ?string
+    {
+        $at = $this->meta['integrationCompletedAt'] ?? null;
+
+        return is_string($at) && $at !== '' ? $at : null;
+    }
+
+    public function completeIntegration(Clock $clock): void
+    {
+        if ($this->getRole() !== UserRole::Buyer) {
+            throw new NotBuyerException();
+        }
+
+        $this->putMeta('integrationCompletedAt', $clock->now()->format(DATE_ATOM), $clock);
+    }
+
     public function issueApiKey(ApiKey $key, Clock $clock): void
     {
         if ($this->getRole() !== UserRole::Buyer) {

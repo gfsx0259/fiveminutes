@@ -54,6 +54,7 @@ final readonly class SessionView
                     ? null
                     : $user->getBalance()->cents(),
                 'permissions' => $seat->permissions()->values(),
+                'integrationCompletedAt' => $user->getRole() === UserRole::Buyer ? $user->integrationCompletedAt() : null,
                 'organization' => $organization === null ? null : [
                     'id' => $organization->getId(),
                     'name' => $organization->getName(),

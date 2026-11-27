@@ -77,7 +77,7 @@ curl -X POST https://api.marshall.io/v1/lead \
   --cacert traefik/cert/rootCA.pem \
   -H 'Authorization: Bearer КЛЮЧ_ИЗ_КАБИНЕТА' \
   -H 'Content-Type: application/json' \
-  -d '{"phone":"+4915112345678","email":"ada@example.com","first_name":"Ada","last_name":"Lovelace","country_code":"DE","ip":"192.0.2.10","aff_sub":"demo"}'
+  -d '{"phone":"+4915112345678","email":"ada@example.com","first_name":"Ada","last_name":"Lovelace","country_code":"DE","ip":"192.0.2.10","vertical":"nutra","traffic_source":"google"}'
 ```
 
 Ответ `{"uuid":"..."}` значит, что API принял лид. В таблице кабинета он появляется после обработки, кнопка Refresh на странице Leads. Все поля в теле обязательны. Без почты, имени или фамилии API всё равно вернёт uuid, а в кабинет лид не попадёт.

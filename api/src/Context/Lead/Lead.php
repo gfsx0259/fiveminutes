@@ -26,7 +26,7 @@ final readonly class Lead
     private string $age;
     private string $gender;
     private string $ip;
-    private string $affSub;
+    private string $vertical;
     private string $uniqId;
     private string $status;
     private bool $isDelivered;
@@ -36,6 +36,7 @@ final readonly class Lead
     private ?string $presetId;
     /** @var array<string, string> */
     private array $meta;
+    private bool $isTest;
 
     public function __construct(
         string $uuid,
@@ -52,7 +53,7 @@ final readonly class Lead
         string $age,
         string $gender,
         string $ip,
-        string $affSub,
+        string $vertical,
         string $uniqId,
         LeadStatus $status,
         private int $priceCents,
@@ -65,6 +66,7 @@ final readonly class Lead
         bool $clientDeposit = false,
         ?string $presetId = null,
         array $meta = [],
+        bool $isTest = false,
     ) {
         $this->uuid = $this->requireId($uuid, 'Lead uuid is empty');
         $this->organizationId = $this->requireId($organizationId, 'Organization id is empty');
@@ -80,7 +82,7 @@ final readonly class Lead
         $this->age = trim($age);
         $this->gender = trim($gender);
         $this->ip = trim($ip);
-        $this->affSub = trim($affSub);
+        $this->vertical = strtolower(trim($vertical));
         $uniqId = trim($uniqId);
         if ($uniqId === '') {
             throw new InvalidArgumentException('Uniq id is empty');
@@ -96,6 +98,7 @@ final readonly class Lead
         $this->clientDeposit = $clientDeposit;
         $this->presetId = $this->optionalId($presetId);
         $this->meta = MetaMap::from($meta)->pairs();
+        $this->isTest = $isTest;
     }
 
     public function sell(string $sellerId, string $orderId, int $priceCents, DateTimeImmutable $at): self
@@ -178,9 +181,9 @@ final readonly class Lead
         return $this->ip;
     }
 
-    public function getAffSub(): string
+    public function getVertical(): string
     {
-        return $this->affSub;
+        return $this->vertical;
     }
 
     public function getUniqId(): string
@@ -250,7 +253,7 @@ final readonly class Lead
             $this->age,
             $this->gender,
             $this->ip,
-            $this->affSub,
+            $this->vertical,
             $this->uniqId,
             $status,
             $this->priceCents,
@@ -263,6 +266,7 @@ final readonly class Lead
             $this->clientDeposit,
             $this->presetId,
             $this->meta,
+            $this->isTest,
         );
     }
 
@@ -283,7 +287,7 @@ final readonly class Lead
             $this->age,
             $this->gender,
             $this->ip,
-            $this->affSub,
+            $this->vertical,
             $this->uniqId,
             $this->getStatus(),
             $this->priceCents,
@@ -296,6 +300,7 @@ final readonly class Lead
             $this->clientDeposit,
             $this->presetId,
             $this->meta,
+            $this->isTest,
         );
     }
 
@@ -321,7 +326,7 @@ final readonly class Lead
             $this->age,
             $this->gender,
             $this->ip,
-            $this->affSub,
+            $this->vertical,
             $this->uniqId,
             $this->getStatus(),
             $this->priceCents,
@@ -334,6 +339,7 @@ final readonly class Lead
             $clientDeposit,
             $this->presetId,
             $this->meta,
+            $this->isTest,
         );
     }
 
@@ -354,7 +360,7 @@ final readonly class Lead
             $this->age,
             $this->gender,
             $this->ip,
-            $this->affSub,
+            $this->vertical,
             $this->uniqId,
             $this->getStatus(),
             $this->priceCents,
@@ -367,6 +373,7 @@ final readonly class Lead
             $this->clientDeposit,
             $presetId,
             $this->meta,
+            $this->isTest,
         );
     }
 
@@ -390,7 +397,7 @@ final readonly class Lead
             $this->age,
             $this->gender,
             $this->ip,
-            $this->affSub,
+            $this->vertical,
             $this->uniqId,
             $this->getStatus(),
             $this->priceCents,
@@ -403,6 +410,7 @@ final readonly class Lead
             $this->clientDeposit,
             $this->presetId,
             $meta,
+            $this->isTest,
         );
     }
 
@@ -429,7 +437,7 @@ final readonly class Lead
             $this->age,
             $this->gender,
             $this->ip,
-            $this->affSub,
+            $this->vertical,
             $this->uniqId,
             $status,
             $priceCents,
@@ -442,7 +450,50 @@ final readonly class Lead
             $this->clientDeposit,
             $this->presetId,
             $this->meta,
+            $this->isTest,
         );
+    }
+
+    /**
+     * A test lead proves the integration: it is stored and shown to its buyer, and never sold, shelved or counted.
+     */
+    public function withTest(bool $isTest): self
+    {
+        return new self(
+            $this->uuid,
+            $this->organizationId,
+            $this->buyerId,
+            $this->sellerId,
+            $this->orderId,
+            $this->email,
+            $this->phone,
+            $this->firstName,
+            $this->lastName,
+            $this->country,
+            $this->trafficSource,
+            $this->age,
+            $this->gender,
+            $this->ip,
+            $this->vertical,
+            $this->uniqId,
+            $this->getStatus(),
+            $this->priceCents,
+            $this->createdAt,
+            $this->updatedAt,
+            $this->soldAt,
+            $this->isDelivered,
+            $this->deliveryError,
+            $this->clientStatus,
+            $this->clientDeposit,
+            $this->presetId,
+            $this->meta,
+            $isTest,
+        );
+    }
+
+    public function isTest(): bool
+    {
+        return $this->isTest;
     }
 
     public function getPresetId(): ?string

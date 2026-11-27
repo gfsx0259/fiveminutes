@@ -4,6 +4,7 @@ import { TEAM_PATH } from '@/team'
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/pages/Dashboard.vue'
 import Demands from '@/pages/Demands.vue'
+import Integration from '@/pages/Integration.vue'
 import Home from '@/pages/Home.vue'
 import Leads from '@/pages/Leads.vue'
 import Offers from '@/pages/Offers.vue'
@@ -33,6 +34,7 @@ export const router = createRouter({
     { path: '/orders', component: Orders },
     { path: '/stock', component: Stock },
     { path: '/demands', component: Demands },
+    { path: '/integration', component: Integration },
     { path: '/caps', redirect: '/demands' },
     {
       path: '/offers',

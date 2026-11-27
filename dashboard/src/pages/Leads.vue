@@ -287,7 +287,8 @@
           <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item.status="{ item }">
-          <StatusChip :status="item.status" :label="statusLabel(item.status ?? '')" />
+          <StatusChip v-if="item.isTest" status="test" label="Test" />
+          <StatusChip v-else :status="item.status" :label="statusLabel(item.status ?? '')" />
         </template>
         <template #item.partnerDelivery="{ item }">
           <StatusChip
@@ -453,7 +454,6 @@ import {
   matchesLeadDisplayId,
   matchesOrderDisplayId,
   orderDisplayId,
-  verticalFromAffSub,
 } from '@/orderDisplay'
 import { replacePageQuery, sameQuery } from '@/pageQuery'
 import {
@@ -782,7 +782,7 @@ function resolveLeadVertical(
       }
     }
   }
-  return verticalFromAffSub(lead.affSub)
+  return lead.vertical
 }
 
 const leadsForTable = computed((): LeadTableRow[] => {
