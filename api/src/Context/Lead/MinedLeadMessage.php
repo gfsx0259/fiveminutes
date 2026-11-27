@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Context\Lead;
 
+use App\Context\Market\Vertical;
 use App\Value\MetaMap;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use ValueError;
 
 final readonly class MinedLeadMessage
 {
@@ -25,8 +27,9 @@ final readonly class MinedLeadMessage
             'age' => $lead->getAge(),
             'gender' => $lead->getGender(),
             'ip' => $lead->getIp(),
-            'aff_sub' => $lead->getAffSub(),
+            'vertical' => $lead->getVertical(),
             'meta' => $lead->getMeta(),
+            'is_test' => $lead->isTest(),
             'uniq_id' => $lead->getUniqId(),
             'created_at' => $lead->getCreatedAt()->format(DATE_ATOM),
         ], JSON_THROW_ON_ERROR);
@@ -56,13 +59,13 @@ final readonly class MinedLeadMessage
             $this->optional($body, 'age'),
             $this->optional($body, 'gender'),
             $this->text($body, 'ip'),
-            $this->text($body, 'aff_sub'),
+            $this->vertical($body),
             $this->text($body, 'uniq_id'),
             LeadStatus::New,
             0,
             $createdAt,
             $createdAt,
-        ))->withMeta(MetaMap::from($body['meta'] ?? [])->pairs());
+        ))->withMeta(MetaMap::from($body['meta'] ?? [])->pairs())->withTest(($body['is_test'] ?? false) === true);
     }
 
     /**
@@ -76,6 +79,25 @@ final readonly class MinedLeadMessage
         }
 
         return $value;
+    }
+
+    /**
+     * @param array<mixed, mixed> $body
+     */
+    private function vertical(array $body): string
+    {
+        $value = strtolower($this->optional($body, 'vertical'));
+        if ($value === '') {
+            $value = strtolower($this->optional($body, 'aff_sub'));
+            if (str_starts_with($value, 'aff-')) {
+                $value = substr($value, 4);
+            }
+        }
+        try {
+            return Vertical::from($value)->value;
+        } catch (ValueError) {
+            throw new InvalidArgumentException('Lead message field vertical is empty');
+        }
     }
 
     /**

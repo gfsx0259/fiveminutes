@@ -15,6 +15,7 @@ export function routePageTitle(path: string, role?: string): string | null {
     '/rotation': 'Rotation',
     '/offers': 'Offers',
     '/demands': 'Demands',
+    '/integration': 'Integration',
     '/caps': 'Demands',
     '/users': 'Users',
     '/team': 'Team',

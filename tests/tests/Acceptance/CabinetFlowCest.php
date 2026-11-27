@@ -193,7 +193,7 @@ final class CabinetFlowCest
             'ip' => '203.0.113.10',
             'first_name' => 'Ada',
             'last_name' => 'Lovelace',
-            'aff_sub' => 'flow',
+            'vertical' => 'other',
             'traffic_source' => $traffic,
             'age' => '25-34',
             'gender' => 'm',

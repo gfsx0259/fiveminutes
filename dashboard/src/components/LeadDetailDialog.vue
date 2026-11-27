@@ -134,7 +134,7 @@ import { apiPost } from '@/api'
 import { modelLabel, verticalColor, verticalIcon, verticalLabel, trafficLabel } from '@/marketOptions'
 import { dollars } from '@/money'
 import { formatLeadMeta } from '@/metaFields'
-import { leadDisplayId, offerDisplayId, orderDisplayId, verticalFromAffSub } from '@/orderDisplay'
+import { leadDisplayId, offerDisplayId, orderDisplayId } from '@/orderDisplay'
 import { HIDDEN_CONTACT, type CabinetLead } from '@/stores/leads'
 import { useMarketStore } from '@/stores/market'
 import { useSessionStore } from '@/stores/session'
@@ -221,7 +221,7 @@ const presetValues = computed(() => {
   if (!lead) {
     return null
   }
-  const vertical = order?.vertical || preset?.vertical || verticalFromAffSub(lead.affSub)
+  const vertical = order?.vertical || preset?.vertical || lead.vertical
   return {
     vertical: vertical || '—',
     country: order?.geo || preset?.country || '—',
@@ -255,7 +255,7 @@ const leadRows: DetailRow[] = [
   { key: 'age', label: 'Age', kind: 'text', source: 'lead', field: 'age' },
   { key: 'gender', label: 'Gender', kind: 'text', source: 'lead', field: 'gender' },
   { key: 'ip', label: 'IP', kind: 'text', source: 'lead', field: 'ip' },
-  { key: 'affSub', label: 'Aff sub', kind: 'text', source: 'lead', field: 'affSub' },
+  { key: 'vertical', label: 'Vertical', kind: 'vertical', source: 'lead', field: 'vertical' },
   { key: 'meta', label: 'Meta', kind: 'text', source: 'lead', field: 'meta' },
 ]
 

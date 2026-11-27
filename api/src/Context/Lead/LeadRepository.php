@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Lead;
 
 use App\Context\Market\Preset;
+use App\Context\Market\Vertical;
 use App\Context\Market\PresetMatch;
 use App\Context\Market\ShelfAgePolicy;
 use App\Context\Market\ShelfAgePolicyQuery;
@@ -13,9 +14,11 @@ use App\Context\Market\StockPickPreference;
 use App\Value\AgeBracket;
 use App\Value\MetaMap;
 use InvalidArgumentException;
+use ValueError;
 use Beeterty\ClickHouse\Client;
 use DateTimeImmutable;
 use DateTimeInterface;
+use DateTimeZone;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
@@ -23,8 +26,8 @@ final readonly class LeadRepository
 {
     private const string SELECT_COLUMNS = 'uuid, organization_id, buyer_id, seller_id, ifNull(order_id, acceptance_id) AS order_id,
                     email, phone, first_name, last_name, country, traffic_source, age, gender,
-                    ip, aff_sub, meta, uniq_id, status, price_cents, created_at, updated_at, sold_at,
-                    is_delivered, delivery_error, client_status, client_deposit, preset_id';
+                    ip, vertical, aff_sub, meta, uniq_id, status, price_cents, created_at, updated_at, sold_at,
+                    is_delivered, delivery_error, client_status, client_deposit, preset_id, is_test';
 
     public function __construct(private Client $clickhouse) {}
 
@@ -45,7 +48,7 @@ final readonly class LeadRepository
             'age' => $lead->getAge(),
             'gender' => $lead->getGender(),
             'ip' => $lead->getIp(),
-            'aff_sub' => $lead->getAffSub(),
+            'vertical' => $lead->getVertical(),
             'meta' => $lead->metaToken(),
             'preset_id' => $lead->getPresetId(),
             'uniq_id' => $lead->getUniqId(),
@@ -58,6 +61,7 @@ final readonly class LeadRepository
             'delivery_error' => $lead->hasDeliveryError() ? 1 : 0,
             'client_status' => $lead->getClientStatus(),
             'client_deposit' => $lead->hasClientDeposit() ? 1 : 0,
+            'is_test' => $lead->isTest() ? 1 : 0,
         ]]);
     }
 
@@ -326,6 +330,32 @@ final readonly class LeadRepository
         return array_map($this->lead(...), $rows);
     }
 
+    /**
+     * The buyer's newest test lead, when one has arrived since the given moment.
+     */
+    public function findLatestTest(string $organizationId, string $buyerId, ?DateTimeInterface $since = null): ?Lead
+    {
+        $where = 'organization_id = :organization_id AND buyer_id = :buyer_id AND is_test = 1';
+        $parameters = ['organization_id' => $organizationId, 'buyer_id' => $buyerId];
+        if ($since !== null) {
+            $where .= ' AND created_at >= :since';
+            // Rows are written in the server zone, so the bound is compared in it as well.
+            $parameters['since'] = $this->format(DateTimeImmutable::createFromInterface($since)->setTimezone(new DateTimeZone(date_default_timezone_get())));
+        }
+        $rows = $this->clickhouse->query(
+            'SELECT ' . self::SELECT_COLUMNS . '
+             FROM leads FINAL
+             WHERE ' . $where . '
+             ORDER BY created_at DESC
+             LIMIT 1',
+            $parameters,
+        )->rows();
+
+        $row = $rows[0] ?? null;
+
+        return $row === null ? null : $this->lead($row);
+    }
+
     public function findByUuid(string $uuid): ?Lead
     {
         $rows = $this->clickhouse->query(
@@ -360,7 +390,7 @@ final readonly class LeadRepository
             (string) ($row['age'] ?? ''),
             (string) ($row['gender'] ?? ''),
             (string) $row['ip'],
-            (string) $row['aff_sub'],
+            $this->verticalOf($row),
             (string) $row['uniq_id'],
             LeadStatus::from((string) $row['status']),
             (int) $row['price_cents'],
@@ -371,7 +401,26 @@ final readonly class LeadRepository
             $this->bool($row['delivery_error'] ?? 0),
             (string) ($row['client_status'] ?? ''),
             $this->bool($row['client_deposit'] ?? 0),
-        ))->withPreset($this->nullable($row['preset_id'] ?? null))->withMeta(MetaMap::from($row['meta'] ?? [])->pairs());
+        ))->withPreset($this->nullable($row['preset_id'] ?? null))->withMeta(MetaMap::from($row['meta'] ?? [])->pairs())->withTest($this->bool($row['is_test'] ?? 0));
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function verticalOf(array $row): string
+    {
+        $vertical = strtolower(trim((string) ($row['vertical'] ?? '')));
+        if ($vertical === '') {
+            $vertical = strtolower(trim((string) ($row['aff_sub'] ?? '')));
+            if (str_starts_with($vertical, 'aff-')) {
+                $vertical = substr($vertical, 4);
+            }
+        }
+        try {
+            return Vertical::from($vertical)->value;
+        } catch (ValueError) {
+            return '';
+        }
     }
 
     private function bool(mixed $value): bool
@@ -426,10 +475,12 @@ final readonly class LeadRepository
     {
         $age = $this->ageClause($preset);
         $gender = $this->genderClause($preset);
+        $storedVertical = "lower(if(vertical != '', vertical, if(startsWith(lower(aff_sub), 'aff-'), substring(aff_sub, 5), if(lower(aff_sub) IN ('gambling', 'betting', 'crypto', 'forex', 'dating', 'nutra', 'finance', 'other'), aff_sub, ''))))";
         $sql = 'organization_id = :organization_id
                AND status = :status
+               AND is_test = 0
                AND country = :country
-               AND lower(aff_sub) = :vertical_aff
+               AND ' . $storedVertical . ' = lower(:vertical)
                AND ' . $this->trafficClause() . '
                AND ' . $age['sql'] . '
                AND ' . $gender['sql'] . '
@@ -438,7 +489,7 @@ final readonly class LeadRepository
             'organization_id' => $organizationId,
             'status' => LeadStatus::InStock->value,
             'country' => $preset->getCountry(),
-            'vertical_aff' => 'aff-' . $preset->getVertical(),
+            'vertical' => $preset->getVertical(),
             'traffic_source' => $preset->getTrafficSource(),
             'preset_id' => $preset->getId(),
             ...$age['params'],

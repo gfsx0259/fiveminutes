@@ -35,12 +35,12 @@ final readonly class LeadFactory
             $submission->age(),
             $submission->gender(),
             $submission->ip(),
-            $submission->affSub(),
+            $submission->vertical(),
             $uuid,
             LeadStatus::New,
             0,
             $now,
             $now,
-        ))->withMeta($submission->meta());
+        ))->withMeta($submission->meta())->withTest($submission->isTest());
     }
 }

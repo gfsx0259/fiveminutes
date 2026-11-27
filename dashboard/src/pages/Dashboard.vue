@@ -166,7 +166,7 @@ const choice = ref<PeriodChoice>({ key: '7', from: '', to: '' })
 const now = ref(Date.now())
 let clock: ReturnType<typeof setInterval> | undefined
 
-const purchases = computed(() => purchasesOf(leadStore.leads, market.orders, market.presets))
+const purchases = computed(() => purchasesOf(leadStore.counted, market.orders, market.presets))
 const period = computed(() => choicePeriodOf(choice.value, now.value))
 const statusOutcomes = outcomes.filter((item) => item.value !== 'delivered')
 const inPeriod = computed(() => between(purchases.value, period.value.from, period.value.to))

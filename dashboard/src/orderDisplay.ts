@@ -48,15 +48,6 @@ export function offerDisplayId(presetId: string): string {
   return `OF-${tail}`
 }
 
-/** Demo and mined leads often encode vertical in aff sub, e.g. aff-gambling. */
-export function verticalFromAffSub(affSub: string): string {
-  const trimmed = affSub.trim()
-  if (trimmed.startsWith('aff-')) {
-    return trimmed.slice(4)
-  }
-  return ''
-}
-
 /** Live orders use service day; stock orders use the day the order was opened (createdAt). */
 export function orderWhenDay(order: {
   stock: boolean

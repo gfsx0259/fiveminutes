@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Context\Lead;
 
+use App\Context\Market\Vertical;
 use App\Value\Criterion;
 use App\Value\MetaMap;
 use InvalidArgumentException;
+use ValueError;
 
 final readonly class LeadSubmission
 {
@@ -19,7 +21,8 @@ final readonly class LeadSubmission
     private string $ip;
     private string $firstName;
     private string $lastName;
-    private string $affSub;
+    private string $vertical;
+    private bool $isTest;
     /** @var array<string, string> */
     private array $meta;
 
@@ -51,13 +54,20 @@ final readonly class LeadSubmission
 
         $firstName = $this->limited($body, 'first_name', $errors);
         $lastName = $this->limited($body, 'last_name', $errors);
-        $affSub = $this->limited($body, 'aff_sub', $errors);
+        $vertical = strtolower($this->text($body, 'vertical'));
+        try {
+            $vertical = Vertical::from($vertical)->value;
+        } catch (ValueError) {
+            $names = implode(', ', array_column(Vertical::cases(), 'value'));
+            $errors['vertical'] = 'Vertical must be one of: ' . $names;
+        }
         try {
             $meta = MetaMap::from($body['meta'] ?? [])->pairs();
         } catch (InvalidArgumentException $exception) {
             $errors['meta'] = $exception->getMessage();
             $meta = [];
         }
+        $isTest = $this->flag($body, 'is_test', $errors);
         $trafficSource = $this->criterion($body, 'traffic_source', 'Traffic source', $errors);
         $age = $this->optionalCriterion($body, 'age', 'Age', $errors);
         $gender = $this->optionalCriterion($body, 'gender', 'Gender', $errors);
@@ -75,7 +85,8 @@ final readonly class LeadSubmission
         $this->ip = $ip;
         $this->firstName = $firstName;
         $this->lastName = $lastName;
-        $this->affSub = $affSub;
+        $this->vertical = $vertical;
+        $this->isTest = $isTest;
         $this->meta = $meta;
     }
 
@@ -124,9 +135,14 @@ final readonly class LeadSubmission
         return $this->lastName;
     }
 
-    public function affSub(): string
+    public function vertical(): string
     {
-        return $this->affSub;
+        return $this->vertical;
+    }
+
+    public function isTest(): bool
+    {
+        return $this->isTest;
     }
 
     /**
@@ -188,5 +204,28 @@ final readonly class LeadSubmission
         }
 
         return $this->criterion($body, $key, $label, $errors);
+    }
+
+    /**
+     * A JSON boolean, or its text form from a postback or a CSV cell.
+     *
+     * @param array<mixed, mixed> $body
+     * @param array<string, string> $errors
+     */
+    private function flag(array $body, string $key, array &$errors): bool
+    {
+        $value = $body[$key] ?? false;
+        if (is_string($value)) {
+            $value = strtolower(trim($value));
+        }
+        if ($value === true || $value === 1 || $value === 'true' || $value === '1') {
+            return true;
+        }
+        if ($value === false || $value === 0 || $value === 'false' || $value === '0' || $value === '') {
+            return false;
+        }
+        $errors[$key] = 'Must be true or false';
+
+        return false;
     }
 }

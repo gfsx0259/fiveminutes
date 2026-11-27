@@ -52,18 +52,17 @@
         <div class="offer-notice">
           <v-icon icon="mdi-information-outline" size="21" />
           <p v-if="ended">The delivery day of this offer has ended.</p>
-          <p v-else>Leads are being delivered. Your offer is approved: send leads with any method on the right.</p>
+          <p v-else>Leads are being delivered. Send the fields on the right. API, postback and CSV are on the <router-link to="/integration">Integration</router-link> page.</p>
         </div>
       </div>
 
-      <OfferIntegration
-        class="offer-details__integration"
-        :geo="row.geo"
-        :traffic-source="row.trafficSource"
-        :age="row.age"
-        :gender="row.gender"
-        :vertical="row.vertical"
-      />
+      <section class="offer-card offer-fields" aria-labelledby="offer-fields-heading">
+        <h3 id="offer-fields-heading">Fields for this offer</h3>
+        <p>Send these values so the lead matches this offer.</p>
+        <p v-if="omitted.length">Leave {{ omitted.join(' and ') }} out. This offer matches a lead only when {{ omitted.length === 1 ? 'that field is' : 'those fields are' }} empty.</p>
+        <pre>{{ offerFields }}</pre>
+        <UiButton variant="outline" icon="mdi-content-copy" @click="copyFields">Copy JSON</UiButton>
+      </section>
     </div>
   </div>
 </template>
@@ -71,7 +70,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import CountryPick from '@/components/CountryPick.vue'
-import OfferIntegration from '@/components/demands/OfferIntegration.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import { copyText } from '@/copyText'
+import { showToast } from '@/composables/useToast'
 import { dollars } from '@/money'
 import { offerDisplayId } from '@/orderDisplay'
 import {
@@ -110,6 +111,39 @@ function timeLeft(serviceOn: string | null): string {
   const minutes = Math.max(0, Math.ceil((end - Date.now()) / 60000))
   if (minutes === 0) return 'Ended'
   return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
+}
+
+function isOpen(value: string): boolean {
+  const normalized = value.trim().toLowerCase()
+  return normalized === '' || normalized === '*' || normalized === 'all' || normalized === 'any'
+}
+
+const offerFields = computed(() => {
+  const fields: Record<string, string> = {}
+  if (props.row.vertical) {
+    fields.vertical = props.row.vertical
+  }
+  fields.country_code = props.row.geo
+  fields.traffic_source = props.row.trafficSource
+  if (!isOpen(props.row.age)) {
+    const first = props.row.age.match(/\d+/)
+    fields.age = first ? first[0] : props.row.age
+  }
+  if (!isOpen(props.row.gender)) {
+    fields.gender = props.row.gender
+  }
+  return JSON.stringify(fields, null, 2)
+})
+
+const omitted = computed(() => {
+  const names: string[] = []
+  if (isOpen(props.row.age)) names.push('age')
+  if (isOpen(props.row.gender)) names.push('gender')
+  return names
+})
+
+async function copyFields(): Promise<void> {
+  showToast((await copyText(offerFields.value)) ? 'Copied' : 'Copy unavailable')
 }
 
 const rows = computed(() => [
@@ -289,9 +323,39 @@ const rows = computed(() => [
   margin: 0;
 }
 
+.offer-notice a {
+  color: inherit;
+  font-weight: 600;
+}
+
 .offer-notice .v-icon {
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+.offer-fields p {
+  color: var(--lm-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.offer-fields code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.offer-fields pre {
+  background: var(--lm-bg);
+  border: 1px solid var(--lm-border);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
 }
 
 @media (max-width: 1050px) {
@@ -299,7 +363,7 @@ const rows = computed(() => [
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .offer-details__integration {
+  .offer-fields {
     grid-column: 1 / -1;
   }
 }
@@ -309,7 +373,7 @@ const rows = computed(() => [
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .offer-details__integration {
+  .offer-fields {
     grid-column: auto;
   }
 }

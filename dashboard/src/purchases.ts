@@ -1,4 +1,3 @@
-import { verticalFromAffSub } from '@/orderDisplay'
 import { SUCCESS_STRONG } from '@/palette'
 import type { CabinetLead } from '@/stores/leads'
 import type { OrderRow } from '@/stores/market'
@@ -93,7 +92,7 @@ function leadVertical(
       }
     }
   }
-  return verticalFromAffSub(lead.affSub)
+  return lead.vertical
 }
 
 export function purchasesOf(
