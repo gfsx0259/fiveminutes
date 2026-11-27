@@ -20,7 +20,7 @@ final readonly class LeadFactory
         $now = $this->clock->now();
         $uuid = $this->uuids->uuid4()->toString();
 
-        return new Lead(
+        return (new Lead(
             $uuid,
             $buyer->getOrganizationId(),
             $buyer->getId(),
@@ -41,6 +41,6 @@ final readonly class LeadFactory
             0,
             $now,
             $now,
-        );
+        ))->withMeta($submission->meta());
     }
 }

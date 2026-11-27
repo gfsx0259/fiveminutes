@@ -6,80 +6,114 @@ namespace App\Context\Market;
 
 use App\Context\Lead\Lead;
 use App\Value\AgeBracket;
-use Doctrine\Common\Collections\Collection;
+use ValueError;
 
 final readonly class PresetMatch
 {
     public function __construct(private PresetRepository $presets) {}
 
+    public static function star(string $value): bool
+    {
+        $value = strtolower(trim($value));
+
+        return $value === '' || $value === '*' || $value === 'all' || $value === 'any';
+    }
+
     public function forLead(Lead $lead): ?Preset
+    {
+        return $this->allForLead($lead)[0] ?? null;
+    }
+
+    /**
+     * Every preset the lead fits. The same branch can exist twice, once per payment model,
+     * and only one of those pools may have an order.
+     *
+     * @return list<Preset>
+     */
+    public function allForLead(Lead $lead): array
     {
         if (
             $lead->getCountry() === ''
             || $lead->getTrafficSource() === ''
-            || $lead->getAge() === ''
+            || $this->vertical($lead) === ''
         ) {
-            return null;
+            return [];
         }
 
-        $candidates = $this->presets->findByOrganization($lead->getOrganizationId());
-        foreach ($this->genderAttempts($lead) as $gender) {
-            $preset = $this->firstMatching($candidates, $lead, $gender);
-            if ($preset instanceof Preset) {
-                return $preset;
+        $matched = [];
+        foreach ($this->presets->findByOrganization($lead->getOrganizationId()) as $preset) {
+            if ($preset instanceof Preset && $this->matches($preset, $lead)) {
+                $matched[] = $preset;
             }
         }
+        usort($matched, static fn (Preset $left, Preset $right): int => self::paymentOrder($left->getPaymentModel()) <=> self::paymentOrder($right->getPaymentModel()));
 
-        return null;
+        return $matched;
     }
 
-    /**
-     * @return list<string>
-     */
-    private function genderAttempts(Lead $lead): array
+    /** The lead has no payment model, so folders are tried in this fixed order. */
+    public static function paymentOrder(string $model): int
     {
-        if ($lead->getGender() === '') {
-            return [Gender::All->value];
-        }
-        if ($lead->getGender() === Gender::All->value) {
-            return [Gender::All->value];
-        }
-
-        return [$lead->getGender(), Gender::All->value];
+        return match (strtolower(trim($model))) {
+            'cpl' => 0,
+            'cpa' => 1,
+            default => 2,
+        };
     }
 
-    /**
-     * @param Collection<int, Preset> $candidates
-     */
-    private function firstMatching(Collection $candidates, Lead $lead, string $gender): ?Preset
+    private function matches(Preset $preset, Lead $lead): bool
     {
-        foreach ($candidates as $preset) {
-            if (!$preset instanceof Preset) {
-                continue;
-            }
-            if ($this->matches($preset, $lead, $gender)) {
-                return $preset;
-            }
+        if (strcasecmp($preset->getVertical(), $this->vertical($lead)) !== 0) {
+            return false;
         }
-
-        return null;
-    }
-
-    private function matches(Preset $preset, Lead $lead, string $gender): bool
-    {
         if ($preset->getCountry() !== $lead->getCountry()) {
             return false;
         }
         if (strcasecmp($preset->getTrafficSource(), $lead->getTrafficSource()) !== 0) {
             return false;
         }
-        if (!AgeBracket::fits($preset->getAge(), $lead->getAge())) {
+        if (!$this->ageMatches($preset->getAge(), $lead->getAge())) {
             return false;
         }
-        if ($preset->getGender() !== $gender) {
+        if (!$this->genderMatches($preset->getGender(), $lead->getGender())) {
             return false;
         }
 
         return true;
+    }
+
+    private function ageMatches(string $presetAge, string $leadAge): bool
+    {
+        if (self::star($presetAge)) {
+            return $leadAge === '';
+        }
+        if ($leadAge === '') {
+            return false;
+        }
+
+        return AgeBracket::fits($presetAge, $leadAge);
+    }
+
+    private function genderMatches(string $presetGender, string $leadGender): bool
+    {
+        if (self::star($presetGender)) {
+            return $leadGender === '';
+        }
+
+        return $presetGender === $leadGender;
+    }
+
+    /** Vertical rides on aff_sub as aff-crypto, the same mark mined leads already use. */
+    private function vertical(Lead $lead): string
+    {
+        $affSub = strtolower(trim($lead->getAffSub()));
+        if (!str_starts_with($affSub, 'aff-')) {
+            return '';
+        }
+        try {
+            return Vertical::from(substr($affSub, 4))->value;
+        } catch (ValueError) {
+            return '';
+        }
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Context\Lead;
 
+use App\Value\MetaMap;
 use DateTimeImmutable;
 use InvalidArgumentException;
 
@@ -25,6 +26,7 @@ final readonly class MinedLeadMessage
             'gender' => $lead->getGender(),
             'ip' => $lead->getIp(),
             'aff_sub' => $lead->getAffSub(),
+            'meta' => $lead->getMeta(),
             'uniq_id' => $lead->getUniqId(),
             'created_at' => $lead->getCreatedAt()->format(DATE_ATOM),
         ], JSON_THROW_ON_ERROR);
@@ -39,7 +41,7 @@ final readonly class MinedLeadMessage
 
         $createdAt = new DateTimeImmutable($this->text($body, 'created_at'));
 
-        return new Lead(
+        return (new Lead(
             $this->text($body, 'uuid'),
             $this->text($body, 'organization_id'),
             $this->text($body, 'buyer_id'),
@@ -60,7 +62,7 @@ final readonly class MinedLeadMessage
             0,
             $createdAt,
             $createdAt,
-        );
+        ))->withMeta(MetaMap::from($body['meta'] ?? [])->pairs());
     }
 
     /**

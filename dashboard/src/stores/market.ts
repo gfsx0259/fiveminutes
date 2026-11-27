@@ -43,6 +43,7 @@ export interface OrderRow {
   liveInjectNextDueAt?: string | null
   teamId?: string | null
   openedBy?: string | null
+  meta?: Record<string, string>
 }
 
 export interface CapRow {
@@ -222,13 +223,13 @@ export const useMarketStore = defineStore('market', () => {
     await loadPresets()
   }
 
-  async function createOrder(body: Record<string, string | number>): Promise<string> {
+  async function createOrder(body: Record<string, string | number | Record<string, string>>): Promise<string> {
     const payload = await submit('/orders', body)
     await loadOrders()
     return payload.id ?? ''
   }
 
-  async function createStockOrder(body: Record<string, string | number>): Promise<{ id?: string, supplied?: number }> {
+  async function createStockOrder(body: Record<string, string | number | Record<string, string>>): Promise<{ id?: string, supplied?: number }> {
     const payload = await submit('/orders', body)
     await loadWarehouse()
     return payload as { id?: string, supplied?: number }

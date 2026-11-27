@@ -114,6 +114,11 @@
       </div>
     </template>
 
+    <div class="order-form__meta">
+      <UiField label="Meta" icon="mdi-tag-outline" :error="fieldErrors.meta">
+        <MetaFields v-model="metaRows" />
+      </UiField>
+    </div>
     <UiField label="Quantity *" icon="mdi-counter" :error="fieldErrors.volume">
       <UiInput v-model="volume" type="number" placeholder="10" />
     </UiField>
@@ -174,7 +179,9 @@ import UiField from '@/components/ui/UiField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import MetaFields from '@/components/MetaFields.vue'
 import UiTimeField from '@/components/ui/UiTimeField.vue'
+import { metaFromRows, type MetaRow } from '@/metaFields'
 import { showToast } from '@/composables/useToast'
 import { defaultOpensForServiceDate } from '@/timeDefaults'
 import { browserTimeZone, timeZoneOptions } from '@/timezones'
@@ -232,6 +239,7 @@ const vertical = ref<string | null>(null)
 const country = ref<string | null>(null)
 const trafficSource = ref<string | null>(null)
 const volume = ref('10')
+const metaRows = ref<MetaRow[]>([])
 const price = ref('')
 const timezone = ref(browserTimeZone())
 const serviceOn = ref(utcDay(0))
@@ -735,6 +743,7 @@ async function create(): Promise<void> {
       closes_at: closesAt.value,
       timezone: timezone.value,
       team_id: teamId.value ?? '',
+      meta: metaFromRows(metaRows.value),
     })
     const countryName =
       ISO2_COUNTRIES.find((c) => c.code === preset.country)?.name ?? preset.country
@@ -772,6 +781,10 @@ async function create(): Promise<void> {
 
 .order-form__placeholder {
   color: var(--lm-muted);
+}
+
+.order-form__meta {
+  display: none;
 }
 
 .order-form__floor-hint {

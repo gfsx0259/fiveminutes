@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Organization;
 
 use App\Clock;
+use App\Context\Market\RotationAxes;
 use App\Context\Market\ShelfAgePolicy;
 use App\Context\User\User;
 use App\Context\User\UserRole;
@@ -75,5 +76,21 @@ final readonly class OrganizationDesk
         $this->entityManager->run();
 
         return $policy;
+    }
+
+    public function setRotationAxes(User $admin, RotationAxes $axes): void
+    {
+        if ($admin->getRole() !== UserRole::Admin) {
+            throw new DomainException('Only an admin can change organization settings');
+        }
+
+        $organization = $this->organizations->findById($admin->getOrganizationId());
+        if ($organization === null) {
+            throw new DomainException('Organization not found');
+        }
+
+        $organization->setRotationAxes($axes, $this->clock);
+        $this->entityManager->persist($organization);
+        $this->entityManager->run();
     }
 }

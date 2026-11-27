@@ -20,9 +20,9 @@ final readonly class Permit
         private Clock $clock,
     ) {}
 
-    public function allows(Lead $lead, Pick $pick): bool
+    public function allows(Lead $lead, Pick $pick, ?Preset $preset = null): bool
     {
-        $preset = $this->presets->forLead($lead);
+        $preset ??= $this->presetOf($lead);
 
         return $preset instanceof Preset && $this->covering($lead, $preset, $pick) !== null;
     }
@@ -36,7 +36,7 @@ final readonly class Permit
 
     public function consume(Lead $lead, ?Pick $pick): void
     {
-        $preset = $this->presets->forLead($lead);
+        $preset = $this->presetOf($lead);
         if (!$preset instanceof Preset) {
             return;
         }
@@ -45,6 +45,18 @@ final readonly class Permit
             return;
         }
         $this->entityManager->persist($offer);
+    }
+
+    private function presetOf(Lead $lead): ?Preset
+    {
+        $wanted = $lead->getPresetId();
+        foreach ($this->presets->allForLead($lead) as $preset) {
+            if ($wanted === null || $preset->getId() === $wanted) {
+                return $preset;
+            }
+        }
+
+        return $this->presets->forLead($lead);
     }
 
     private function covering(Lead $lead, Preset $preset, ?Pick $pick): ?Offer

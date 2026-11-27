@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Context\Organization;
 
 use App\Clock;
+use App\Context\Market\RotationAxes;
 use App\Context\Market\ShelfAgePolicy;
 use App\Value\Apex;
 use App\Value\Balance;
@@ -33,6 +34,10 @@ class Organization
     #[Column(type: 'jsonb', name: 'shelf_age_policy', typecast: 'json')]
     private array $shelfAgePolicy;
 
+    /** @var list<string> */
+    #[Column(type: 'jsonb', name: 'rotation_axes', typecast: 'json')]
+    private array $rotationAxes;
+
     public function __construct(
         #[Column(type: 'uuid', primary: true)]
         private readonly string $id,
@@ -45,12 +50,14 @@ class Organization
         int $markupPercent = 10,
         int $balance = 0,
         ?array $shelfAgePolicy = null,
+        ?array $rotationAxes = null,
     ) {
         $this->name = $this->requireName($name);
         $this->apex = (new Apex($apex))->toString();
         $this->markupPercent = $this->requireMarkupPercent($markupPercent);
         $this->balance = $balance;
         $this->shelfAgePolicy = ($shelfAgePolicy ?? ShelfAgePolicy::default()->toArray());
+        $this->rotationAxes = $this->requireRotationAxes($rotationAxes ?? RotationAxes::default()->toList());
         new Balance($this->balance);
         $this->requireShelfAgePolicy($this->shelfAgePolicy);
     }
@@ -134,6 +141,38 @@ class Organization
     public function shelfAgePolicyArray(): array
     {
         return $this->getShelfAgePolicy()->toArray();
+    }
+
+    public function getRotationAxes(): RotationAxes
+    {
+        if ($this->rotationAxes === []) {
+            return RotationAxes::default();
+        }
+
+        return RotationAxes::fromList($this->rotationAxes);
+    }
+
+    public function setRotationAxes(RotationAxes $axes, Clock $clock): void
+    {
+        $this->rotationAxes = $axes->toList();
+        $this->updatedAt = $clock->now();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function rotationAxesList(): array
+    {
+        return $this->getRotationAxes()->toList();
+    }
+
+    /**
+     * @param list<mixed> $axes
+     * @return list<string>
+     */
+    private function requireRotationAxes(array $axes): array
+    {
+        return RotationAxes::fromList($axes)->toList();
     }
 
     /**

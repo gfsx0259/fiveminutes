@@ -7,6 +7,14 @@
       </div>
     </div>
 
+    <div v-if="isAdmin" class="leads-scope" role="tablist" aria-label="Lead lists">
+      <button type="button" role="tab" :aria-selected="leadScope === 'all'" :class="{ 'is-active': leadScope === 'all' }" @click="leadScope = 'all'">All leads</button>
+      <button type="button" role="tab" :aria-selected="leadScope === 'review'" :class="{ 'is-active': leadScope === 'review' }" @click="leadScope = 'review'">
+        Review
+        <span v-if="reviewCount > 0" class="leads-scope__count">{{ reviewCount }}</span>
+      </button>
+    </div>
+
     <CollapsibleFilterPanel
       class="leads-filter-panel"
       aria-label="Lead filters"
@@ -544,7 +552,7 @@ const leadLine = computed(() => {
   const role = session.payload?.user?.role
   let line = 'Leads you mined'
   if (role === 'partner') line = 'Leads you purchased, client delivery, and feedback from your buyer.'
-  else if (role === 'admin') line = 'Leads of this organization'
+  else if (role === 'admin') line = leadScope.value === 'review' ? 'Leads with no preset, waiting for an admin' : 'Leads of this organization'
   if (routeOrderFilter.value !== '') {
     return `${line} Filtered by order ${orderDisplayId(routeOrderFilter.value)}.`
   }
@@ -663,6 +671,11 @@ const detailRejectFlow = ref(false)
 const acting = ref('')
 
 const isAdmin = computed(() => session.payload?.user?.role === 'admin')
+const leadScope = ref<'all' | 'review'>('all')
+const reviewCount = computed(() => leadsForTable.value.filter((lead) => lead.status === 'in_stock' && !lead.presetId).length)
+watch(leadScope, () => {
+  page.value = 1
+})
 
 const verticalItems = computed(() => verticals.map((v) => ({ title: v.title, value: v.value })))
 
@@ -790,6 +803,9 @@ function contains(value: string, query: string): boolean {
 }
 
 const filtered = computed(() => leadsForTable.value.filter((lead) => {
+  if (isAdmin.value && leadScope.value === 'review' && !(lead.status === 'in_stock' && !lead.presetId)) {
+    return false
+  }
   if (routeOrderFilter.value !== '') {
     if (!lead.orderId || !matchesOrderDisplayId(lead.orderId, routeOrderFilter.value)) {
       return false
@@ -1021,6 +1037,54 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.leads-scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 14px;
+}
+
+.leads-scope > button {
+  align-items: center;
+  background: #ffffffb3;
+  border: 1px solid #dedbff;
+  border-radius: 9px;
+  color: #10132d;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 12px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 10px 24px;
+}
+
+.leads-scope > button[aria-selected='true'] {
+  background: #5b45e8;
+  border-color: #5b45e8;
+  box-shadow: 0 3px 8px #6635df22;
+  color: #fff;
+}
+
+.leads-scope__count {
+  align-items: center;
+  background: #fff1d9;
+  border-radius: 11px;
+  color: #a65e00;
+  display: inline-flex;
+  font-size: 12px;
+  height: 22px;
+  justify-content: center;
+  min-width: 25px;
+  padding: 0 6px;
+}
+
+.leads-scope > button[aria-selected='true'] .leads-scope__count {
+  background: #fff;
+  color: #a65e00;
+}
+
 .leads-filter-panel {
   margin-bottom: 16px;
 }

@@ -10,6 +10,7 @@ import Offers from '@/pages/Offers.vue'
 import Orders from '@/pages/Orders.vue'
 import Performance from '@/pages/Performance.vue'
 import PresetPage from '@/pages/PresetPage.vue'
+import Rotation from '@/pages/Rotation.vue'
 import Reports from '@/pages/Reports.vue'
 import Stock from '@/pages/Stock.vue'
 import Team from '@/pages/Team.vue'
@@ -28,6 +29,7 @@ export const router = createRouter({
     { path: '/connections', redirect: '/demands' },
     { path: '/send-lead', redirect: '/demands' },
     { path: '/presets', component: PresetPage },
+    { path: '/rotation', component: Rotation },
     { path: '/orders', component: Orders },
     { path: '/stock', component: Stock },
     { path: '/demands', component: Demands },

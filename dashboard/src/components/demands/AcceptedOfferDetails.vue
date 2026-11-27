@@ -62,6 +62,7 @@
         :traffic-source="row.trafficSource"
         :age="row.age"
         :gender="row.gender"
+        :vertical="row.vertical"
       />
     </div>
   </div>

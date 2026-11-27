@@ -32,6 +32,7 @@ final readonly class DeficitMatch
         string $geo,
         bool $stock,
         DateTimeImmutable $now,
+        string $meta = '',
     ): ?Pick {
         $result = $this->redis->eval(
             $this->script,
@@ -46,6 +47,7 @@ final readonly class DeficitMatch
                 strtoupper($geo),
                 $now->format('Y-m-d'),
                 $stock ? 'stock' : 'day',
+                $meta,
             ],
             1,
         );

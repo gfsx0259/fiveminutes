@@ -43,7 +43,7 @@
       </UiField>
       <div class="ui-form__row">
         <UiField label="Age (optional)">
-          <UiInput v-model="age" placeholder="Any age, or 25-34" />
+          <UiInput v-model="age" placeholder="* for empty age, or 25-34" />
         </UiField>
         <UiField label="Gender">
           <UiSelect v-model="gender" :items="genders" placeholder="Gender" />

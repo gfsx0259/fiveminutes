@@ -25,6 +25,8 @@ export interface CabinetLead {
   gender: string
   ip: string
   affSub: string
+  meta?: Record<string, string>
+  presetId?: string | null
   uniqId: string
   priceCents: number
   buyerNetCents?: number

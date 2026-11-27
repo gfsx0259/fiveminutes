@@ -6,6 +6,7 @@ namespace App\Context\Tree;
 
 use App\Context\Market\CallWindow;
 use App\Context\Market\Order;
+use App\Value\MetaMap;
 use DateTimeImmutable;
 use Redis;
 
@@ -44,6 +45,7 @@ final readonly class OrderPool
             'geo' => $order->getGeo(),
             'date' => $serviceOn === null ? '' : $serviceOn->format('Y-m-d'),
             'stock' => $order->isStock() ? '1' : '0',
+            'meta' => MetaMap::from($order->getMeta())->canonical(),
         ]);
         $this->redis->sAdd($pool, $order->getId());
         $this->redis->setex(

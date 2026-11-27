@@ -12,6 +12,7 @@ export interface Organization {
   markupPercent?: number
   balanceCents?: number | null
   shelfAgePolicy?: ShelfAgePolicy
+  rotationAxes?: string[]
 }
 
 export interface AppUser {

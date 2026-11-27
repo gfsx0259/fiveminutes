@@ -147,6 +147,7 @@ const props = defineProps<{
   trafficSource: string
   age: string
   gender: string
+  vertical: string
 }>()
 
 type Method = 'api' | 'postback' | 'csv'
@@ -165,10 +166,17 @@ const endpoint = computed(() => `${apiOrigin(window.location.hostname)}/v1/lead`
 const csvEndpoint = computed(() => `${apiOrigin(window.location.hostname)}/v1/leads/csv`)
 const maskedKey = computed(() => (apiKey.value ? `${apiKey.value.slice(0, 3)}${'•'.repeat(16)}` : ''))
 
-/** A single age inside the offer's bracket ("25-34" → 25), so the sample lead matches the offer. */
+/** Empty, *, any, and all are the open preset value: the lead field must be absent to match it. */
+function isOpen(value: string): boolean {
+  const normalized = value.trim().toLowerCase()
+  return normalized === '' || normalized === '*' || normalized === 'all' || normalized === 'any'
+}
+
+/** A single age inside the offer's bracket ("25-34" → 25). An open age stays off the lead. */
 function sampleAge(age: string): string {
+  if (isOpen(age)) return ''
   const first = age.match(/\d+/)
-  return first ? first[0] : '30'
+  return first ? first[0] : ''
 }
 
 const sample = computed(() => {
@@ -179,11 +187,12 @@ const sample = computed(() => {
     last_name: 'Lovelace',
     country_code: props.geo || 'DE',
     ip: '192.0.2.10',
-    aff_sub: 'demo',
+    aff_sub: props.vertical ? `aff-${props.vertical}` : 'demo',
     traffic_source: props.trafficSource || 'facebook',
-    age: sampleAge(props.age),
   }
-  if (props.gender && props.gender !== 'all') {
+  const age = sampleAge(props.age)
+  if (age !== '') lead.age = age
+  if (props.gender && !isOpen(props.gender)) {
     lead.gender = props.gender
   }
   return lead
